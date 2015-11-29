@@ -79,6 +79,10 @@ public class Main {
         */
 
         DictionaryCell dict1 = new DictionaryCell();
+        DictionaryCell dict1_1 = new DictionaryCell();
+
+        dict1.put("Composite", dict1_1);
+        dict1_1.put("X", "someValue");
 
         DictionaryCell dict2 = new DictionaryCell();
 
@@ -90,6 +94,19 @@ public class Main {
 
         dict1.addListener(Cells.get("Name").addListener(Cells.func((String x) -> x + "Extended").addListener(Cells.put("NameX").addListener(dict2))));
 
+        dict1.addListener(Cells.get("Composite").addListener(Cells.get("X").addListener(Cells.put("CX").addListener(dict2))));
+
+        System.out.println("dict1:");
+        System.out.println(dict1);
+        System.out.println("dict2:");
+        System.out.println(dict2);
+
+        ((DictionaryCell)dict1.get("Composite")).put("X", "SomeNewValue");
+
+        System.out.println("dict1:");
+        System.out.println(dict1);
+        System.out.println("dict2:");
+        System.out.println(dict2);
 
         classModel.filter(StringModel.class, new Container(
             new StringModel("name"),

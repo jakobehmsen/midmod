@@ -20,9 +20,16 @@ public class Cells {
                 if(change instanceof DictionaryCell.PutChange) {
                     DictionaryCell.PutChange putChange = (DictionaryCell.PutChange)change;
                     if(key.equals(putChange.getKey())) {
+                        if(this.value instanceof Cell)
+                            ((Cell)this.value).removeListener(this);
+
                         this.value = putChange.getValue();
                         sendChange(new Cell.ValueChange(putChange.getValue()));
                     }
+                } else if(change instanceof Cell.ValueChange) {
+                    Cell.ValueChange valueChange = (Cell.ValueChange)change;
+
+                    ((Cell)valueChange.getValue()).addListener(this);
                 }
             }
         };
@@ -40,7 +47,7 @@ public class Cells {
             @Override
             public void consumeChange(Object change) {
                 if(change instanceof DictionaryCell.ValueChange) {
-                    DictionaryCell.ValueChange valueChange = (DictionaryCell.ValueChange)change;
+                    Cell.ValueChange valueChange = (Cell.ValueChange)change;
                     this.value = valueChange.getValue();
                     sendChange(new DictionaryCell.PutChange(key, this.value));
                 }

@@ -53,6 +53,10 @@ public class DictionaryCell extends Cell implements CellListener {
         sendChange(new PutChange(key, value));
     }
 
+    public Object get(Object key) {
+        return map.get(key);
+    }
+
     public void remove(Object key) {
         map.remove(key);
         sendChange(new RemoveChange(key));
@@ -61,5 +65,10 @@ public class DictionaryCell extends Cell implements CellListener {
     @Override
     protected List<Object> getState() {
         return map.entrySet().stream().map(x -> new PutChange(x.getKey(), x.getValue())).collect(Collectors.toList());
+    }
+
+    @Override
+    public String toString() {
+        return map.toString();
     }
 }
