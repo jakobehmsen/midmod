@@ -78,6 +78,19 @@ public class Main {
 
         */
 
+        DictionaryCell dict1 = new DictionaryCell();
+
+        DictionaryCell dict2 = new DictionaryCell();
+
+        //dict1.addListener(dict2);
+
+        dict1.put("Name", "MyClass");
+
+
+
+        dict1.addListener(Cells.get("Name").addListener(Cells.func((String x) -> x + "Extended").addListener(Cells.put("NameX").addListener(dict2))));
+
+
         classModel.filter(StringModel.class, new Container(
             new StringModel("name"),
             new CaptureModel()
