@@ -8,6 +8,20 @@ import java.util.function.Function;
 import java.util.stream.IntStream;
 
 public class Cells {
+    public static Cell constant(Object value) {
+        return new Cell() {
+            @Override
+            protected List<Object> getState() {
+                return Arrays.asList(new Cell.ValueChange(value));
+            }
+
+            @Override
+            public void consumeChange(Object change) {
+
+            }
+        };
+    }
+
     public static Cell get(Object key) {
         return new Cell() {
             private Object value;
@@ -40,7 +54,7 @@ public class Cells {
                 } else if(change instanceof Cell.ValueChange) {
                     Cell.ValueChange valueChange = (Cell.ValueChange)change;
 
-                    ((Cell)valueChange.getValue()).addListener(this);
+                    ((MapCell)valueChange.getValue()).addListener(this);
                 }
             }
         };

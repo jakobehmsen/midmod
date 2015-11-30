@@ -58,6 +58,10 @@ public abstract class Cell extends CellListener {
         listener.removeSubject(this);
     }
 
+    protected List<CellListener> getListeners() {
+        return new ArrayList<>(listeners);
+    }
+
     protected void sendChange(Object change) {
         listeners.forEach(x -> x.consumeChange(change));
     }
