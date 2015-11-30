@@ -78,21 +78,22 @@ public class Main {
 
         */
 
-        DictionaryCell dict1 = new DictionaryCell();
-        DictionaryCell dict1_1 = new DictionaryCell();
+        MapCell dict1 = new MapCell();
+        MapCell dict1_1 = new MapCell();
 
         dict1.put("Composite", dict1_1);
         dict1_1.put("X", "someValue");
 
-        DictionaryCell dict2 = new DictionaryCell();
+        MapCell dict2 = new MapCell();
 
         //dict1.addListener(dict2);
 
         dict1.put("Name", "MyClass");
 
+        //dict1.put("FirstName", "John");
+        //dict1.put("LastName", "Johnson");
 
-
-        dict1.addListener(Cells.get("Name").addListener(Cells.func((String x) -> x + "Extended").addListener(Cells.put("NameX").addListener(dict2))));
+        //dict1.addListener(Cells.get("Name").addListener(Cells.func((String x) -> x + "Extended").addListener(Cells.put("NameX").addListener(dict2))));
 
         dict1.addListener(Cells.get("Composite").addListener(Cells.get("X").addListener(Cells.put("CX").addListener(dict2))));
 
@@ -101,7 +102,16 @@ public class Main {
         System.out.println("dict2:");
         System.out.println(dict2);
 
-        ((DictionaryCell)dict1.get("Composite")).put("X", "SomeNewValue");
+        dict1.remove("Name");
+
+        //((DictionaryCell)dict1.get("Composite")).put("X", "SomeNewValue");
+
+
+        //dict1_1.put("X", "someValue2");
+
+        Cells.reduce(dict1.withListener(Cells.get("FirstName")), dict1.withListener(Cells.get("LastName")), String.class, String.class, (x, y) -> x + " " + y).addListener(Cells.put("FullName").addListener(dict2));
+
+        dict1.put("Composite", dict1_1);
 
         System.out.println("dict1:");
         System.out.println(dict1);

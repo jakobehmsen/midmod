@@ -4,7 +4,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class DictionaryCell extends Cell implements CellListener {
+public class MapCell extends Cell {
     @Override
     public void consumeChange(Object change) {
         if(change instanceof PutChange) {

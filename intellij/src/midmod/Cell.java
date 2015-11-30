@@ -3,7 +3,7 @@ package midmod;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class Cell implements CellListener {
+public abstract class Cell extends CellListener {
     public static class CreatedChange {
         private Class<?> type;
 
@@ -14,6 +14,10 @@ public abstract class Cell implements CellListener {
         public Class<?> getType() {
             return type;
         }
+    }
+
+    public static class NullChange {
+
     }
 
     public static class ValueChange {
@@ -33,18 +37,34 @@ public abstract class Cell implements CellListener {
     public Cell addListener(CellListener listener) {
         listeners.add(listener);
 
-        listener.consumeChange(new CreatedChange(getClass()));
+        //listener.consumeChange(new CreatedChange(getClass()));
         getState().forEach(x -> listener.consumeChange(x));
 
         return this;
     }
 
+    public <T extends CellListener> T withListener(T listener) {
+        listeners.add(listener);
+        listener.addSubject(this);
+
+        listener.consumeChange(new CreatedChange(getClass()));
+        getState().forEach(x -> listener.consumeChange(x));
+
+        return listener;
+    }
+
     public void removeListener(CellListener listener) {
         listeners.remove(listener);
+        listener.removeSubject(this);
     }
 
     protected void sendChange(Object change) {
         listeners.forEach(x -> x.consumeChange(change));
+    }
+
+    @Override
+    protected void cleanup() {
+        //new ArrayList<>(listeners).forEach(x -> removeListener(x));
     }
 
     protected abstract List<Object> getState();
