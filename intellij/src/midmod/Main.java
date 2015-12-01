@@ -105,12 +105,17 @@ public class Main {
 
         environment
             .reduce("concat",
-                Arrays.asList(dict1.withListener(Cells.get("FirstName")),
+                Arrays.asList(dict1.withListener(
+                    Cells.get("FirstName")),
                     Cells.constant(" "),
-                    dict1.withListener(Cells.get("LastName")))
+                    dict1.withListener(Cells.get("LastName"))
+                )
             ).addListener(Cells.put("FullName").addListener(dict2));
 
-        environment.define("concat", strings -> ((List<String>) (Object) Arrays.asList(strings)).stream().collect(Collectors.joining()));
+        environment.define("concat",
+            arguments ->
+                Arrays.asList(arguments).stream().allMatch(x -> x instanceof String),
+            strings -> ((List<String>) (Object) Arrays.asList(strings)).stream().collect(Collectors.joining()));
 
         System.out.println("dict1:");
         System.out.println(dict1);
@@ -120,6 +125,10 @@ public class Main {
         System.out.println(environment);
 
         dict1.remove("Name");
+
+        environment.define("concat",
+            arguments -> Arrays.asList(arguments).stream().allMatch(x -> x instanceof String),
+            strings -> ((List<String>) (Object) Arrays.asList(strings)).stream().collect(Collectors.joining(":")));
 
         //((DictionaryCell)dict1.get("Composite")).put("X", "SomeNewValue");
 
@@ -131,7 +140,7 @@ public class Main {
         dict1.put("Composite", dict1_1);
 
         //environment.define("concat", strings -> ((List<String>) (Object) Arrays.asList(strings)).stream().collect(Collectors.joining()));
-        environment.remove("concat");
+        //environment.remove("concat");
 
         System.out.println("dict1:");
         System.out.println(dict1);
