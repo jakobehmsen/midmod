@@ -3,6 +3,7 @@ package midmod;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -22,11 +23,19 @@ public class FunctionMapCell extends MapCell {
 
         if(pairs == null) {
             pairs = new ArrayList<>();
+            pairs.add(new PredicateFunctionPair(argumentsPredicate, function));
             put(name, pairs);
-        }
+        } else {
+            Optional<PredicateFunctionPair> pf = pairs.stream()
+                .filter(x -> x.argumentsPredicate.equals(argumentsPredicate))
+                .findFirst();
 
-        pairs.add(new PredicateFunctionPair(argumentsPredicate, function));
-        put(name, pairs); // Put again to provoke triggering propagation
+            if(pf.isPresent())
+                pairs.remove(pf.get());
+
+            pairs.add(new PredicateFunctionPair(argumentsPredicate, function));
+            put(name, pairs); // Put again to provoke triggering propagation
+        }
     }
 
     public Cell reduce(String name, List<Cell> cells) {
@@ -36,18 +45,20 @@ public class FunctionMapCell extends MapCell {
 
             {
                 FunctionMapCell.this.addListener(Cells.get(name).addListener(this));
-
-                //update((Function<Object[], Object>) get(name));
             }
 
             private void update(List<PredicateFunctionPair> predicateFunctions) {
                 if(this.predicateFunctions != null)
                     cell.getListeners().forEach(x -> cell.removeListener(x));
 
-                if(predicateFunctions != null) {
-                    cell = Cells.reduce(cells, args ->
-                        predicateFunctions.stream().filter(x ->
-                            x.argumentsPredicate.test(args)).findFirst().get().function);
+                if(predicateFunctions != null && predicateFunctions.size() > 0) {
+                    cell = Cells.reduce(cells, args -> {
+                        Optional<PredicateFunctionPair> pf = predicateFunctions.stream().filter(x ->
+                            x.argumentsPredicate.test(args)).findFirst();
+
+                        // What is there is no match?
+                        return pf.get().function;
+                    });
                     cell.addListener(new CellListener() {
                         @Override
                         public void consumeChange(Object change) {

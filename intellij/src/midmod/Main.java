@@ -2,6 +2,7 @@ package midmod;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class Main {
@@ -112,9 +113,9 @@ public class Main {
                 )
             ).addListener(Cells.put("FullName").addListener(dict2));
 
+        Predicate<Object[]> allAreStrings = arguments -> Arrays.asList(arguments).stream().allMatch(x -> x instanceof String);
         environment.define("concat",
-            arguments ->
-                Arrays.asList(arguments).stream().allMatch(x -> x instanceof String),
+            allAreStrings,
             strings -> ((List<String>) (Object) Arrays.asList(strings)).stream().collect(Collectors.joining()));
 
         System.out.println("dict1:");
@@ -127,7 +128,7 @@ public class Main {
         dict1.remove("Name");
 
         environment.define("concat",
-            arguments -> Arrays.asList(arguments).stream().allMatch(x -> x instanceof String),
+            allAreStrings,
             strings -> ((List<String>) (Object) Arrays.asList(strings)).stream().collect(Collectors.joining(":")));
 
         //((DictionaryCell)dict1.get("Composite")).put("X", "SomeNewValue");
