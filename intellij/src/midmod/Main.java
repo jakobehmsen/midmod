@@ -7,50 +7,6 @@ import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) {
-        Container classModel = new Container(
-            new Container(
-                new StringModel("name"),
-                new StringModel("MyClass")
-            ),
-            new Container(
-                new StringModel("fields"),
-                new Container(
-                    new Container(
-                        new Container(
-                            new StringModel("name"),
-                            new StringModel("id")
-                        ),
-                        new Container(
-                            new StringModel("type"),
-                            new StringModel("int")
-                        )
-                    )
-                )
-            ),
-            new Container(
-                new StringModel("methods"),
-                new Container(
-                    new Container(
-                        new Container(
-                            new StringModel("name"),
-                            new StringModel("myMethod")
-                        ),
-                        new Container(
-                            new StringModel("returnType"),
-                            new StringModel("int")
-                        ),
-                        new Container(
-                            new StringModel("parameters"),
-                            new Container(
-                                new StringModel("parameters"),
-                                new StringModel("int")
-                            )
-                        )
-                    )
-                )
-            )
-        );
-
         /*
         From reference models, project applications
 
@@ -149,30 +105,5 @@ public class Main {
         System.out.println(dict2);
         System.out.println("environment:");
         System.out.println(environment);
-
-        classModel.filter(StringModel.class, new Container(
-            new StringModel("name"),
-            new CaptureModel()
-        )).concat(classModel.filter(Container.class, new Container(
-            new StringModel("fields"),
-            new CaptureModel()
-        ))).concat(classModel.filter(Container.class, new Container(
-            new StringModel("methods"),
-            new CaptureModel()
-        ))).forAll((name, fields, methods) -> {
-            System.out.println("public class " + name + " {");
-            fields.forEach((Container f) -> {
-                f.filter(StringModel.class, new Container(
-                    new StringModel("name"),
-                    new CaptureModel()
-                )).concat(f.filter(StringModel.class, new Container(
-                    new StringModel("type"),
-                    new CaptureModel()
-                ))).forAll((fName, fType) -> {
-                    System.out.println("private " + fType + " " + fName + ";");
-                });
-            });
-            System.out.println("}");
-        });
     }
 }
