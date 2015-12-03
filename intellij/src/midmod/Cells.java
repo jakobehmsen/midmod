@@ -83,19 +83,7 @@ public class Cells {
         };
     }
 
-    public static <T, R> Cell reduce(Cell cell1, Cell cell2, Class<T> t, Class<R> r, BiFunction<T, R, Object> function) {
-        return reduce(Arrays.asList(cell1, cell2), args -> function.apply((T)args[0], (R)args[1]));
-    }
-
-    public static <T, R> Cell reduce(Cell cell1, Class<T> t, Function<T, Object> function) {
-        return reduce(Arrays.asList(cell1), args -> function.apply((T)args[0]));
-    }
-
-    public static <T, R> Cell reduce(List<Cell> cells, Class<T> t, Function<List<T>, Object> function) {
-        return reduce(cells, args -> function.apply((List<T>)Arrays.asList(args)));
-    }
-
-    public static Cell reduce(List<Cell> cells, Function<Object[], Object> function) {
+    public static Cell reduce(List<Cell> cells, Function<Object[], Function<Object[], Object>> functionResolver) {
         return new Cell() {
             private Object[] arguments = new Object[cells.size()];
             private int argumentCount;
@@ -133,6 +121,7 @@ public class Cells {
             }
 
             private Object reduce() {
+                Function<Object[], Object> function = functionResolver.apply(arguments);
                 return function.apply(arguments);
             }
 
