@@ -4,7 +4,7 @@ import javax.swing.*;
 
 public class Main {
     public static void main(String[] args) {
-        MapCellEditor editor = new MapCellEditor();
+        ProxyCellEditor editor = new ProxyCellEditor();
 
         JFrame frame = new JFrame();
 
