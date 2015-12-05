@@ -11,7 +11,9 @@ public class ListCellEditor extends JPanel {
         this.listCell = listCell;
 
         add(new JLabel("["));
-        add(new ProxyCellEditor());
+        add(new ProxyCellEditor((current, replacement) -> {
+
+        }));
         add(new JLabel("]"));
     }
 }
