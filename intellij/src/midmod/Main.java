@@ -1,5 +1,14 @@
 package midmod;
 
+import midmod.json.Parser;
+
+import javax.swing.*;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultStyledDocument;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.io.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
@@ -38,6 +47,56 @@ public class Main {
         }"""
 
         */
+
+        MapCell globals = new MapCell();
+
+        JFrame frame = new JFrame();
+
+        JTextArea console = new JTextArea();
+
+        console.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if(e.isControlDown() && e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    String sourceCode = console.getText();
+                    int start = console.getSelectionStart();
+                    int end = console.getSelectionEnd();
+
+                    if(start == end) {
+                        start = 0;
+                        end = console.getDocument().getLength();
+                    }
+
+                    try {
+                        sourceCode = console.getDocument().getText(start, end - start);
+                    } catch (BadLocationException e1) {
+                        e1.printStackTrace();
+                    }
+
+                    try {
+                        Parser parser = new Parser(new ByteArrayInputStream(sourceCode.getBytes()));
+
+                        Object result = parser.execute(globals);
+
+                        console.getDocument().insertString(end, "\n=> " + result, null);
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    } catch (BadLocationException e1) {
+                        e1.printStackTrace();
+                    }
+                }
+            }
+        });
+
+        frame.getContentPane().add(console);
+
+        frame.setSize(800, 600);
+        frame.setLocationRelativeTo(null);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setVisible(true);
+
+        if(1 != 2)
+            return;
 
         MapCell dict1 = new MapCell();
         MapCell dict1_1 = new MapCell();

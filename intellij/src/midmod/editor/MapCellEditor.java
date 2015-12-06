@@ -44,9 +44,9 @@ public class MapCellEditor extends JPanel {
         splitPane.setResizeWeight(0.25);
         //entries.add(splitPane);
 
-        entries.setLayout(new GridLayout(0, 2));
-        /*entries.setLayout(new TableLayout());
-        ((TableLayout)entries.getLayout()).setColumn(new double[]{0.25, 0.75});*/
+        //entries.setLayout(new GridLayout(0, 2));
+        entries.setLayout(new TableLayout());
+        ((TableLayout)entries.getLayout()).setColumn(new double[]{0.25, 0.75});
 
         add(entries);
 
@@ -173,16 +173,16 @@ public class MapCellEditor extends JPanel {
 
         values.add(valueEditor);*/
 
-        //((TableLayout)entries.getLayout()).insertRow(entries.getComponentCount(), 1.0);
-        /*TableLayoutConstraints c = new TableLayoutConstraints();
+        ((TableLayout)entries.getLayout()).insertRow(entries.getComponentCount(), 1.0);
+        TableLayoutConstraints c = new TableLayoutConstraints();
         c.row1 = entries.getComponentCount();
-        c.row2 = entries.getComponentCount();*/
-        entries.add(nameView);
+        c.row2 = entries.getComponentCount();
+        entries.add(nameView, c);
         entries.getComponent(entries.getComponentCount() - 1).setPreferredSize(new Dimension(20, 20));
-        /*c.col1 = 1;
+        c.col1 = 1;
         c.col2 = 1;
         c.row1 = entries.getComponentCount();
-        c.row2 = entries.getComponentCount();*/
-        entries.add(valueEditor);
+        c.row2 = entries.getComponentCount();
+        entries.add(valueEditor, c);
     }
 }
