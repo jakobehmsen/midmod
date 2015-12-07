@@ -15,7 +15,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         /*
         From reference models, project applications
 
@@ -50,7 +50,7 @@ public class Main {
 
         MapCell globals = new MapCell();
 
-        JFrame frame = new JFrame();
+        /*JFrame frame = new JFrame();
 
         JTextArea console = new JTextArea();
 
@@ -93,10 +93,17 @@ public class Main {
         frame.setSize(800, 600);
         frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setVisible(true);
+        frame.setVisible(true);*/
 
-        if(1 != 2)
-            return;
+        new Parser(
+            "Composite = {}\n" +
+            "Composite.X = \"someValue\"\n" +
+            "Name =  \"MyClass\"\n" +
+            "FirstName =  \"John\"\n" +
+            "LastName = \"Johnson\"\n"
+        ).execute(globals);
+
+
 
         MapCell dict1 = new MapCell();
         MapCell dict1_1 = new MapCell();
