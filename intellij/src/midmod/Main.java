@@ -1,6 +1,12 @@
 package midmod;
 
 import midmod.json.Parser;
+import midmod.rules.RuleMap;
+import midmod.rules.actions.*;
+import midmod.rules.actions.Action;
+import midmod.rules.patterns.Capture;
+import midmod.rules.patterns.ConformsToList;
+import midmod.rules.patterns.EqualsString;
 
 import javax.swing.*;
 import javax.swing.text.AttributeSet;
@@ -10,12 +16,30 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.*;
 import java.util.Arrays;
+import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) throws IOException {
+        RuleMap rules = new RuleMap();
+
+        new Block(Arrays.asList(
+            new Define(
+                new Constant(new ConformsToList(Arrays.asList(new EqualsString("print"), new Capture("v")))),
+                new Constant((Action)(ruleMap, captures) -> {
+                    System.out.println(captures.get("v"));
+                    return captures.get("v");
+                })
+            ),
+            new Call(new Constant(Arrays.asList("print", "some string")))
+        )).perform(rules, new Hashtable<>());
+
+        if(1 != 2)
+            return;
+
         /*
         From reference models, project applications
 
@@ -120,7 +144,7 @@ public class Main {
         dict1.put("FirstName", "John");
         dict1.put("LastName", "Johnson");
 
-        //dict1.addListener(Cells.get("Name").addListener(Cells.func((String x) -> x + "Extended").addListener(Cells.put("NameX").addListener(dict2))));
+        //dict1.addListener(Cells.get("Name").addListener(Cells.func((String x) -> x + "Extended").addListener(Cells.define("NameX").addListener(dict2))));
 
         dict1.addListener(Cells.get("Composite").addListener(Cells.get("X").addListener(Cells.put("CX").addListener(dict2))));
 
@@ -153,12 +177,12 @@ public class Main {
             allAreStrings,
             strings -> ((List<String>) (Object) Arrays.asList(strings)).stream().collect(Collectors.joining(":")));
 
-        //((DictionaryCell)dict1.get("Composite")).put("X", "SomeNewValue");
+        //((DictionaryCell)dict1.get("Composite")).define("X", "SomeNewValue");
 
 
-        //dict1_1.put("X", "someValue2");
+        //dict1_1.define("X", "someValue2");
 
-        //Cells.reduce(dict1.withListener(Cells.get("FirstName")), dict1.withListener(Cells.get("LastName")), String.class, String.class, (x, y) -> x + " " + y).addListener(Cells.put("FullName").addListener(dict2));
+        //Cells.reduce(dict1.withListener(Cells.get("FirstName")), dict1.withListener(Cells.get("LastName")), String.class, String.class, (x, y) -> x + " " + y).addListener(Cells.define("FullName").addListener(dict2));
 
         dict1.put("Composite", dict1_1);
 
