@@ -24,6 +24,8 @@ import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) throws IOException {
+        Object value = midmod.lisp.Parser.parse("(\"print\" \"some string\")");
+
         RuleMap rules = new RuleMap();
 
         new Block(Arrays.asList(
@@ -34,7 +36,7 @@ public class Main {
                     return captures.get("v");
                 })
             ),
-            new Call(new Constant(Arrays.asList("print", "some string")))
+            new Call(new Constant(value))
         )).perform(rules, new Hashtable<>());
 
         if(1 != 2)
