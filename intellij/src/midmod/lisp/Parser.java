@@ -48,6 +48,11 @@ public class Parser {
             }
 
             @Override
+            public Object visitWord(LispParser.WordContext ctx) {
+                return ctx.getText();
+            }
+
+            @Override
             public Object visitNumber(LispParser.NumberContext ctx) {
                 try {
                     return Integer.parseInt(ctx.getText());

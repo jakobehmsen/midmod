@@ -16,8 +16,13 @@ public class Call implements Action {
     public Object perform(RuleMap ruleMap, Map<String, Object> captures) {
         Object value = action.perform(ruleMap, captures);
 
+        return on(ruleMap, value);
+    }
+
+    public static Object on(RuleMap ruleMap, Object value) {
         Hashtable<String, Object> resolvedCaptures = new Hashtable<>();
         Action resolvedAction = ruleMap.resolve(value, resolvedCaptures);
+
         return resolvedAction.perform(ruleMap, resolvedCaptures);
     }
 }
