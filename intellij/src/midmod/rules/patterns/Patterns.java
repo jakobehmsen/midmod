@@ -20,8 +20,8 @@ public class Patterns {
         return (value, captures) -> value instanceof String;
     }
 
-    public static Pattern equalsString(String str) {
-        return (value, captures) -> str.equals(value);
+    public static Pattern equalsObject(Object obj) {
+        return (value, captures) -> obj.equals(value);
     }
 
     public static Pattern conformsTo(List<Pattern> list) {
@@ -34,5 +34,9 @@ public class Patterns {
 
             return false;
         };
+    }
+
+    public static Pattern is(Class<?> type) {
+        return (value, captures) -> type.isInstance(value);
     }
 }

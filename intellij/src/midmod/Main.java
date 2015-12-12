@@ -22,10 +22,28 @@ import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) throws IOException {
+
         //Object value = midmod.lisp.Parser.parse("(\"print\" \"some string\")");
-        Object value = midmod.lisp.Parser.parse("(< (- (/ 5 3) 3) (* 2 56))");
 
         RuleMap rules = new RuleMap();
+
+        rules.define(
+            Patterns.conformsTo(
+                Arrays.asList(Patterns.equalsObject("concat"),
+                Patterns.is(String.class).andThen(Patterns.capture("lhs")),
+                Patterns.is(String.class).andThen(Patterns.capture("rhs"))
+            )),
+            (ruleMap, captures) -> (String)captures.get("lhs") + (String)captures.get("rhs")
+        );
+
+        String src =
+            "[\"aFunction\", String value] => [\"concat\", value, \" was provided\"]?\n" +
+            "[\"aFunction\", \"Argument\"]?";
+        System.out.println(src);
+        Object v = new midmod.pal.Evaluator(rules).evaluate(src);
+        System.out.println(v);
+
+        /*Object value = midmod.lisp.Parser.parse("(< (- (/ 5 3) 3) (* 2 56))");
 
         rules.define(
             Patterns.isInteger().andThen(Patterns.capture("v")),
@@ -34,21 +52,17 @@ public class Main {
         List<String> operators = Arrays.asList("+", "-", "*", "/", "<", ">", "<=", ">=");
         rules.define(
             Patterns.conformsTo(Arrays.asList(
-                operators.stream().map(x -> Patterns.equalsString(x)).reduce((x, y) -> x.or(y)).get().andThen(Patterns.capture("operator")),
+                operators.stream().map(x -> Patterns.equalsObject(x)).reduce((x, y) -> x.or(y)).get().andThen(Patterns.capture("operator")),
                 Patterns.capture("lhs"),
                 Patterns.capture("rhs"))),
             (ruleMap, captures) -> Call.on(ruleMap, captures.get("lhs")) + " " + captures.get("operator") + " " + Call.on(ruleMap, captures.get("rhs"))
         );
 
         Object result = new Block(Arrays.asList(
-            /*new Define(
-                new Constant(Patterns.conformsTo(Arrays.asList(Patterns.isInteger(), Patterns.capture("v")))),
-                new Constant((Action)(ruleMap, captures) -> captures.get("v"))
-            ),*/
             new Call(new Constant(value))
         )).perform(rules, new Hashtable<>());
 
-        System.out.println(result);
+        System.out.println(result);*/
 
         if(1 != 2)
             return;
