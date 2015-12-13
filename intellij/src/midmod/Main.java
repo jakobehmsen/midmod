@@ -2,25 +2,68 @@ package midmod;
 
 import midmod.json.Parser;
 import midmod.rules.RuleMap;
-import midmod.rules.actions.*;
 import midmod.rules.actions.Action;
 import midmod.rules.patterns.*;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.util.TraceClassVisitor;
 
-import javax.swing.*;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DefaultStyledDocument;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class Main {
+    private static int nativeActions;
+
+    private static Action toNative(Object code) {
+        ClassNode classNode = new ClassNode(Opcodes.ASM5);
+
+        populateNativeCode(classNode, code);
+
+        ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+        classNode.accept(classWriter);
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+
+        PrintWriter ps = new PrintWriter(os);
+        classNode.accept(new TraceClassVisitor(new PrintWriter(System.out)));
+        org.objectweb.asm.util.CheckClassAdapter.verify(new org.objectweb.asm.ClassReader(classWriter.toByteArray()), true, ps);
+
+        byte[] bytes = classWriter.toByteArray();
+
+        String name = "NativeAction" + nativeActions++;
+
+        try {
+            return (Action)Class.forName(name, false, new SingleClassLoader(name, bytes)).newInstance();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    private static void populateNativeCode(ClassNode classNode, Object code) {
+        if(code instanceof List) {
+            List<Object> codeAsList = (List<Object>)code;
+
+            // Dangerous
+            String operator = (String)codeAsList.get(0);
+
+            switch (operator) {
+                case "+i":
+                    break;
+            }
+        }
+    }
+
     public static void main(String[] args) throws IOException {
 
         //Object value = midmod.lisp.Parser.parse("(\"print\" \"some string\")");
@@ -28,17 +71,96 @@ public class Main {
         RuleMap rules = new RuleMap();
 
         rules.define(
-            Patterns.conformsTo(
-                Arrays.asList(Patterns.equalsObject("concat"),
+            Patterns.conformsTo(Patterns.equalsObject("+"),
                 Patterns.is(String.class).andThen(Patterns.capture("lhs")),
                 Patterns.is(String.class).andThen(Patterns.capture("rhs"))
-            )),
+            ),
             (ruleMap, captures) -> (String)captures.get("lhs") + (String)captures.get("rhs")
         );
 
+        rules.define(
+            Patterns.conformsTo(Patterns.equalsObject("toNative"),
+                Patterns.is(String.class).andThen(Patterns.capture("code"))
+            ),
+            (ruleMap, captures) -> toNative(captures.get("code"))
+        );
+
+        rules.define(
+            Patterns.conformsTo(
+                Patterns.equalsObject("class"),
+                Patterns.is(String.class).andThen(Patterns.capture("name"))
+            ),
+            (ruleMap, captures) -> {
+                try {
+                    return Class.forName((String) captures.get("name"));
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+
+                return null; // Should be an error; how to handle errors? First class frames?
+            }
+        );
+        rules.define(
+            Patterns.conformsTo(
+                Patterns.equalsObject("invoke"),
+                Patterns.is(Class.class).andThen(Patterns.capture("class")),
+                Patterns.is(Object.class).andThen(Patterns.capture("instance")),
+                Patterns.is(String.class).andThen(Patterns.capture("methodName")),
+                Patterns.is(List.class).andThen(Patterns.capture("parameterTypes")),
+                Patterns.is(List.class).andThen(Patterns.capture("arguments"))
+            ),
+            (ruleMap, captures) -> {
+                try {
+                    Class[] parameterTypes = ((List<Object>) captures.get("parameterTypes")).stream().toArray(s -> new Class[s]);
+                    Method method = ((Class<?>) captures.get("class")).getMethod((String) captures.get("methodName"), parameterTypes);
+                    Object[] arguments = ((List<Object>) captures.get("arguments")).stream().toArray(s -> new Object[s]);
+                    return method.invoke(captures.get("instance"), arguments);
+                } catch (NoSuchMethodException e) {
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+                return null; // Should be an error; how to handle errors? First class frames?
+            }
+        );
+        rules.define(
+            Patterns.conformsTo(
+                Patterns.equalsObject("+"),
+                Patterns.is(Double.class).andThen(Patterns.capture("lhs")),
+                Patterns.is(Double.class).andThen(Patterns.capture("rhs"))
+            ),
+            (ruleMap, captures) -> (double)captures.get("lhs") + (double)captures.get("rhs")
+        );
+        rules.define(
+            Patterns.conformsTo(
+                Patterns.equalsObject("+"),
+                Patterns.is(Double.class).andThen(Patterns.capture("lhs")),
+                Patterns.is(Integer.class).andThen(Patterns.capture("rhs"))
+            ),
+            (ruleMap, captures) -> (double)captures.get("lhs") + (int)captures.get("rhs")
+        );
+        rules.define(
+            Patterns.conformsTo(
+                Patterns.equalsObject("+"),
+                Patterns.is(Integer.class).andThen(Patterns.capture("lhs")),
+                Patterns.is(Double.class).andThen(Patterns.capture("rhs"))
+            ),
+            (ruleMap, captures) -> (int)captures.get("lhs") + (double)captures.get("rhs")
+        );
+
+        /*String src =
+            "[\"aFunction\", String value] => [\"+\", value, \" was provided\"]?\n" +
+            "[\"aFunction\", \"Argument\"]?";*/
         String src =
-            "[\"aFunction\", String value] => [\"concat\", value, \" was provided\"]?\n" +
-            "[\"aFunction\", \"Argument\"]?";
+            "[\"toJava\", Integer value] => value\n" +
+            "[\"toJava\", Double value] => value\n" +
+            "[\"toJava\", [\">\", Object lhs, Object rhs]] => [\"+\", lhs, [\"+\", \" \", rhs]?]?\n" +
+            "[\"+\", String lhs, String rhs] => [\"invoke\", [\"class\", \"java.lang.String\"]?, lhs, \"concat\", [[\"class\", \"java.lang.String\"]?], [rhs]]?\n" +
+            "[\"toJava\", [\">\", 1, 5]]?";
+            //"[\"+\", \"Argument\", \"Another\"]?";
+            //"[\"invoke\", [\"class\", \"java.lang.String\"]?, \"myString\", \"concat\", [[\"class\", \"java.lang.String\"]?], [\"otherString\"]]?";
         System.out.println(src);
         Object v = new midmod.pal.Evaluator(rules).evaluate(src);
         System.out.println(v);

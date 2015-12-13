@@ -1,5 +1,6 @@
 package midmod.rules.patterns;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -24,6 +25,10 @@ public class Patterns {
         return (value, captures) -> obj.equals(value);
     }
 
+    public static Pattern conformsTo(Pattern... items) {
+        return conformsTo(Arrays.asList(items));
+    }
+
     public static Pattern conformsTo(List<Pattern> list) {
         return (value, captures) -> {
             if(value instanceof List) {
@@ -37,6 +42,10 @@ public class Patterns {
     }
 
     public static Pattern is(Class<?> type) {
-        return (value, captures) -> type.isInstance(value);
+        if(type == null)
+            new String();
+
+        return (value, captures) ->
+            type.isInstance(value);
     }
 }

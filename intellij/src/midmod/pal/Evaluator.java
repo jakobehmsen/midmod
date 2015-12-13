@@ -147,6 +147,9 @@ public class Evaluator {
                 String typeName = ctx.type.getText();
 
                 switch (typeName) {
+                    case "Object":
+                        type = Object.class;
+                        break;
                     case "String":
                         type = String.class;
                         break;
