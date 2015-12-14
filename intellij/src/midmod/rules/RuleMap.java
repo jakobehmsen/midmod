@@ -14,6 +14,8 @@ public class RuleMap {
     }
 
     public Action resolve(Object value, Map<String, Object> captures) {
+        //System.out.println(value);
+
         return rules.entrySet().stream().filter(x -> x.getKey().matches(value, captures)).findFirst().get().getValue();
     }
 }
