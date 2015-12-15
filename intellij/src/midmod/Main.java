@@ -154,14 +154,14 @@ public class Main {
             "[\"aFunction\", String value] => [\"+\", value, \" was provided\"]?\n" +
             "[\"aFunction\", \"Argument\"]?";*/
         String src =
-            "[\"toJava\", Integer value] => value\n" +
-            "[\"toJava\", Double value] => value\n" +
-            "[\"toJava\", [\"+\", Object lhs, Object rhs]] => (\"+\", (\"toJava\", lhs), (\"+\", \" + \", (\"toJava\", rhs)))\n" +
-            "[\"toJava\", [\">\", Object lhs, Object rhs]] => (\"+\", (\"toJava\", lhs), (\"+\", \" > \", (\"toJava\", rhs)))\n" +
-            "[\"toString\", Object obj] => (\"invoke\", (\"class\", \"java.lang.Object\"), obj, \"toString\", [], [])\n" +
-            "[\"+\", String lhs, String rhs] => (\"invoke\", (\"class\", \"java.lang.String\"), lhs, \"concat\", [(\"class\", \"java.lang.String\")], [rhs])\n" +
-            "[\"+\", String lhs, Object rhs] => (\"+\", lhs, (\"toString\", rhs))\n" +
-            "[\"+\", Object lhs, String rhs] => (\"+\", (\"toString\", lhs), rhs)\n" +
+            "[\"toJava\", Integer :value] => value\n" +
+            "[\"toJava\", Double :value] => value\n" +
+            "[\"toJava\", [\"+\", Object :lhs, Object :rhs]] => (\"+\", (\"toJava\", lhs), (\"+\", \" + \", (\"toJava\", rhs)))\n" +
+            "[\"toJava\", [\">\", Object :lhs, Object :rhs]] => (\"+\", (\"toJava\", lhs), (\"+\", \" > \", (\"toJava\", rhs)))\n" +
+            "[\"toString\", Object :obj] => (\"invoke\", (\"class\", \"java.lang.Object\"), obj, \"toString\", [], [])\n" +
+            "[\"+\", String :lhs, String :rhs] => (\"invoke\", (\"class\", \"java.lang.String\"), lhs, \"concat\", [(\"class\", \"java.lang.String\")], [rhs])\n" +
+            "[\"+\", String :lhs, Object :rhs] => (\"+\", lhs, (\"toString\", rhs))\n" +
+            "[\"+\", Object :lhs, String :rhs] => (\"+\", (\"toString\", lhs), rhs)\n" +
             "(\"toJava\", [\">\", [\"+\", 3, 7], 5])";
             //"(\"+\", (\"toJava\", 5), (\"+\", \" > \", (\"toJava\", 1)))";
             //"[\"+\", \"Argument\", \"Another\"]?";
