@@ -146,7 +146,28 @@ public class Evaluator {
     }
 
     private Pattern evaluatePattern(PalParser.PatternContext ctx) {
-        Pattern pattern = ctx.patternTarget().accept(new PalBaseVisitor<Pattern>() {
+        Pattern pattern = evaluatePatternTarget(ctx.pattern1());
+
+        if (ctx.name != null)
+            pattern = pattern.andThen(Patterns.capture(ctx.name.getText()));
+
+        return pattern;
+    }
+
+    private Pattern evaluatePatternTarget(ParserRuleContext ctx) {
+        return ctx.accept(new PalBaseVisitor<Pattern>() {
+            @Override
+            public Pattern visitPattern1(PalParser.Pattern1Context ctx) {
+                Pattern lhs = evaluatePatternTarget(ctx.pattern2());
+
+                for (PalParser.Pattern1Context rhsCtx : ctx.pattern1()) {
+                    Pattern rhs = evaluatePatternTarget(rhsCtx);
+                    lhs = lhs.or(rhs);
+                }
+
+                return lhs;
+            }
+
             @Override
             public Pattern visitString(PalParser.StringContext ctx) {
                 String str = parseString(ctx);
@@ -190,11 +211,6 @@ public class Evaluator {
                 return Patterns.is(type);
             }
         });
-
-        if (ctx.name != null)
-            pattern = pattern.andThen(Patterns.capture(ctx.name.getText()));
-
-        return pattern;
     }
 
     private String parseString(PalParser.StringContext ctx) {
