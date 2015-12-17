@@ -153,6 +153,8 @@ public class Main {
         /*String src =
             "[\"aFunction\", String value] => [\"+\", value, \" was provided\"]?\n" +
             "[\"aFunction\", \"Argument\"]?";*/
+
+        // Syntactic sugar for ("+" lhs rhs) and the like
         String src =
             "[\"toJava\", Integer :value] => value\n" +
             "[\"toJava\", Double :value] => value\n" +

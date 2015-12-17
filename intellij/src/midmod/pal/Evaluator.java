@@ -7,6 +7,7 @@ import midmod.rules.RuleMap;
 import midmod.rules.actions.Action;
 import midmod.rules.actions.Block;
 import midmod.rules.actions.Call;
+import midmod.rules.actions.Constant;
 import midmod.rules.patterns.Pattern;
 import midmod.rules.patterns.Patterns;
 import org.antlr.v4.runtime.ANTLRInputStream;
@@ -17,6 +18,8 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -42,6 +45,9 @@ public class Evaluator {
     }
 
     private Object evaluate(ParserRuleContext context) {
+        return evaluateAction(context).perform(ruleMap, new Hashtable<>());
+
+        /*
         // Should evaluateAction and then perform action
 
         return context.accept(new PalBaseVisitor<Object>() {
@@ -99,14 +105,74 @@ public class Evaluator {
                     }
                 });
             }
-        });
+        });*/
     }
 
-    private Action evaluateAction(PalParser.ActionContext ctx) {
+    private Action evaluateAction(ParserRuleContext ctx) {
         return ctx.accept(new PalBaseVisitor<Action>() {
             @Override
+            public Action visitActionTarget(PalParser.ActionTargetContext ctx) {
+                //ctx.isCall
+
+                // Derive action
+                // Conditionally wrap action into call
+
+                return null;
+            }
+
+            @Override
+            public Action visitExpression1(PalParser.Expression1Context ctx) {
+                Action lhs = evaluateAction(ctx.expression2());
+
+                for (PalParser.Expression1Context rhsCtx : ctx.expression1()) {
+                    Action rhs = evaluateAction(rhsCtx);
+                    String operator = "+"; // Should be derived from operator
+                    lhs = new Call(new Constant(Arrays.asList(operator, lhs, rhs)));
+                }
+
+                return lhs;
+            }
+
+            @Override
+            public Action visitString(PalParser.StringContext ctx) {
+                String str = parseString(ctx);
+                return (ruleMap1, captures) -> str;
+            }
+
+            @Override
+            public Action visitNumber(PalParser.NumberContext ctx) {
+                Object number = parseNumber(ctx);
+                return (ruleMap1, captures) -> number;
+            }
+
+            @Override
+            public Action visitList(PalParser.ListContext ctx) {
+                List<Action> actions = ctx.action().stream().map(x -> evaluateAction(x)).collect(Collectors.toList());
+                return (ruleMap1, captures) ->
+                    actions.stream().map(x -> x.perform(ruleMap1, captures)).collect(Collectors.toList());
+            }
+
+            @Override
+            public Action visitIdentifier(PalParser.IdentifierContext ctx) {
+                String name = ctx.getText();
+                return (ruleMap1, captures) -> captures.get(name);
+            }
+
+            /*@Override
             public Action visitMaybeAction(PalParser.MaybeActionContext ctx) {
                 Action target = ctx.actionTarget().accept(new PalBaseVisitor<Action>() {
+                    @Override
+                    public Action visitExpression1(PalParser.Expression1Context ctx) {
+                        Action lhs = evaluateAction(ctx.expression2());
+
+                        for (PalParser.Expression1Context rhsCtx : ctx.expression1()) {
+                            Action rhs = evaluateAction(rhsCtx);
+                            lhs = lhs.or(rhs);
+                        }
+
+                        return lhs;
+                    }
+
                     @Override
                     public Action visitString(PalParser.StringContext ctx) {
                         String str = parseString(ctx);
@@ -134,7 +200,7 @@ public class Evaluator {
                 });
 
                 return ctx.isCall != null ? new Call(target) : target;
-            }
+            }*/
 
             @Override
             public Action visitAlwaysAction(PalParser.AlwaysActionContext ctx) {
