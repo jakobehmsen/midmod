@@ -7,10 +7,10 @@ grammar Pal;
 script: scriptElement*;
 scriptElement: define | action;
 define: pattern EQUALS_GREATER action;
-pattern: pattern1 (COLON name=identifier)?;
+pattern: pattern1 (COLON name=ID)?;
 pattern1: pattern2 (PIPE pattern1)*;
 pattern2: typedPattern | literalPattern;
-typedPattern: type=identifier;
+typedPattern: type=ID;
 literalPattern: string | number | listPattern;
 listPattern: OPEN_SQ (pattern (COMMA pattern)*)? CLOSE_SQ;
 literal: string | number | list;
@@ -18,10 +18,11 @@ string: STRING;
 number: NUMBER;
 list: OPEN_SQ (action (COMMA action)*)? CLOSE_SQ;
 action: expression1;
-expression1: expression2 (BIN_OP1 expression1)*;
-expression2: actionTarget;
-actionTarget: (identifier | literal | alwaysAction) isCall=QUESTION_MARK?;
-identifier: ID;
+expression1: expression2 expression1Tail*;
+expression1Tail: BIN_OP1 expression1;
+expression2: actionTarget isCall=QUESTION_MARK?;
+actionTarget: access | literal | alwaysAction;
+access: ID;
 alwaysAction: OPEN_PAR (action (COMMA action)*) CLOSE_PAR;
 
 EQUALS_GREATER: '=>';
@@ -33,7 +34,6 @@ QUESTION_MARK: '?';
 COMMA: ',';
 COLON: ':';
 PIPE: '|';
-BIN_OP1: '+' | '-';
 fragment DIGIT: [0-9];
 fragment LETTER: [A-Z]|[a-z];
 ID: (LETTER | '_') (LETTER | '_' | DIGIT)*;
@@ -49,3 +49,5 @@ NUMBER
 fragment INT :   '0' | [1-9] [0-9]* ; // no leading zeros
 fragment EXP :   [Ee] [+\-]? INT ; // \- since - means "range" inside [...]
 WS  :   [ \t\n\r]+ -> skip ;
+
+BIN_OP1: '+' | '-';

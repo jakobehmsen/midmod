@@ -4,10 +4,7 @@ import midmod.pal.antlr4.PalBaseVisitor;
 import midmod.pal.antlr4.PalLexer;
 import midmod.pal.antlr4.PalParser;
 import midmod.rules.RuleMap;
-import midmod.rules.actions.Action;
-import midmod.rules.actions.Block;
-import midmod.rules.actions.Call;
-import midmod.rules.actions.Constant;
+import midmod.rules.actions.*;
 import midmod.rules.patterns.Pattern;
 import midmod.rules.patterns.Patterns;
 import org.antlr.v4.runtime.ANTLRInputStream;
@@ -21,7 +18,6 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Evaluator {
@@ -111,26 +107,38 @@ public class Evaluator {
     private Action evaluateAction(ParserRuleContext ctx) {
         return ctx.accept(new PalBaseVisitor<Action>() {
             @Override
-            public Action visitActionTarget(PalParser.ActionTargetContext ctx) {
-                //ctx.isCall
+            public Action visitScript(PalParser.ScriptContext ctx) {
+                List<Action> actions = ctx.scriptElement().stream().map(x -> evaluateAction(x)).collect(Collectors.toList());
 
-                // Derive action
-                // Conditionally wrap action into call
-
-                return null;
+                return new Block(actions);
             }
 
             @Override
             public Action visitExpression1(PalParser.Expression1Context ctx) {
                 Action lhs = evaluateAction(ctx.expression2());
 
-                for (PalParser.Expression1Context rhsCtx : ctx.expression1()) {
-                    Action rhs = evaluateAction(rhsCtx);
-                    String operator = "+"; // Should be derived from operator
-                    lhs = new Call(new Constant(Arrays.asList(operator, lhs, rhs)));
+                for (PalParser.Expression1TailContext rhsCtx : ctx.expression1Tail()) {
+                    Action rhs = evaluateAction(rhsCtx.expression1());
+                    String operator = rhsCtx.BIN_OP1().getText();
+                    lhs = new Call(listActionFromActions(Arrays.asList(new Constant(operator), lhs, rhs)));
                 }
 
                 return lhs;
+            }
+
+            @Override
+            public Action visitExpression2(PalParser.Expression2Context ctx) {
+
+                //ctx.isCall
+
+                // Derive action
+                // Conditionally wrap action into call
+                Action actionTarget = evaluateAction(ctx.actionTarget());
+
+                if(ctx.isCall != null)
+                    return new Call(actionTarget);
+
+                return actionTarget;
             }
 
             @Override
@@ -147,13 +155,30 @@ public class Evaluator {
 
             @Override
             public Action visitList(PalParser.ListContext ctx) {
-                List<Action> actions = ctx.action().stream().map(x -> evaluateAction(x)).collect(Collectors.toList());
+                /*List<Action> actions = ctx.action().stream().map(x -> evaluateAction(x)).collect(Collectors.toList());
                 return (ruleMap1, captures) ->
-                    actions.stream().map(x -> x.perform(ruleMap1, captures)).collect(Collectors.toList());
+                    actions.stream().map(x -> {
+                        Object y = x.perform(ruleMap1, captures);
+                        if(y == null)
+                            new String();
+                        return y;
+                    }).collect(Collectors.toList());*/
+
+                return listActionFromContexts(ctx.action());
             }
 
             @Override
-            public Action visitIdentifier(PalParser.IdentifierContext ctx) {
+            public Action visitDefine(PalParser.DefineContext ctx) {
+                Pattern pattern = evaluatePattern(ctx.pattern());
+                Action action = evaluateAction(ctx.action());
+
+                //ruleMap.define(pattern, action);
+
+                return new Define(new Constant(pattern), new Constant(action));
+            }
+
+            @Override
+            public Action visitAccess(PalParser.AccessContext ctx) {
                 String name = ctx.getText();
                 return (ruleMap1, captures) -> captures.get(name);
             }
@@ -204,11 +229,27 @@ public class Evaluator {
 
             @Override
             public Action visitAlwaysAction(PalParser.AlwaysActionContext ctx) {
-                List<Action> actions = ctx.action().stream().map(x -> evaluateAction(x)).collect(Collectors.toList());
-                Action action = (ruleMap1, captures) -> actions.stream().map(x -> x.perform(ruleMap1, captures)).collect(Collectors.toList());
+                //List<Action> actions = ctx.action().stream().map(x -> evaluateAction(x)).collect(Collectors.toList());
+                //Action action = (ruleMap1, captures) -> actions.stream().map(x -> x.perform(ruleMap1, captures)).collect(Collectors.toList());
+                Action action = listActionFromContexts(ctx.action());
                 return new Call(action);
             }
         });
+    }
+
+    private Action listActionFromContexts(List<PalParser.ActionContext> actionContexts) {
+        List<Action> actions = actionContexts.stream().map(x -> evaluateAction(x)).collect(Collectors.toList());
+        return listActionFromActions(actions);
+    }
+
+    private Action listActionFromActions(List<Action> actions) {
+        return (ruleMap1, captures) ->
+            actions.stream().map(x -> {
+                Object y = x.perform(ruleMap1, captures);
+                if(y == null)
+                    return x.perform(ruleMap1, captures);
+                return y;
+            }).collect(Collectors.toList());
     }
 
     private Pattern evaluatePattern(PalParser.PatternContext ctx) {

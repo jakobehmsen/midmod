@@ -158,12 +158,12 @@ public class Main {
         String src =
             "[\"toJava\", Integer :value] => value\n" +
             "[\"toJava\", Double :value] => value\n" +
-            "[\"toJava\", [\"+\" | \"-\" :operator, Object :lhs, Object :rhs]] => (\"+\", (\"toJava\", lhs), (\"+\", operator, (\"toJava\", rhs)))\n" +
-            "[\"toJava\", [\">\", Object :lhs, Object :rhs]] => (\"+\", (\"toJava\", lhs), (\"+\", \" > \", (\"toJava\", rhs)))\n" +
+            "[\"toJava\", [\"+\" | \"-\" :operator, Object :lhs, Object :rhs]] => (\"toJava\", lhs) + \" \" + operator + \" \" + (\"toJava\", rhs)\n" +
+            "[\"toJava\", [\">\", Object :lhs, Object :rhs]] => (\"toJava\", lhs) + \" > \" + (\"toJava\", rhs)\n" +
             "[\"toString\", Object :obj] => (\"invoke\", (\"class\", \"java.lang.Object\"), obj, \"toString\", [], [])\n" +
             "[\"+\", String :lhs, String :rhs] => (\"invoke\", (\"class\", \"java.lang.String\"), lhs, \"concat\", [(\"class\", \"java.lang.String\")], [rhs])\n" +
-            "[\"+\", String :lhs, Object :rhs] => (\"+\", lhs, (\"toString\", rhs))\n" +
-            "[\"+\", Object :lhs, String :rhs] => (\"+\", (\"toString\", lhs), rhs)\n" +
+            "[\"+\", String :lhs, Object :rhs] => lhs + (\"toString\", rhs)\n" +
+            "[\"+\", Object :lhs, String :rhs] => (\"toString\", lhs) + rhs\n" +
             "(\"toJava\", [\">\", [\"+\", 3, 7], [\"-\", 5, 3]])";
             //"(\"+\", (\"toJava\", 5), (\"+\", \" > \", (\"toJava\", 1)))";
             //"[\"+\", \"Argument\", \"Another\"]?";
