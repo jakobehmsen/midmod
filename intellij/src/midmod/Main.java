@@ -164,7 +164,8 @@ public class Main {
             "[\"+\", String :lhs, String :rhs] => (\"invoke\", (\"class\", \"java.lang.String\"), lhs, \"concat\", [(\"class\", \"java.lang.String\")], [rhs])\n" +
             "[\"+\", String :lhs, Object :rhs] => lhs + (\"toString\", rhs)\n" +
             "[\"+\", Object :lhs, String :rhs] => (\"toString\", lhs) + rhs\n" +
-            "(\"toJava\", [\">\", [\"+\", 3, 7], [\"-\", 5, 3]])";
+            //"(\"toJava\", [\">\", [\"+\", 3, 7], [\"-\", 5, 3]])";
+            "{x = 5, y = \"MyString\", z = [1, 2, 3]}";
             //"(\"+\", (\"toJava\", 5), (\"+\", \" > \", (\"toJava\", 1)))";
             //"[\"+\", \"Argument\", \"Another\"]?";
             //"[\"invoke\", [\"class\", \"java.lang.String\"]?, \"myString\", \"concat\", [[\"class\", \"java.lang.String\"]?], [\"otherString\"]]?";

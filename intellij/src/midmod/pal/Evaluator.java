@@ -15,9 +15,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Hashtable;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Evaluator {
@@ -165,6 +163,15 @@ public class Evaluator {
                     }).collect(Collectors.toList());*/
 
                 return listActionFromContexts(ctx.action());
+            }
+
+            @Override
+            public Action visitMap(PalParser.MapContext ctx) {
+                List<Map.Entry<String, Action>> slots = ctx.slot().stream()
+                    .map(x -> new AbstractMap.SimpleImmutableEntry<>(x.ID().getText(), evaluateAction(x.action()))).collect(Collectors.toList());
+
+                return (ruleMap1, captures) ->
+                    slots.stream().collect(Collectors.toMap(x -> x.getKey(), x -> x.getValue().perform(ruleMap1, captures)));
             }
 
             @Override
