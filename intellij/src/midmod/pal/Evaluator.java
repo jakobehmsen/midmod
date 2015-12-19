@@ -126,6 +126,19 @@ public class Evaluator {
 
             @Override
             public Action visitExpression2(PalParser.Expression2Context ctx) {
+                Action lhs = evaluateAction(ctx.expression3());
+
+                for (PalParser.Expression2TailContext rhsCtx : ctx.expression2Tail()) {
+                    Action rhs = evaluateAction(rhsCtx.expression1());
+                    String operator = rhsCtx.BIN_OP2().getText();
+                    lhs = new Call(listActionFromActions(Arrays.asList(new Constant(operator), lhs, rhs)));
+                }
+
+                return lhs;
+            }
+
+            @Override
+            public Action visitExpression3(PalParser.Expression3Context ctx) {
 
                 //ctx.isCall
 
