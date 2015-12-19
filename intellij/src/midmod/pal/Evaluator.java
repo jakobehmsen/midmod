@@ -351,7 +351,8 @@ public class Evaluator {
     }
 
     private String parseString(PalParser.StringContext ctx) {
-        return ctx.getText().substring(1, ctx.getText().length() - 1);
+        String rawString = ctx.getText().substring(1, ctx.getText().length() - 1);
+        return rawString.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
     }
 
     private Object parseNumber(PalParser.NumberContext ctx) {
