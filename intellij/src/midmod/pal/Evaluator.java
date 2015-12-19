@@ -345,6 +345,11 @@ public class Evaluator {
 
                 return Patterns.is(type);
             }
+
+            @Override
+            public Pattern visitAnything(PalParser.AnythingContext ctx) {
+                return Patterns.anything;
+            }
         });
     }
 

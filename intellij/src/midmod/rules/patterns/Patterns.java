@@ -72,4 +72,6 @@ public class Patterns {
             return false;
         };
     }
+
+    public static final Pattern anything = (value, captures) -> true;
 }
