@@ -136,6 +136,18 @@ public class Main {
         rules.defineBinary("+", Double.class, Integer.class, (rhs, lhs) -> rhs + lhs);
         rules.defineBinary("+", Integer.class, Double.class, (rhs, lhs) -> rhs + lhs);
         rules.defineBinary("+", Integer.class, Integer.class, (rhs, lhs) -> rhs + lhs);
+        rules.defineBinary("-", Double.class, Double.class, (rhs, lhs) -> rhs - lhs);
+        rules.defineBinary("-", Double.class, Integer.class, (rhs, lhs) -> rhs - lhs);
+        rules.defineBinary("-", Integer.class, Double.class, (rhs, lhs) -> rhs - lhs);
+        rules.defineBinary("-", Integer.class, Integer.class, (rhs, lhs) -> rhs - lhs);
+        rules.defineBinary("*", Double.class, Double.class, (rhs, lhs) -> rhs * lhs);
+        rules.defineBinary("*", Double.class, Integer.class, (rhs, lhs) -> rhs * lhs);
+        rules.defineBinary("*", Integer.class, Double.class, (rhs, lhs) -> rhs * lhs);
+        rules.defineBinary("*", Integer.class, Integer.class, (rhs, lhs) -> rhs * lhs);
+        rules.defineBinary("/", Double.class, Double.class, (rhs, lhs) -> rhs / lhs);
+        rules.defineBinary("/", Double.class, Integer.class, (rhs, lhs) -> rhs / lhs);
+        rules.defineBinary("/", Integer.class, Double.class, (rhs, lhs) -> rhs / lhs);
+        rules.defineBinary("/", Integer.class, Integer.class, (rhs, lhs) -> rhs / lhs);
 
         /*String src =
             "[\"aFunction\", String value] => [\"+\", value, \" was provided\"]?\n" +
