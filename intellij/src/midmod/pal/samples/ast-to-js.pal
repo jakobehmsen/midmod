@@ -1,0 +1,9 @@
+["toString", Object :obj] => ("invoke", ("class", "java.lang.Object"), obj, "toString", [], [])
+["+", String :lhs, String :rhs] => ("invoke", ("class", "java.lang.String"), lhs, "concat", [("class", "java.lang.String")], [rhs])
+["+", String :lhs, Object :rhs] => lhs + ("toString", rhs)
+["+", Object :lhs, String :rhs] => ("toString", lhs) + rhs
+
+["to-js", Integer :value] => value
+["to-js", Double :value] => value
+["to-js", ["+" | "-" :operator, Object :lhs, Object :rhs]] => ("to-js", lhs) + " " + operator + " " + ("to-js", rhs)
+["to-js", [">" | "<" :operator, Object :lhs, Object :rhs]] => ("to-js", lhs) + " " + operator + " " + ("to-js", rhs)
