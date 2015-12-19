@@ -10,7 +10,7 @@ define: pattern EQUALS_GREATER action;
 pattern: pattern1 (COLON name=ID)?;
 pattern1: pattern2 (PIPE pattern1)*;
 pattern2: typedPattern | literalPattern;
-typedPattern: type=ID;
+typedPattern: /*type=ID*/type=TYPE_CODE;
 literalPattern: string | number | listPattern | mapPattern | anything;
 listPattern: OPEN_SQ (pattern (COMMA pattern)*)? CLOSE_SQ;
 mapPattern: OPEN_BRA (slotPattern (COMMA slotPattern)*)? CLOSE_BRA;
@@ -46,6 +46,7 @@ COLON: ':';
 PIPE: '|';
 BIN_OP1: '+' | '-';
 BIN_OP2: '*' | '/';
+TYPE_CODE: '%' LETTER;
 UNDERSCORE: '_';
 fragment DIGIT: [0-9];
 fragment LETTER: [A-Z]|[a-z];
@@ -62,3 +63,5 @@ NUMBER
 fragment INT :   '0' | [1-9] [0-9]* ; // no leading zeros
 fragment EXP :   [Ee] [+\-]? INT ; // \- since - means "range" inside [...]
 WS  :   [ \t\n\r]+ -> skip ;
+SINGLE_LINE_COMMENT: '//' ~('\r' | '\n')* -> skip;
+MULTI_LINE_COMMENT: '/*' .*? '*/' -> skip;

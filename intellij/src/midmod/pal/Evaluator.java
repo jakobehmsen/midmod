@@ -328,17 +328,14 @@ public class Evaluator {
                 Class<?> type = null;
                 String typeName = ctx.type.getText();
 
-                switch (typeName) {
-                    case "Object":
-                        type = Object.class;
-                        break;
-                    case "String":
+                switch (typeName.charAt(1)) {
+                    case 's':
                         type = String.class;
                         break;
-                    case "Integer":
+                    case 'i':
                         type = Integer.class;
                         break;
-                    case "Double":
+                    case 'd':
                         type = Double.class;
                         break;
                 }
