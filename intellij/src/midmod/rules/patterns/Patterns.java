@@ -2,6 +2,7 @@ package midmod.rules.patterns;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
 
 public class Patterns {
@@ -47,5 +48,20 @@ public class Patterns {
 
         return (value, captures) ->
             type.isInstance(value);
+    }
+
+    public static Pattern conformsToMap(List<Map.Entry<String, Pattern>> map) {
+        return (value, captures) -> {
+            if(value instanceof Map) {
+                Map<String, Object> otherMap = (Map<String, Object>) value;
+                return map.stream()
+                    .allMatch(e -> {
+                        Object slotValue = otherMap.get(e.getKey());
+                        return slotValue != null && e.getValue().matches(slotValue, captures);
+                    });
+            }
+
+            return false;
+        };
     }
 }

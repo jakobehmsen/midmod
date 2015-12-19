@@ -303,6 +303,14 @@ public class Evaluator {
             }
 
             @Override
+            public Pattern visitMapPattern(PalParser.MapPatternContext ctx) {
+                List<Map.Entry<String, Pattern>> slots = ctx.slotPattern().stream()
+                    .map(x -> new AbstractMap.SimpleImmutableEntry<>(x.ID().getText(), evaluatePattern(x.pattern()))).collect(Collectors.toList());
+
+                return Patterns.conformsToMap(slots);
+            }
+
+            @Override
             public Pattern visitTypedPattern(PalParser.TypedPatternContext ctx) {
                 Class<?> type = null;
                 String typeName = ctx.type.getText();
