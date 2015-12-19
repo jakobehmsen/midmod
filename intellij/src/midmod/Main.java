@@ -18,6 +18,8 @@ import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -71,9 +73,6 @@ public class Main {
     }
 
     public static void main(String[] args) throws IOException {
-
-        //Object value = midmod.lisp.Parser.parse("(\"print\" \"some string\")");
-
         RuleMap rules = new RuleMap();
 
         rules.define(
@@ -103,7 +102,7 @@ public class Main {
                     e.printStackTrace();
                 }
 
-                return null; // Should be an error; how to handle errors? First class frames?
+                return null; // Should be an error; how to handle errors? First class frames? Special case matching?
             }
         );
         rules.define(
@@ -149,51 +148,15 @@ public class Main {
         rules.defineBinary("/", Integer.class, Double.class, (rhs, lhs) -> rhs / lhs);
         rules.defineBinary("/", Integer.class, Integer.class, (rhs, lhs) -> rhs / lhs);
 
-        /*String src =
-            "[\"aFunction\", String value] => [\"+\", value, \" was provided\"]?\n" +
-            "[\"aFunction\", \"Argument\"]?";*/
-
-        // Syntactic sugar for ("+" lhs rhs) and the like
-        String src =
-            "[\"toJava\", Integer :value] => value\n" +
-            "[\"toJava\", Double :value] => value\n" +
-            "[\"toJava\", [\"+\" | \"-\" :operator, Object :lhs, Object :rhs]] => (\"toJava\", lhs) + \" \" + operator + \" \" + (\"toJava\", rhs)\n" +
-            "[\"toJava\", [\">\", Object :lhs, Object :rhs]] => (\"toJava\", lhs) + \" > \" + (\"toJava\", rhs)\n" +
-            "[\"toString\", Object :obj] => (\"invoke\", (\"class\", \"java.lang.Object\"), obj, \"toString\", [], [])\n" +
-            "[\"+\", String :lhs, String :rhs] => (\"invoke\", (\"class\", \"java.lang.String\"), lhs, \"concat\", [(\"class\", \"java.lang.String\")], [rhs])\n" +
-            "[\"+\", String :lhs, Object :rhs] => lhs + (\"toString\", rhs)\n" +
-            "[\"+\", Object :lhs, String :rhs] => (\"toString\", lhs) + rhs\n" +
-            //"(\"toJava\", [\">\", [\"+\", 3, 7], [\"-\", 5, 3]])";
-            "{operator=\"+\", arg=Object:arg} => arg\n" +
-            "{operator = \"+\", arg = \"MyString\"}?";
-            //"(\"+\", (\"toJava\", 5), (\"+\", \" > \", (\"toJava\", 1)))";
-            //"[\"+\", \"Argument\", \"Another\"]?";
-            //"[\"invoke\", [\"class\", \"java.lang.String\"]?, \"myString\", \"concat\", [[\"class\", \"java.lang.String\"]?], [\"otherString\"]]?";
-        System.out.println(src);
-        Object v = new midmod.pal.Evaluator(rules).evaluate(src);
-        System.out.println(v);
-
-        /*Object value = midmod.lisp.Parser.parse("(< (- (/ 5 3) 3) (* 2 56))");
-
-        rules.define(
-            Patterns.isInteger().andThen(Patterns.capture("v")),
-            (ruleMap, captures) -> captures.get("v")
-        );
-        List<String> operators = Arrays.asList("+", "-", "*", "/", "<", ">", "<=", ">=");
-        rules.define(
-            Patterns.conformsTo(Arrays.asList(
-                operators.stream().map(x -> Patterns.equalsObject(x)).reduce((x, y) -> x.or(y)).get().andThen(Patterns.capture("operator")),
-                Patterns.capture("lhs"),
-                Patterns.capture("rhs"))),
-            (ruleMap, captures) -> Call.on(ruleMap, captures.get("lhs")) + " " + captures.get("operator") + " " + Call.on(ruleMap, captures.get("rhs"))
-        );
-
-        Object result = new Block(Arrays.asList(
-            new Call(new Constant(value))
-        )).perform(rules, new Hashtable<>());
-
-        System.out.println(result);*/
-
+        new Thread(() -> {
+            // Just some dummy source code for "warming up" the evaluator and parser
+            String src = "{operator = \"+\", arg = \"MyString\"}";
+            try {
+                new Evaluator(new RuleMap()).evaluate(src);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).run();
         Evaluator evaluator = new Evaluator(rules);
 
         JFrame frame = new JFrame();
