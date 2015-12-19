@@ -7,3 +7,11 @@
 ["to-js", %d value] => value
 ["to-js", ["+" | "-" operator, _ lhs, _ rhs]] => ("to-js", lhs) + " " + operator + " " + ("to-js", rhs)
 ["to-js", [">" | "<" operator, _ lhs, _ rhs]] => ("to-js", lhs) + " " + operator + " " + ("to-js", rhs)
+["to-js", ["if", _ condition, _ ifTrue, _ ifFalse]] =>
+    "if(" + ("to-js", condition) + ") {\n" +
+    ("to-js", ifTrue) + "\n" +
+    "} else {\n" +
+    ("to-js", ifFalse) + "\n" +
+    "}"
+["to-js", ["if", _ condition, _ ifTrue]] => ("to-js", ["if", condition, []])
+["to-js", []] => ""
