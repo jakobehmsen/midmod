@@ -1,6 +1,7 @@
 package midmod;
 
 import midmod.json.Parser;
+import midmod.pal.Evaluator;
 import midmod.rules.RuleMap;
 import midmod.rules.actions.Action;
 import midmod.rules.patterns.*;
@@ -9,6 +10,9 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.util.TraceClassVisitor;
 
+import javax.swing.*;
+import javax.swing.text.BadLocationException;
+import java.awt.event.KeyAdapter;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -16,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.awt.event.KeyEvent;
 
 public class Main {
     private static int nativeActions;
@@ -149,6 +154,14 @@ public class Main {
             ),
             (ruleMap, captures) -> (int)captures.get("lhs") + (double)captures.get("rhs")
         );
+        rules.define(
+            Patterns.conformsTo(
+                Patterns.equalsObject("+"),
+                Patterns.is(Integer.class).andThen(Patterns.capture("lhs")),
+                Patterns.is(Integer.class).andThen(Patterns.capture("rhs"))
+            ),
+            (ruleMap, captures) -> (int)captures.get("lhs") + (int)captures.get("rhs")
+        );
 
         /*String src =
             "[\"aFunction\", String value] => [\"+\", value, \" was provided\"]?\n" +
@@ -165,7 +178,8 @@ public class Main {
             "[\"+\", String :lhs, Object :rhs] => lhs + (\"toString\", rhs)\n" +
             "[\"+\", Object :lhs, String :rhs] => (\"toString\", lhs) + rhs\n" +
             //"(\"toJava\", [\">\", [\"+\", 3, 7], [\"-\", 5, 3]])";
-            "{x = 5, y = \"MyString\", z = [1, 2, 3]}";
+            "{operator=\"+\", arg=Object:arg} => arg\n" +
+            "{operator = \"+\", arg = \"MyString\"}?";
             //"(\"+\", (\"toJava\", 5), (\"+\", \" > \", (\"toJava\", 1)))";
             //"[\"+\", \"Argument\", \"Another\"]?";
             //"[\"invoke\", [\"class\", \"java.lang.String\"]?, \"myString\", \"concat\", [[\"class\", \"java.lang.String\"]?], [\"otherString\"]]?";
@@ -193,6 +207,53 @@ public class Main {
         )).perform(rules, new Hashtable<>());
 
         System.out.println(result);*/
+
+        Evaluator evaluator = new Evaluator(rules);
+
+        JFrame frame = new JFrame();
+
+        JTextArea console = new JTextArea();
+
+        console.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if(e.isControlDown() && e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    String sourceCode = console.getText();
+                    int start = console.getSelectionStart();
+                    int end = console.getSelectionEnd();
+
+                    if(start == end) {
+                        start = 0;
+                        end = console.getDocument().getLength();
+                    }
+
+                    try {
+                        sourceCode = console.getDocument().getText(start, end - start);
+                    } catch (BadLocationException e1) {
+                        e1.printStackTrace();
+                    }
+
+                    try {
+                        Object result = evaluator.evaluate(new ByteArrayInputStream(sourceCode.getBytes()));
+
+                        String outputText = " " + result;
+                        console.getDocument().insertString(end, outputText, null);
+                        console.select(end + 1, end + outputText.length());
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    } catch (BadLocationException e1) {
+                        e1.printStackTrace();
+                    }
+                }
+            }
+        });
+
+        frame.getContentPane().add(console);
+
+        frame.setSize(800, 600);
+        frame.setLocationRelativeTo(null);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setVisible(true);
 
         if(1 != 2)
             return;
