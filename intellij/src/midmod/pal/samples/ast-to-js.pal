@@ -1,9 +1,9 @@
-["toString", Object :obj] => ("invoke", ("class", "java.lang.Object"), obj, "toString", [], [])
-["+", String :lhs, String :rhs] => ("invoke", ("class", "java.lang.String"), lhs, "concat", [("class", "java.lang.String")], [rhs])
-["+", String :lhs, Object :rhs] => lhs + ("toString", rhs)
-["+", Object :lhs, String :rhs] => ("toString", lhs) + rhs
+["toString", _ obj] => ("invoke", ("class", "java.lang.Object"), obj, "toString", [], [])
+["+", %s lhs, %s rhs] => ("invoke", ("class", "java.lang.String"), lhs, "concat", [("class", "java.lang.String")], [rhs])
+["+", %s lhs, _ rhs] => lhs + ("toString", rhs)
+["+", _ lhs, %s rhs] => ("toString", lhs) + rhs
 
-["to-js", Integer :value] => value
-["to-js", Double :value] => value
-["to-js", ["+" | "-" :operator, Object :lhs, Object :rhs]] => ("to-js", lhs) + " " + operator + " " + ("to-js", rhs)
-["to-js", [">" | "<" :operator, Object :lhs, Object :rhs]] => ("to-js", lhs) + " " + operator + " " + ("to-js", rhs)
+["to-js", %i value] => value
+["to-js", %d value] => value
+["to-js", ["+" | "-" operator, _ lhs, _ rhs]] => ("to-js", lhs) + " " + operator + " " + ("to-js", rhs)
+["to-js", [">" | "<" operator, _ lhs, _ rhs]] => ("to-js", lhs) + " " + operator + " " + ("to-js", rhs)
