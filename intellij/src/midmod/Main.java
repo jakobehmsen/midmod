@@ -4,6 +4,7 @@ import midmod.json.Parser;
 import midmod.pal.Evaluator;
 import midmod.rules.RuleMap;
 import midmod.rules.actions.Action;
+import midmod.rules.actions.Actions;
 import midmod.rules.patterns.*;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -130,38 +131,11 @@ public class Main {
                 return null; // Should be an error; how to handle errors? First class frames?
             }
         );
-        rules.define(
-            Patterns.conformsTo(
-                Patterns.equalsObject("+"),
-                Patterns.is(Double.class).andThen(Patterns.capture("lhs")),
-                Patterns.is(Double.class).andThen(Patterns.capture("rhs"))
-            ),
-            (ruleMap, captures) -> (double)captures.get("lhs") + (double)captures.get("rhs")
-        );
-        rules.define(
-            Patterns.conformsTo(
-                Patterns.equalsObject("+"),
-                Patterns.is(Double.class).andThen(Patterns.capture("lhs")),
-                Patterns.is(Integer.class).andThen(Patterns.capture("rhs"))
-            ),
-            (ruleMap, captures) -> (double)captures.get("lhs") + (int)captures.get("rhs")
-        );
-        rules.define(
-            Patterns.conformsTo(
-                Patterns.equalsObject("+"),
-                Patterns.is(Integer.class).andThen(Patterns.capture("lhs")),
-                Patterns.is(Double.class).andThen(Patterns.capture("rhs"))
-            ),
-            (ruleMap, captures) -> (int)captures.get("lhs") + (double)captures.get("rhs")
-        );
-        rules.define(
-            Patterns.conformsTo(
-                Patterns.equalsObject("+"),
-                Patterns.is(Integer.class).andThen(Patterns.capture("lhs")),
-                Patterns.is(Integer.class).andThen(Patterns.capture("rhs"))
-            ),
-            (ruleMap, captures) -> (int)captures.get("lhs") + (int)captures.get("rhs")
-        );
+
+        rules.defineBinary("+", Double.class, Double.class, (rhs, lhs) -> rhs + lhs);
+        rules.defineBinary("+", Double.class, Integer.class, (rhs, lhs) -> rhs + lhs);
+        rules.defineBinary("+", Integer.class, Double.class, (rhs, lhs) -> rhs + lhs);
+        rules.defineBinary("+", Integer.class, Integer.class, (rhs, lhs) -> rhs + lhs);
 
         /*String src =
             "[\"aFunction\", String value] => [\"+\", value, \" was provided\"]?\n" +

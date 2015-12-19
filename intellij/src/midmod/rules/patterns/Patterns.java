@@ -26,6 +26,14 @@ public class Patterns {
         return (value, captures) -> obj.equals(value);
     }
 
+    public static Pattern binary(String operator, Class<?> lhsType, Class<?> rhsType) {
+        return Patterns.conformsTo(
+            Patterns.equalsObject(operator),
+            Patterns.is(lhsType).andThen(Patterns.capture("lhs")),
+            Patterns.is(rhsType).andThen(Patterns.capture("rhs"))
+        );
+    }
+
     public static Pattern conformsTo(Pattern... items) {
         return conformsTo(Arrays.asList(items));
     }
