@@ -1,5 +1,7 @@
 package midmod.rules.patterns;
 
+import midmod.pal.Consumable;
+
 import java.util.Map;
 
 public class EqualsString implements Pattern {
@@ -10,7 +12,7 @@ public class EqualsString implements Pattern {
     }
 
     @Override
-    public boolean matches(Object value, Map<String, Object> captures) {
+    public boolean matches(Consumable value, Map<String, Object> captures) {
         return this.value.equals(value);
     }
 }

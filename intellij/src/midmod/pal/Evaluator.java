@@ -275,6 +275,9 @@ public class Evaluator {
     private Pattern evaluatePattern(PalParser.PatternContext ctx) {
         Pattern pattern = evaluatePatternTarget(ctx.pattern1());
 
+        if(ctx.repeatPattern != null)
+            pattern = Patterns.repeat(pattern);
+
         if (ctx.name != null)
             pattern = pattern.andThen(Patterns.capture(ctx.name.getText()));
 

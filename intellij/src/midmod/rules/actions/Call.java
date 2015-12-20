@@ -1,5 +1,6 @@
 package midmod.rules.actions;
 
+import midmod.pal.Consumable;
 import midmod.rules.RuleMap;
 
 import java.util.Hashtable;

@@ -1,5 +1,6 @@
 package midmod.rules;
 
+import midmod.pal.Consumable;
 import midmod.rules.actions.Action;
 import midmod.rules.actions.Actions;
 import midmod.rules.patterns.Pattern;
@@ -23,9 +24,9 @@ public class RuleMap {
     public Action resolve(Object value, Map<String, Object> captures) {
         //System.out.println(value);
 
-        if(!rules.entrySet().stream().anyMatch(x -> x.getKey().matches(value, captures)))
+        if(!rules.entrySet().stream().anyMatch(x -> x.getKey().matches(Consumable.Util.wrap(value), captures)))
             new String();
 
-        return rules.entrySet().stream().filter(x -> x.getKey().matches(value, captures)).findFirst().get().getValue();
+        return rules.entrySet().stream().filter(x -> x.getKey().matches(Consumable.Util.wrap(value), captures)).findFirst().get().getValue();
     }
 }

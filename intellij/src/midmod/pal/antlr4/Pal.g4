@@ -7,7 +7,7 @@ grammar Pal;
 script: scriptElement*;
 scriptElement: define | action;
 define: pattern EQUALS_GREATER action;
-pattern: pattern1 (name=ID)?;
+pattern: pattern1 (repeatPattern=ELLIPSIS)? (name=ID)?;
 pattern1: pattern2 (PIPE pattern1)*;
 pattern2: typedPattern | literalPattern;
 typedPattern: type=TYPE_CODE;
@@ -32,6 +32,7 @@ actionTarget: access | literal | alwaysAction;
 access: ID;
 alwaysAction: OPEN_PAR (action (COMMA action)*) CLOSE_PAR;
 
+ELLIPSIS: '...';
 EQUALS: '=';
 EQUALS_GREATER: '=>';
 OPEN_BRA: '{';

@@ -7,11 +7,65 @@
 ["to-js", %d value] => value
 ["to-js", ["+" | "-" operator, _ lhs, _ rhs]] => ("to-js", lhs) + " " + operator + " " + ("to-js", rhs)
 ["to-js", [">" | "<" operator, _ lhs, _ rhs]] => ("to-js", lhs) + " " + operator + " " + ("to-js", rhs)
-["to-js", ["if", _ condition, _ ifTrue, _ ifFalse]] =>
+
+/*
+// '... is a closure
+// Indention support via lists within lists
+["js-to-string", %s s] => s
+["js-to-string", %i depth, [...] l] => ("map", {|item| ("js-to-string-item", depth, item)})
+["js-to-string-item", %i depth, [...] item] =>
+    ("indention", depth + 1) + ("replace", ("js-to-string", depth + 1, item), "\n", ("indention", depth + 1) + "\n")
+["js-to-string-item", %i depth, %s item] => item
+["js-to-string", [...] l] => ("js-to-string", 0, l)
+["indention", 0] => ""
+["indention", %i depth] => "    " + ("indention", depth - 1)
+*/
+
+/*["to-js", ["if", _ condition, _ ifTrue, _ ifFalse]] =>
     "if(" + ("to-js", condition) + ") {\n" +
     ("to-js", ifTrue) + "\n" +
     "} else {\n" +
     ("to-js", ifFalse) + "\n" +
-    "}"
+    "}"*/
+
+["to-js", ["if", _ condition, _ ifTrue, _ ifFalse]] =>
+    ["if(" + ("to-js", condition) + ") {\n",
+        [("to-js", ifTrue) + "\n"],
+    "} else {\n",
+        [("to-js", ifFalse) + "\n"],
+    "}"]
 ["to-js", ["if", _ condition, _ ifTrue]] => ("to-js", ["if", condition, []])
 ["to-js", []] => ""
+
+/*
+[%s ...] => "strings"
+[%i ...] => "integers"
+[_ ...] => "objects"
+
+("str", "strtr")
+(1, 2, 3)
+*/
+
+/*
+
+["to-js", ["if", _ condition, _ ifTrue, _ ifFalse]] =>
+    ["if(" + ("to-js", condition) + ") {\n",
+        [("to-js", ifTrue) + "\n"],
+    "} else {\n",
+        [("to-js", ifFalse) + "\n"],
+    "}"]
+
+
+
+["to-js", printer, %i value] => ("print", printer, value)
+["to-js", printer, %d value] => ("print", printer, value)
+["to-js", printer, ["+" | "-" operator, _ lhs, _ rhs]] => ("to-js", lhs) + " " + operator + " " + ("to-js", rhs)
+
+
+["indented", block] =>
+    ("replace", ("eval", {indent = indent + 1}, block), "\n", ("indention"))
+
+
+"if(1 > 2) {\n" +
+    ("indented", {|| })
+*/
