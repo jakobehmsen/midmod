@@ -24,9 +24,15 @@ public class RuleMap {
     public Action resolve(Object value, Map<String, Object> captures) {
         //System.out.println(value);
 
-        if(!rules.entrySet().stream().anyMatch(x -> x.getKey().matches(Consumable.Util.wrap(value), captures)))
+        if(!rules.entrySet().stream().anyMatch(x -> isMatch(value, captures, x.getKey())))
             new String();
 
-        return rules.entrySet().stream().filter(x -> x.getKey().matches(Consumable.Util.wrap(value), captures)).findFirst().get().getValue();
+        return rules.entrySet().stream().filter(x -> isMatch(value, captures, x.getKey())).findFirst().get().getValue();
+    }
+
+    private boolean isMatch(Object value, Map<String, Object> captures, Pattern x) {
+        Consumable consumable = Consumable.Util.wrap(value);
+
+        return x.matchesList(consumable, captures) && consumable.atEnd();
     }
 }

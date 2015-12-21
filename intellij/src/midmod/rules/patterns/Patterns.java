@@ -1,11 +1,11 @@
 package midmod.rules.patterns;
 
 import midmod.pal.Consumable;
+import midmod.pal.ListConsumable;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.IntStream;
 
 public class Patterns {
     public static Pattern capture(String name) {
@@ -21,13 +21,19 @@ public class Patterns {
     }
 
     public static Pattern isString() {
-        return (value, captures) ->
-            value.peek() instanceof String;
+        return (value, captures) -> {
+            boolean result = value.peek() instanceof String;
+            value.consume();
+            return result;
+        };
     }
 
     public static Pattern equalsObject(Object obj) {
-        return (value, captures) ->
-            value.peek().equals(obj);
+        return (value, captures) -> {
+            boolean result = value.peek().equals(obj);
+            value.consume();
+            return result;
+        };
     }
 
     public static Pattern binary(String operator, Class<?> lhsType, Class<?> rhsType) {
@@ -45,14 +51,14 @@ public class Patterns {
     public static Pattern conformsTo(List<Pattern> list) {
         return (value, captures) -> {
             // Should check for special ListConsumable? Or just not singleton consumable?
-            if(value instanceof Consumable) {
+            if(value instanceof ListConsumable) {
                 //List<Object> otherList = (List<Object>) value;
                 //return IntStream.range(0, list.size())
-                //    .allMatch(i -> list.get(i).matches(Consumable.Util.wrap(otherList.get(i)), captures));
+                //    .allMatch(i -> list.get(i).matchesList(Consumable.Util.wrap(otherList.get(i)), captures));
                 // Cast to special ListConsumable?
-                Consumable consumableList = (Consumable) value;
+                ListConsumable consumableList = (ListConsumable) value;
                 return
-                    list.stream().allMatch(x -> x.matches(consumableList, captures)) &&
+                    list.stream().allMatch(x -> x.matchesList(consumableList, captures)) &&
                     consumableList.atEnd();
             }
 
@@ -64,8 +70,11 @@ public class Patterns {
         if(type == null)
             new String();
 
-        return (value, captures) ->
-            type.isInstance(value.peek());
+        return (value, captures) -> {
+            boolean result = type.isInstance(value.peek());;
+            value.consume();
+            return result;
+        };
     }
 
     public static Pattern conformsToMap(List<Map.Entry<String, Pattern>> map) {
@@ -75,7 +84,7 @@ public class Patterns {
                 return map.stream()
                     .allMatch(e -> {
                         Object slotValue = otherMap.get(e.getKey());
-                        return slotValue != null && e.getValue().matches(Consumable.Util.wrap(slotValue), captures);
+                        return slotValue != null && e.getValue().matchesList(Consumable.Util.wrap(slotValue), captures);
                     });
             }
 
@@ -89,8 +98,8 @@ public class Patterns {
         return (value, captures) -> {
             // Captured elements should implicitly be put into lists
 
-            while(!value.atEnd() && pattern.matches(value, captures))
-                value.consume();
+            while(!value.atEnd() && pattern.matchesList(value, captures));
+                //value.consume();
 
             return true;
         };

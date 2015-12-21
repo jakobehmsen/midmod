@@ -12,7 +12,7 @@ public class Capture implements Pattern {
     }
 
     @Override
-    public boolean matches(Consumable value, Map<String, Object> captures) {
+    public boolean matchesList(Consumable value, Map<String, Object> captures) {
         captures.put(name, value);
 
         return true;
