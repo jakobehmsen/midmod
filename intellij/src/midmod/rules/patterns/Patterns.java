@@ -121,7 +121,8 @@ public class Patterns {
                     Consumable listConsumable = Consumable.Util.wrap(otherList);
                     return IntStream.range(0, list.size())
                        .allMatch(i ->
-                           list.get(i).matchesList(listConsumable, captures));
+                           list.get(i).matchesList(listConsumable, captures))
+                        && listConsumable.atEnd();
                 }
 
                 return false;
