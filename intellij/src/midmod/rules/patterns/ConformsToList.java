@@ -23,4 +23,9 @@ public class ConformsToList implements Pattern {
 
         return false;
     }
+
+    @Override
+    public boolean matchesSingle(Object value, Map<String, Object> captures) {
+        return false;
+    }
 }

@@ -17,4 +17,9 @@ public class Capture implements Pattern {
 
         return true;
     }
+
+    @Override
+    public boolean matchesSingle(Object value, Map<String, Object> captures) {
+        return false;
+    }
 }

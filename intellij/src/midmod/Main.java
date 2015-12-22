@@ -75,6 +75,7 @@ public class Main {
     public static void main(String[] args) throws IOException {
         RuleMap rules = new RuleMap();
 
+        /*
         rules.define(
             Patterns.conformsTo(Patterns.equalsObject("+"),
                 Patterns.is(String.class).andThen(Patterns.capture("lhs")),
@@ -147,6 +148,7 @@ public class Main {
         rules.defineBinary("/", Double.class, Integer.class, (rhs, lhs) -> rhs / lhs);
         rules.defineBinary("/", Integer.class, Double.class, (rhs, lhs) -> rhs / lhs);
         rules.defineBinary("/", Integer.class, Integer.class, (rhs, lhs) -> rhs / lhs);
+        */
 
         new Thread(() -> {
             // Just some dummy source code for "warming up" the evaluator and parser

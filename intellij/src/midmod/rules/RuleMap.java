@@ -31,8 +31,6 @@ public class RuleMap {
     }
 
     private boolean isMatch(Object value, Map<String, Object> captures, Pattern x) {
-        Consumable consumable = Consumable.Util.wrap(value);
-
-        return x.matchesList(consumable, captures) && consumable.atEnd();
+        return x.matchesSingle(value, captures);
     }
 }

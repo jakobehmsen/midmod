@@ -15,4 +15,9 @@ public class EqualsString implements Pattern {
     public boolean matchesList(Consumable value, Map<String, Object> captures) {
         return this.value.equals(value);
     }
+
+    @Override
+    public boolean matchesSingle(Object value, Map<String, Object> captures) {
+        return false;
+    }
 }
