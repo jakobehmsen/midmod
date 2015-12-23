@@ -149,6 +149,7 @@ public class Patterns {
     public static final Pattern anything = new Pattern() {
         @Override
         public boolean matchesList(Consumable value, Map<String, Object> captures) {
+            value.consume();
             return true;
         }
 
