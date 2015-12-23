@@ -274,12 +274,16 @@ public class Evaluator {
 
     private Pattern evaluatePattern(PalParser.PatternContext ctx) {
         Pattern pattern = evaluatePatternTarget(ctx.pattern1());
+        boolean isRepeat = false;
 
-        if(ctx.repeatPattern != null)
+        if(ctx.repeatPattern != null) {
             pattern = Patterns.repeat(pattern);
+            isRepeat = true;
+        }
 
         if (ctx.name != null)
-            pattern = pattern.andThen(Patterns.capture(ctx.name.getText()));
+            pattern = Patterns.capture(pattern, ctx.name.getText(), !isRepeat);
+            //pattern = pattern.andThen(Patterns.capture(ctx.name.getText()));
 
         // TODO:
         // Put consumption right after last part of pattern, to fix issues like

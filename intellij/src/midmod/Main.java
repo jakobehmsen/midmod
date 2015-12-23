@@ -75,80 +75,82 @@ public class Main {
     public static void main(String[] args) throws IOException {
         RuleMap rules = new RuleMap();
 
+        boolean addBuiltins = false;
 
-        rules.define(
-            Patterns.conformsTo(Patterns.equalsObject("+"),
-                Patterns.is(String.class).andThen(Patterns.capture("lhs")),
-                Patterns.is(String.class).andThen(Patterns.capture("rhs"))
-            ),
-            (ruleMap, captures) -> (String)captures.get("lhs") + (String)captures.get("rhs")
-        );
+        if(addBuiltins) {
+            rules.define(
+                Patterns.conformsTo(Patterns.equalsObject("+"),
+                    Patterns.capture(Patterns.is(String.class), "lhs"),
+                    Patterns.capture(Patterns.is(String.class), "rhs")
+                ),
+                (ruleMap, captures) -> (String) captures.get("lhs") + (String) captures.get("rhs")
+            );
 
-        rules.define(
-            Patterns.conformsTo(Patterns.equalsObject("toNative"),
-                Patterns.is(String.class).andThen(Patterns.capture("code"))
-            ),
-            (ruleMap, captures) -> toNative(captures.get("code"))
-        );
+            rules.define(
+                Patterns.conformsTo(Patterns.equalsObject("toNative"),
+                    Patterns.capture(Patterns.is(String.class), "code")
+                ),
+                (ruleMap, captures) -> toNative(captures.get("code"))
+            );
 
-        rules.define(
-            Patterns.conformsTo(
-                Patterns.equalsObject("class"),
-                Patterns.is(String.class).andThen(Patterns.capture("name"))
-            ),
-            (ruleMap, captures) -> {
-                try {
-                    return Class.forName((String) captures.get("name"));
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
+            rules.define(
+                Patterns.conformsTo(
+                    Patterns.equalsObject("class"),
+                    Patterns.capture(Patterns.is(String.class), "name")
+                ),
+                (ruleMap, captures) -> {
+                    try {
+                        return Class.forName((String) captures.get("name"));
+                    } catch (ClassNotFoundException e) {
+                        e.printStackTrace();
+                    }
+
+                    return null; // Should be an error; how to handle errors? First class frames? Special case matching?
                 }
-
-                return null; // Should be an error; how to handle errors? First class frames? Special case matching?
-            }
-        );
-        rules.define(
-            Patterns.conformsTo(
-                Patterns.equalsObject("invoke"),
-                Patterns.is(Class.class).andThen(Patterns.capture("class")),
-                Patterns.is(Object.class).andThen(Patterns.capture("instance")),
-                Patterns.is(String.class).andThen(Patterns.capture("methodName")),
-                Patterns.is(List.class).andThen(Patterns.capture("parameterTypes")),
-                Patterns.is(List.class).andThen(Patterns.capture("arguments"))
-            ),
-            (ruleMap, captures) -> {
-                try {
-                    Class[] parameterTypes = ((List<Object>) captures.get("parameterTypes")).stream().toArray(s -> new Class[s]);
-                    Method method = ((Class<?>) captures.get("class")).getMethod((String) captures.get("methodName"), parameterTypes);
-                    Object[] arguments = ((List<Object>) captures.get("arguments")).stream().toArray(s -> new Object[s]);
-                    return method.invoke(captures.get("instance"), arguments);
-                } catch (NoSuchMethodException e) {
-                    e.printStackTrace();
-                } catch (InvocationTargetException e) {
-                    e.printStackTrace();
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
+            );
+            rules.define(
+                Patterns.conformsTo(
+                    Patterns.equalsObject("invoke"),
+                    Patterns.capture(Patterns.is(Class.class), "class"),
+                    Patterns.capture(Patterns.is(Object.class), "instance"),
+                    Patterns.capture(Patterns.is(String.class), "methodName"),
+                    Patterns.capture(Patterns.is(List.class), "parameterTypes"),
+                    Patterns.capture(Patterns.is(List.class), "arguments")
+                ),
+                (ruleMap, captures) -> {
+                    try {
+                        Class[] parameterTypes = ((List<Object>) captures.get("parameterTypes")).stream().toArray(s -> new Class[s]);
+                        Method method = ((Class<?>) captures.get("class")).getMethod((String) captures.get("methodName"), parameterTypes);
+                        Object[] arguments = ((List<Object>) captures.get("arguments")).stream().toArray(s -> new Object[s]);
+                        return method.invoke(captures.get("instance"), arguments);
+                    } catch (NoSuchMethodException e) {
+                        e.printStackTrace();
+                    } catch (InvocationTargetException e) {
+                        e.printStackTrace();
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
+                    return null; // Should be an error; how to handle errors? First class frames?
                 }
-                return null; // Should be an error; how to handle errors? First class frames?
-            }
-        );
+            );
 
-        rules.defineBinary("+", Double.class, Double.class, (rhs, lhs) -> rhs + lhs);
-        rules.defineBinary("+", Double.class, Integer.class, (rhs, lhs) -> rhs + lhs);
-        rules.defineBinary("+", Integer.class, Double.class, (rhs, lhs) -> rhs + lhs);
-        rules.defineBinary("+", Integer.class, Integer.class, (rhs, lhs) -> rhs + lhs);
-        rules.defineBinary("-", Double.class, Double.class, (rhs, lhs) -> rhs - lhs);
-        rules.defineBinary("-", Double.class, Integer.class, (rhs, lhs) -> rhs - lhs);
-        rules.defineBinary("-", Integer.class, Double.class, (rhs, lhs) -> rhs - lhs);
-        rules.defineBinary("-", Integer.class, Integer.class, (rhs, lhs) -> rhs - lhs);
-        rules.defineBinary("*", Double.class, Double.class, (rhs, lhs) -> rhs * lhs);
-        rules.defineBinary("*", Double.class, Integer.class, (rhs, lhs) -> rhs * lhs);
-        rules.defineBinary("*", Integer.class, Double.class, (rhs, lhs) -> rhs * lhs);
-        rules.defineBinary("*", Integer.class, Integer.class, (rhs, lhs) -> rhs * lhs);
-        rules.defineBinary("/", Double.class, Double.class, (rhs, lhs) -> rhs / lhs);
-        rules.defineBinary("/", Double.class, Integer.class, (rhs, lhs) -> rhs / lhs);
-        rules.defineBinary("/", Integer.class, Double.class, (rhs, lhs) -> rhs / lhs);
-        rules.defineBinary("/", Integer.class, Integer.class, (rhs, lhs) -> rhs / lhs);
-
+            rules.defineBinary("+", Double.class, Double.class, (rhs, lhs) -> rhs + lhs);
+            rules.defineBinary("+", Double.class, Integer.class, (rhs, lhs) -> rhs + lhs);
+            rules.defineBinary("+", Integer.class, Double.class, (rhs, lhs) -> rhs + lhs);
+            rules.defineBinary("+", Integer.class, Integer.class, (rhs, lhs) -> rhs + lhs);
+            rules.defineBinary("-", Double.class, Double.class, (rhs, lhs) -> rhs - lhs);
+            rules.defineBinary("-", Double.class, Integer.class, (rhs, lhs) -> rhs - lhs);
+            rules.defineBinary("-", Integer.class, Double.class, (rhs, lhs) -> rhs - lhs);
+            rules.defineBinary("-", Integer.class, Integer.class, (rhs, lhs) -> rhs - lhs);
+            rules.defineBinary("*", Double.class, Double.class, (rhs, lhs) -> rhs * lhs);
+            rules.defineBinary("*", Double.class, Integer.class, (rhs, lhs) -> rhs * lhs);
+            rules.defineBinary("*", Integer.class, Double.class, (rhs, lhs) -> rhs * lhs);
+            rules.defineBinary("*", Integer.class, Integer.class, (rhs, lhs) -> rhs * lhs);
+            rules.defineBinary("/", Double.class, Double.class, (rhs, lhs) -> rhs / lhs);
+            rules.defineBinary("/", Double.class, Integer.class, (rhs, lhs) -> rhs / lhs);
+            rules.defineBinary("/", Integer.class, Double.class, (rhs, lhs) -> rhs / lhs);
+            rules.defineBinary("/", Integer.class, Integer.class, (rhs, lhs) -> rhs / lhs);
+        }
 
         new Thread(() -> {
             // Just some dummy source code for "warming up" the evaluator and parser

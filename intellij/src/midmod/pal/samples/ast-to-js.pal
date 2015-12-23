@@ -15,7 +15,7 @@
 ["to-js", [">" | "<" operator, _ lhs, _ rhs]] => ("to-js", lhs) + " " + operator + " " + ("to-js", rhs)
 
 /*
-// '... is a closure
+// {|...|...} is a closure
 // Indention support via lists within lists
 ["js-to-string", %s s] => s
 ["js-to-string", %i depth, [_ ...] l] => ("map", {|item| ("js-to-string-item", depth, item)})
@@ -25,6 +25,15 @@
 ["js-to-string", [...] l] => ("js-to-string", 0, l)
 ["indention", 0] => ""
 ["indention", %i depth] => "    " + ("indention", depth - 1)
+["replace", %s string, %s pattern, %s replacement] =>
+    (
+        "invoke",
+        ("class", "java.lang.String"),
+        string,
+        "replace",
+        [("class", "java.lang.CharSequence"), ("class", "java.lang.CharSequence")],
+        [pattern, replacement]
+    )
 */
 
 /*["to-js", ["if", _ condition, _ ifTrue, _ ifFalse]] =>
