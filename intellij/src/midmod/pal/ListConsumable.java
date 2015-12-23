@@ -1,6 +1,7 @@
 package midmod.pal;
 
 import java.util.List;
+import java.util.Stack;
 
 public class ListConsumable implements Consumable {
     private List<Object> list;
@@ -23,5 +24,22 @@ public class ListConsumable implements Consumable {
     @Override
     public boolean atEnd() {
         return index >= list.size();
+    }
+
+    private Stack<Integer> marks = new Stack<>();
+
+    @Override
+    public void mark() {
+        marks.push(index);
+    }
+
+    @Override
+    public void commit() {
+        marks.pop();
+    }
+
+    @Override
+    public void rollback() {
+        index = marks.pop();
     }
 }

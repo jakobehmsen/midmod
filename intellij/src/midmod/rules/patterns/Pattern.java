@@ -14,7 +14,17 @@ public interface Pattern {
         return new Pattern() {
             @Override
             public boolean matchesList(Consumable value, Map<String, Object> captures) {
-                return self.matchesList(value, captures) && next.matchesList(value, captures);
+                value.mark();
+
+                if(self.matchesList(value, captures)) {
+                    value.rollback();
+
+                    return next.matchesList(value, captures);
+                }
+
+                value.rollback();
+
+                return false;
             }
 
             @Override
@@ -30,7 +40,16 @@ public interface Pattern {
         return new Pattern() {
             @Override
             public boolean matchesList(Consumable value, Map<String, Object> captures) {
-                return self.matchesList(value, captures) || other.matchesList(value, captures);
+                value.mark();
+
+                if(self.matchesList(value, captures)) {
+                    value.commit();
+                    return true;
+                }
+
+                value.rollback();
+
+                return other.matchesList(value, captures);
             }
 
             @Override

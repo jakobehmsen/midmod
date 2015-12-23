@@ -24,4 +24,19 @@ public class SingletonConsumable implements Consumable {
     public boolean atEnd() {
         return isConsumed;
     }
+
+    @Override
+    public void mark() {
+
+    }
+
+    @Override
+    public void commit() {
+
+    }
+
+    @Override
+    public void rollback() {
+
+    }
 }

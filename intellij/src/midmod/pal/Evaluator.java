@@ -281,6 +281,16 @@ public class Evaluator {
         if (ctx.name != null)
             pattern = pattern.andThen(Patterns.capture(ctx.name.getText()));
 
+        // TODO:
+        // Put consumption right after last part of pattern, to fix issues like
+        // or'ing where consumption other may occur multiple times
+        // pattern = pattern.andThen(Patterns.consume);
+        // Probably not the right thing to do: Instead, backtrack within or, something like:
+        // 0: mark
+        // 1: first case.match
+        // 2: rewind
+        // 3: second case match
+
         return pattern;
     }
 

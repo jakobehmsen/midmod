@@ -1,4 +1,10 @@
 ["toString", _ obj] => ("invoke", ("class", "java.lang.Object"), obj, "toString", [], [])
+["replace", %s string, %s pattern, %s replacement] =>
+    (
+        "invoke", ("class", "java.lang.String"), obj, "replace",
+        [("class", "java.lang.String"), ("class", "java.lang.String"), ("class", "java.lang.String")],
+        [string, pattern, replacement]
+    )
 ["+", %s lhs, %s rhs] => ("invoke", ("class", "java.lang.String"), lhs, "concat", [("class", "java.lang.String")], [rhs])
 ["+", %s lhs, _ rhs] => lhs + ("toString", rhs)
 ["+", _ lhs, %s rhs] => ("toString", lhs) + rhs
@@ -12,8 +18,8 @@
 // '... is a closure
 // Indention support via lists within lists
 ["js-to-string", %s s] => s
-["js-to-string", %i depth, [...] l] => ("map", {|item| ("js-to-string-item", depth, item)})
-["js-to-string-item", %i depth, [...] item] =>
+["js-to-string", %i depth, [_ ...] l] => ("map", {|item| ("js-to-string-item", depth, item)})
+["js-to-string-item", %i depth, [_ ...] item] =>
     ("indention", depth + 1) + ("replace", ("js-to-string", depth + 1, item), "\n", ("indention", depth + 1) + "\n")
 ["js-to-string-item", %i depth, %s item] => item
 ["js-to-string", [...] l] => ("js-to-string", 0, l)

@@ -13,7 +13,9 @@ public class Patterns {
         return new Pattern() {
             @Override
             public boolean matchesList(Consumable value, Map<String, Object> captures) {
-                return matchesSingle(value, captures);
+                boolean result = matchesSingle(value.peek(), captures);
+                value.consume();
+                return result;
             }
 
             @Override
@@ -82,6 +84,9 @@ public class Patterns {
 
             @Override
             public boolean matchesSingle(Object value, Map<String, Object> captures) {
+                if(obj.equals("replace"))
+                    new String();
+
                 return value.equals(obj);
             }
         };
@@ -118,7 +123,7 @@ public class Patterns {
             public boolean matchesSingle(Object value, Map<String, Object> captures) {
                 if(value instanceof List) {
                     List<Object> otherList = (List<Object>) value;
-                    Consumable listConsumable = Consumable.Util.wrap(otherList);
+                    Consumable listConsumable = new ListConsumable(otherList);
                     return IntStream.range(0, list.size())
                        .allMatch(i ->
                            list.get(i).matchesList(listConsumable, captures))
