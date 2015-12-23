@@ -46,24 +46,6 @@ public class Patterns {
         };
     }
 
-    public static Pattern capture(String name) {
-        return new Pattern() {
-            @Override
-            public boolean matchesList(Consumable value, Map<String, Object> captures) {
-                boolean result = matchesSingle(value.peek(), captures);
-                value.consume();
-                return result;
-            }
-
-            @Override
-            public boolean matchesSingle(Object value, Map<String, Object> captures) {
-                captures.put(name, value);
-
-                return true;
-            }
-        };
-    }
-
     public static Pattern equalsObject(Object obj) {
         return new Pattern() {
             @Override

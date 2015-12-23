@@ -8,32 +8,6 @@ public interface Pattern {
     boolean matchesList(Consumable value, Map<String, Object> captures);
     boolean matchesSingle(Object value, Map<String, Object> captures);
 
-    default Pattern andThen(Pattern next) {
-        Pattern self = this;
-
-        return new Pattern() {
-            @Override
-            public boolean matchesList(Consumable value, Map<String, Object> captures) {
-                value.mark();
-
-                if(self.matchesList(value, captures)) {
-                    value.rollback();
-
-                    return next.matchesList(value, captures);
-                }
-
-                value.rollback();
-
-                return false;
-            }
-
-            @Override
-            public boolean matchesSingle(Object value, Map<String, Object> captures) {
-                return self.matchesSingle(value, captures) && next.matchesSingle(value, captures);
-            }
-        };
-    }
-
     default Pattern or(Pattern other) {
         Pattern self = this;
 
