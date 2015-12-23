@@ -9,12 +9,4 @@ public interface Consumable {
     void mark();
     void commit();
     void rollback();
-
-    class Util {
-        public static Consumable wrap(Object obj) {
-            if(obj instanceof List)
-                return new ListConsumable((List<Object>)obj);
-            return new SingletonConsumable(obj);
-        }
-    }
 }
