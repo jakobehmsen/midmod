@@ -3,6 +3,7 @@ package midmod.rules.patterns;
 import midmod.pal.CaptureConsumable;
 import midmod.pal.Consumable;
 import midmod.pal.ListConsumable;
+import midmod.rules.RuleMap;
 
 import java.util.Arrays;
 import java.util.List;
@@ -43,6 +44,11 @@ public class Patterns {
 
                 return result;
             }
+
+            @Override
+            public RuleMap.Node findNode(RuleMap.Node node) {
+                return null;
+            }
         };
     }
 
@@ -61,6 +67,11 @@ public class Patterns {
                     new String();
 
                 return value.equals(obj);
+            }
+
+            @Override
+            public RuleMap.Node findNode(RuleMap.Node node) {
+                return node.byEquals(obj);
             }
         };
     }
@@ -99,6 +110,11 @@ public class Patterns {
 
                 return false;
             }
+
+            @Override
+            public RuleMap.Node findNode(RuleMap.Node node) {
+                return null;
+            }
         };
     }
 
@@ -117,6 +133,11 @@ public class Patterns {
             @Override
             public boolean matchesSingle(Object value, Map<String, Object> captures) {
                 return type.isInstance(value);
+            }
+
+            @Override
+            public RuleMap.Node findNode(RuleMap.Node node) {
+                return node.byType(type);
             }
         };
     }
@@ -143,6 +164,11 @@ public class Patterns {
 
                 return false;
             }
+
+            @Override
+            public RuleMap.Node findNode(RuleMap.Node node) {
+                return null;
+            }
         };
     }
 
@@ -156,6 +182,11 @@ public class Patterns {
         @Override
         public boolean matchesSingle(Object value, Map<String, Object> captures) {
             return true;
+        }
+
+        @Override
+        public RuleMap.Node findNode(RuleMap.Node node) {
+            return null;
         }
     };
 
@@ -173,6 +204,11 @@ public class Patterns {
             @Override
             public boolean matchesSingle(Object value, Map<String, Object> captures) {
                 return false;
+            }
+
+            @Override
+            public RuleMap.Node findNode(RuleMap.Node node) {
+                return null;
             }
         };
     }

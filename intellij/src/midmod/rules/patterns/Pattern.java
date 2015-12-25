@@ -1,6 +1,7 @@
 package midmod.rules.patterns;
 
 import midmod.pal.Consumable;
+import midmod.rules.RuleMap;
 
 import java.util.Map;
 
@@ -30,6 +31,13 @@ public interface Pattern {
             public boolean matchesSingle(Object value, Map<String, Object> captures) {
                 return self.matchesSingle(value, captures) || other.matchesSingle(value, captures);
             }
+
+            @Override
+            public RuleMap.Node findNode(RuleMap.Node node) {
+                return null;
+            }
         };
     }
+
+    RuleMap.Node findNode(RuleMap.Node node);
 }
