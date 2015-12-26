@@ -1,9 +1,8 @@
 package midmod.rules.actions;
 
+import midmod.rules.Environment;
 import midmod.rules.RuleMap;
 import midmod.rules.patterns.Pattern;
-
-import java.util.Map;
 
 public class Define implements Action {
     private Action patternAction;
@@ -15,7 +14,7 @@ public class Define implements Action {
     }
 
     @Override
-    public Object perform(RuleMap ruleMap, Map<String, Object> captures) {
+    public Object perform(RuleMap ruleMap, Environment captures) {
         Pattern pattern = (Pattern)patternAction.perform(ruleMap, captures);
         Action action = (Action)actionAction.perform(ruleMap, captures);
 

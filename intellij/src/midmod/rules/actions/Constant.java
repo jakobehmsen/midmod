@@ -1,8 +1,7 @@
 package midmod.rules.actions;
 
+import midmod.rules.Environment;
 import midmod.rules.RuleMap;
-
-import java.util.Map;
 
 public class Constant implements Action {
     private Object value;
@@ -12,7 +11,7 @@ public class Constant implements Action {
     }
 
     @Override
-    public Object perform(RuleMap ruleMap, Map<String, Object> captures) {
+    public Object perform(RuleMap ruleMap, Environment captures) {
         return value;
     }
 }

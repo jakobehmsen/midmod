@@ -1,9 +1,9 @@
 package midmod.rules.actions;
 
+import midmod.rules.Environment;
 import midmod.rules.RuleMap;
 
 import java.util.List;
-import java.util.Map;
 
 public class Block implements Action {
     private List<Action> actions;
@@ -13,7 +13,7 @@ public class Block implements Action {
     }
 
     @Override
-    public Object perform(RuleMap ruleMap, Map<String, Object> captures) {
+    public Object perform(RuleMap ruleMap, Environment captures) {
         Object res = null;
 
         for (Action action : actions)

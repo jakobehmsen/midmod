@@ -1,10 +1,9 @@
 package midmod.rules.actions;
 
-import midmod.pal.Consumable;
+import midmod.rules.Environment;
 import midmod.rules.RuleMap;
 
 import java.util.Hashtable;
-import java.util.Map;
 
 public class Call implements Action {
     private Action action;
@@ -14,14 +13,15 @@ public class Call implements Action {
     }
 
     @Override
-    public Object perform(RuleMap ruleMap, Map<String, Object> captures) {
+    public Object perform(RuleMap ruleMap, Environment captures) {
         Object value = action.perform(ruleMap, captures);
 
         return on(ruleMap, value);
     }
 
     public static Object on(RuleMap ruleMap, Object value) {
-        Hashtable<String, Object> resolvedCaptures = new Hashtable<>();
+        //Hashtable<String, Object> resolvedCaptures = new Hashtable<>();
+        Environment resolvedCaptures = new Environment();
         Action resolvedAction = ruleMap.resolve(value, resolvedCaptures);
 
         return resolvedAction.perform(ruleMap, resolvedCaptures);

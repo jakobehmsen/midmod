@@ -80,27 +80,30 @@ public class Main {
         if(addBuiltins) {
             rules.define(
                 Patterns.conformsTo(Patterns.equalsObject("+"),
-                    Patterns.capture(Patterns.is(String.class), "lhs"),
-                    Patterns.capture(Patterns.is(String.class), "rhs")
+                    Patterns.is(String.class),
+                    Patterns.is(String.class)
+                    /*Patterns.capture(Patterns.is(String.class), "lhs"),
+                    Patterns.capture(Patterns.is(String.class), "rhs")*/
                 ),
-                (ruleMap, captures) -> (String) captures.get("lhs") + (String) captures.get("rhs")
+                (ruleMap, captures) -> (String) captures.getByAddress(0, 1) + (String) captures.getByAddress(0, 2)
             );
 
             rules.define(
-                Patterns.conformsTo(Patterns.equalsObject("toNative"),
-                    Patterns.capture(Patterns.is(String.class), "code")
+                Patterns.conformsTo(
+                    Patterns.equalsObject("toNative"),
+                    Patterns.is(String.class)//Patterns.capture(Patterns.is(String.class), "code")
                 ),
-                (ruleMap, captures) -> toNative(captures.get("code"))
+                (ruleMap, captures) -> toNative(captures.getByAddress(0, 1))
             );
 
             rules.define(
                 Patterns.conformsTo(
                     Patterns.equalsObject("class"),
-                    Patterns.capture(Patterns.is(String.class), "name")
+                    Patterns.is(String.class)//Patterns.capture(Patterns.is(String.class), "name")
                 ),
                 (ruleMap, captures) -> {
                     try {
-                        return Class.forName((String) captures.get("name"));
+                        return Class.forName((String) captures.getByAddress(0, 1));
                     } catch (ClassNotFoundException e) {
                         e.printStackTrace();
                     }
@@ -111,18 +114,29 @@ public class Main {
             rules.define(
                 Patterns.conformsTo(
                     Patterns.equalsObject("invoke"),
-                    Patterns.capture(Patterns.is(Class.class), "class"),
+                    Patterns.is(Class.class),
+                    Patterns.is(Object.class),
+                    Patterns.is(String.class),
+                    Patterns.is(List.class),
+                    Patterns.is(List.class)
+                    /*Patterns.capture(Patterns.is(Class.class), "class"),
                     Patterns.capture(Patterns.is(Object.class), "instance"),
                     Patterns.capture(Patterns.is(String.class), "methodName"),
                     Patterns.capture(Patterns.is(List.class), "parameterTypes"),
-                    Patterns.capture(Patterns.is(List.class), "arguments")
+                    Patterns.capture(Patterns.is(List.class), "arguments")*/
                 ),
                 (ruleMap, captures) -> {
                     try {
-                        Class[] parameterTypes = ((List<Object>) captures.get("parameterTypes")).stream().toArray(s -> new Class[s]);
-                        Method method = ((Class<?>) captures.get("class")).getMethod((String) captures.get("methodName"), parameterTypes);
-                        Object[] arguments = ((List<Object>) captures.get("arguments")).stream().toArray(s -> new Object[s]);
-                        return method.invoke(captures.get("instance"), arguments);
+                        Class<?> klass = (Class<?>)captures.getByAddress(0, 1);
+                        Object instance = (Class<?>)captures.getByAddress(0, 2);
+                        String methodName = (String)captures.getByAddress(0, 3);
+                        List<Class<?>> parameterTypes = (List<Class<?>>)captures.getByAddress(0, 4);
+                        List<Object> arguments = (List<Object>)captures.getByAddress(0, 5);
+
+                        Class[] parameterTypesAsArray = parameterTypes.stream().toArray(s -> new Class[s]);
+                        Method method = klass.getMethod(methodName, parameterTypesAsArray);
+                        Object[] argumentsAsArray = (arguments).stream().toArray(s -> new Object[s]);
+                        return method.invoke(instance, argumentsAsArray);
                     } catch (NoSuchMethodException e) {
                         e.printStackTrace();
                     } catch (InvocationTargetException e) {

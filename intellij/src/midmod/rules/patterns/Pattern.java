@@ -1,20 +1,27 @@
 package midmod.rules.patterns;
 
 import midmod.pal.Consumable;
+import midmod.rules.Environment;
 import midmod.rules.RuleMap;
 
-import java.util.Map;
+public interface Pattern /*extends Comparable<Pattern>*/ {
+    /*default int compareTo(Pattern other) {
+        return sortIndex() - other.sortIndex();
+    }
 
-public interface Pattern {
-    boolean matchesList(Consumable value, Map<String, Object> captures);
-    boolean matchesSingle(Object value, Map<String, Object> captures);
+    default int sortIndex() {
+        throw new UnsupportedOperationException();
+    }*/
+
+    boolean matchesList(Consumable value, Environment captures);
+    boolean matchesSingle(Object value, Environment captures);
 
     default Pattern or(Pattern other) {
         Pattern self = this;
 
         return new Pattern() {
             @Override
-            public boolean matchesList(Consumable value, Map<String, Object> captures) {
+            public boolean matchesList(Consumable value, Environment captures) {
                 value.mark();
 
                 if(self.matchesList(value, captures)) {
@@ -28,7 +35,7 @@ public interface Pattern {
             }
 
             @Override
-            public boolean matchesSingle(Object value, Map<String, Object> captures) {
+            public boolean matchesSingle(Object value, Environment captures) {
                 return self.matchesSingle(value, captures) || other.matchesSingle(value, captures);
             }
 
@@ -36,8 +43,15 @@ public interface Pattern {
             public RuleMap.Node findNode(RuleMap.Node node) {
                 return null;
             }
+
+            /*@Override
+            public RuleMap.Node matches(RuleMap.Node node, Object value, Map<String, Object> captures) {
+                return null;
+            }*/
         };
     }
 
     RuleMap.Node findNode(RuleMap.Node node);
+
+    //RuleMap.Node matches(RuleMap.Node node, Object value, Map<String, Object> captures);
 }

@@ -3,6 +3,7 @@ package midmod.pal;
 import midmod.pal.antlr4.PalBaseVisitor;
 import midmod.pal.antlr4.PalLexer;
 import midmod.pal.antlr4.PalParser;
+import midmod.rules.Environment;
 import midmod.rules.RuleMap;
 import midmod.rules.actions.*;
 import midmod.rules.patterns.Pattern;
@@ -39,7 +40,7 @@ public class Evaluator {
     }
 
     private Object evaluate(ParserRuleContext context) {
-        return evaluateAction(context).perform(ruleMap, new Hashtable<>());
+        return evaluateAction(context).perform(ruleMap, new Environment());
 
         /*
         // Should evaluateAction and then perform action
@@ -200,7 +201,9 @@ public class Evaluator {
             @Override
             public Action visitAccess(PalParser.AccessContext ctx) {
                 String name = ctx.getText();
-                return (ruleMap1, captures) -> captures.get(name);
+                // Resolve address
+                //return (ruleMap1, captures) -> captures.get(name);
+                return null;
             }
 
             /*@Override
@@ -282,7 +285,9 @@ public class Evaluator {
         }
 
         if (ctx.name != null)
-            pattern = Patterns.capture(pattern, ctx.name.getText(), !isRepeat);
+            // Resolve address in captures/environment
+            pattern = pattern;
+            //pattern = Patterns.capture(pattern, ctx.name.getText(), !isRepeat);
             //pattern = pattern.andThen(Patterns.capture(ctx.name.getText()));
 
         // TODO:
