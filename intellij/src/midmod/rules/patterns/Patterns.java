@@ -1,6 +1,5 @@
 package midmod.rules.patterns;
 
-import midmod.pal.CaptureConsumable;
 import midmod.pal.Consumable;
 import midmod.pal.ListConsumable;
 import midmod.rules.EdgePattern;
@@ -161,11 +160,11 @@ public class Patterns {
                     }
 
                     @Override
-                    public RuleMap.Node matches(RuleMap.Node node, Object value, Environment captures) {
+                    public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
                         if(value instanceof Consumable)
-                            return matchesList(((Consumable) value), captures) ? node : null;
+                            return matchesList(((Consumable) value), captures) ? target : null;
 
-                        RuleMap.Node n = matchesSingle(value, captures) ? node : null;
+                        RuleMap.Node n = matchesSingle(value, captures) ? target : null;
                         if(n != null) {
                             captures.captureSingle(value);
                         }
@@ -239,9 +238,21 @@ public class Patterns {
                     public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
                         if (value instanceof List) {
                             List<Object> otherList = (List<Object>) value;
-                            captures.startCompositeCapture();
-                            Environment innerCaptures = captures.getCurrent();
                             Consumable listConsumable = new ListConsumable(otherList);
+
+                            for(Map.Entry<EdgePattern, RuleMap.Node> e: target.edges()) {
+                                captures.startCompositeCapture();
+                                Environment innerCaptures = captures.getCurrent();
+                                RuleMap.Node an = matchesAlternative(innerCaptures, listConsumable, e);
+                                if(an != null && listConsumable.atEnd()) {
+                                    captures.endCompositeCapture();
+                                    return an;
+                                }
+                            }
+
+                            /*captures.startCompositeCapture();
+                            Environment innerCaptures = captures.getCurrent();
+                            //Consumable listConsumable = new ListConsumable(otherList);
                             RuleMap.Node n = target;
                             while (true) {
                                 n = n.match(listConsumable, innerCaptures);
@@ -251,8 +262,35 @@ public class Patterns {
                                 }
                                 if (n == null)
                                     return null;
+                            }*/
+                        }
+
+                        return null;
+                    }
+
+                    private RuleMap.Node matchesAlternative(Environment innerCaptures, Consumable value, Map.Entry<EdgePattern, RuleMap.Node> edge) {
+                        value.mark();
+                        innerCaptures.mark();
+                        RuleMap.Node n = edge.getKey().matches(edge.getValue(), value, innerCaptures);
+                        if(n != null) {
+                            if(value.atEnd()) {
+                                innerCaptures.commit();
+                                value.commit();
+                                return n;
+                            }
+
+                            for(Map.Entry<EdgePattern, RuleMap.Node> e: n.edges()) {
+                                RuleMap.Node an = matchesAlternative(innerCaptures, value, e);
+                                if(an != null) {
+                                    innerCaptures.commit();
+                                    value.commit();
+                                    return an;
+                                }
                             }
                         }
+
+                        value.rollback();
+                        innerCaptures.rollback();
 
                         return null;
                     }
@@ -357,11 +395,11 @@ public class Patterns {
                     }
 
                     @Override
-                    public RuleMap.Node matches(RuleMap.Node node, Object value, Environment captures) {
+                    public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
                         if(value instanceof Consumable)
-                            return matchesList(((Consumable) value), captures) ? node : null;
+                            return matchesList(((Consumable) value), captures) ? target : null;
 
-                        RuleMap.Node n = matchesSingle(value, captures) ? node : null;
+                        RuleMap.Node n = matchesSingle(value, captures) ? target : null;
                         if(n != null)
                             captures.captureSingle(value);
                         return n;
@@ -428,7 +466,36 @@ public class Patterns {
 
         @Override
         public RuleMap.Node findNode(RuleMap.Node node) {
-            return null;
+            class AnythingEdgePattern implements EdgePattern {
+                @Override
+                public int sortIndex() {
+                    return 3;
+                }
+
+                @Override
+                public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
+                    if(value instanceof Consumable) {
+                        Object val = ((Consumable)value).peek();
+                        ((Consumable)value).consume();
+                        captures.captureSingle(val);
+                    } else
+                        captures.captureSingle(value);
+
+                    return target;
+                }
+
+                @Override
+                public boolean equals(Object obj) {
+                    return obj instanceof AnythingEdgePattern;
+                }
+
+                @Override
+                public String toString() {
+                    return "_";
+                }
+            }
+
+            return node.byPattern(new AnythingEdgePattern());
         }
     };
 
@@ -450,7 +517,45 @@ public class Patterns {
 
             @Override
             public RuleMap.Node findNode(RuleMap.Node node) {
-                return null;
+                class RepeatEdgePattern implements EdgePattern {
+                    RuleMap.Node pseudoNode = new RuleMap.Node();
+                    RuleMap.Node patternNode = pattern.findNode(pseudoNode);
+
+                    @Override
+                    public int sortIndex() {
+                        return 2;
+                    }
+
+                    @Override
+                    public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
+                        captures.startCompositeCapture();
+                        Environment innerCaptures = captures.getCurrent();
+
+                        while(!((Consumable)value).atEnd()) {
+                            RuleMap.Node n = pseudoNode.match(value, innerCaptures);
+                            if(n != patternNode)
+                                break;
+                        }
+
+                        captures.endCompositeCapture();
+
+                        return target;
+                    }
+
+                    @Override
+                    public boolean equals(Object obj) {
+                        return obj instanceof RepeatEdgePattern && pseudoNode.equals(((RepeatEdgePattern)obj).pseudoNode);
+                    }
+
+                    @Override
+                    public String toString() {
+                        return pattern + " ...";
+                    }
+                }
+
+                RuleMap.Node repeatNode = node.byPattern(new RepeatEdgePattern());
+
+                return repeatNode;
             }
         };
     }

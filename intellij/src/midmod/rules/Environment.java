@@ -1,13 +1,14 @@
 package midmod.rules;
 
 import java.util.ArrayList;
+import java.util.Stack;
 
 public class Environment {
     private int index;
     private ArrayList<Object> captures = new ArrayList<>();
 
     public Environment getCurrent() {
-        return (Environment)captures.get(captures.size() - 1);
+        return (Environment)captures.get(index);
     }
 
     public void captureSingle(Object value) {
@@ -32,5 +33,19 @@ public class Environment {
         for(int i = 1; i < indices.length; i++)
             value = ((Environment)value).get(indices[i]);
         return value;
+    }
+
+    private Stack<Integer> markings = new Stack<>();
+
+    public void mark() {
+        markings.push(index);
+    }
+
+    public void commit() {
+        markings.pop();
+    }
+
+    public void rollback() {
+        index = markings.pop();
     }
 }

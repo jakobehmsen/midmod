@@ -5,5 +5,5 @@ import java.util.Map;
 public interface EdgePattern {
     int sortIndex();
 
-    RuleMap.Node matches(RuleMap.Node node, Object value, Environment captures);
+    RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures);
 }

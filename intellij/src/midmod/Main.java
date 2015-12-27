@@ -75,7 +75,7 @@ public class Main {
     public static void main(String[] args) throws IOException {
         RuleMap rules = new RuleMap();
 
-        boolean addBuiltins = true;
+        boolean addBuiltins = false;
 
         if(addBuiltins) {
             rules.define(

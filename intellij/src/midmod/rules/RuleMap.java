@@ -43,7 +43,7 @@ public class RuleMap {
 
             //return sortedEdges.entrySet().stream().filter(x -> x.getKey().matchesSingle(value, captures)).findFirst().get().getValue();
 
-            return edges.stream().map(x -> x.getKey().matches(x.getValue(), value, captures)).filter(x -> x != null).findFirst().get();
+            return edges.stream().map(x -> x.getKey().matches(x.getValue(), value, captures)).filter(x -> x != null).findFirst().orElse(null);
 
             //return sortedEdges.entrySet().stream().filter(x -> x.getKey().matches(x.getValue(), value, captures) != null).findFirst().get().getValue();
         }
@@ -98,6 +98,10 @@ public class RuleMap {
             }
 
             //sortedEdges.put(edgePattern, target);
+        }
+
+        public Iterable<? extends Map.Entry<EdgePattern, Node>> edges() {
+            return edges;
         }
     }
 
