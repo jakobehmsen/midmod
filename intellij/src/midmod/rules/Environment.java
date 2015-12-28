@@ -21,6 +21,8 @@ public class Environment {
     }
 
     public void endCompositeCapture() {
+        // Transform environment into list
+        captures.set(index, getCurrent().captures);
         index++;
     }
 
