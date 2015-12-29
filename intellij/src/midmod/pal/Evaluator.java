@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Evaluator {
     private RuleMap ruleMap;
@@ -40,7 +41,7 @@ public class Evaluator {
     }
 
     private Object evaluate(ParserRuleContext context) {
-        return evaluateAction(context).perform(ruleMap, new Environment());
+        return evaluateAction(context, new Hashtable<>()).perform(ruleMap, new Environment());
 
         /*
         // Should evaluateAction and then perform action
@@ -103,21 +104,21 @@ public class Evaluator {
         });*/
     }
 
-    private Action evaluateAction(ParserRuleContext ctx) {
+    private Action evaluateAction(ParserRuleContext ctx, Map<String, List<Integer>> nameToCaptureAddressMap) {
         return ctx.accept(new PalBaseVisitor<Action>() {
             @Override
             public Action visitScript(PalParser.ScriptContext ctx) {
-                List<Action> actions = ctx.scriptElement().stream().map(x -> evaluateAction(x)).collect(Collectors.toList());
+                List<Action> actions = ctx.scriptElement().stream().map(x -> evaluateAction(x, nameToCaptureAddressMap)).collect(Collectors.toList());
 
                 return new Block(actions);
             }
 
             @Override
             public Action visitExpression1(PalParser.Expression1Context ctx) {
-                Action lhs = evaluateAction(ctx.expression2());
+                Action lhs = evaluateAction(ctx.expression2(), nameToCaptureAddressMap);
 
                 for (PalParser.Expression1TailContext rhsCtx : ctx.expression1Tail()) {
-                    Action rhs = evaluateAction(rhsCtx.expression1());
+                    Action rhs = evaluateAction(rhsCtx.expression1(), nameToCaptureAddressMap);
                     String operator = rhsCtx.BIN_OP1().getText();
                     lhs = new Call(listActionFromActions(Arrays.asList(new Constant(operator), lhs, rhs)));
                 }
@@ -127,10 +128,10 @@ public class Evaluator {
 
             @Override
             public Action visitExpression2(PalParser.Expression2Context ctx) {
-                Action lhs = evaluateAction(ctx.expression3());
+                Action lhs = evaluateAction(ctx.expression3(), nameToCaptureAddressMap);
 
                 for (PalParser.Expression2TailContext rhsCtx : ctx.expression2Tail()) {
-                    Action rhs = evaluateAction(rhsCtx.expression1());
+                    Action rhs = evaluateAction(rhsCtx.expression1(), nameToCaptureAddressMap);
                     String operator = rhsCtx.BIN_OP2().getText();
                     lhs = new Call(listActionFromActions(Arrays.asList(new Constant(operator), lhs, rhs)));
                 }
@@ -145,7 +146,7 @@ public class Evaluator {
 
                 // Derive action
                 // Conditionally wrap action into call
-                Action actionTarget = evaluateAction(ctx.actionTarget());
+                Action actionTarget = evaluateAction(ctx.actionTarget(), nameToCaptureAddressMap);
 
                 if(ctx.isCall != null)
                     return new Call(actionTarget);
@@ -176,13 +177,13 @@ public class Evaluator {
                         return y;
                     }).collect(Collectors.toList());*/
 
-                return listActionFromContexts(ctx.action());
+                return listActionFromContexts(ctx.action(), nameToCaptureAddressMap);
             }
 
             @Override
             public Action visitMap(PalParser.MapContext ctx) {
                 List<Map.Entry<String, Action>> slots = ctx.slot().stream()
-                    .map(x -> new AbstractMap.SimpleImmutableEntry<>(x.ID().getText(), evaluateAction(x.action()))).collect(Collectors.toList());
+                    .map(x -> new AbstractMap.SimpleImmutableEntry<>(x.ID().getText(), evaluateAction(x.action(), nameToCaptureAddressMap))).collect(Collectors.toList());
 
                 return (ruleMap1, captures) ->
                     slots.stream().collect(Collectors.toMap(x -> x.getKey(), x -> x.getValue().perform(ruleMap1, captures)));
@@ -190,8 +191,8 @@ public class Evaluator {
 
             @Override
             public Action visitDefine(PalParser.DefineContext ctx) {
-                Pattern pattern = evaluatePattern(ctx.pattern());
-                Action action = evaluateAction(ctx.action());
+                Pattern pattern = evaluatePattern(ctx.pattern(), Arrays.asList(0), nameToCaptureAddressMap);
+                Action action = evaluateAction(ctx.action(), nameToCaptureAddressMap);
 
                 //ruleMap.define(pattern, action);
 
@@ -201,9 +202,17 @@ public class Evaluator {
             @Override
             public Action visitAccess(PalParser.AccessContext ctx) {
                 String name = ctx.getText();
+                List<Integer> captureAddress = nameToCaptureAddressMap.get(name);
                 // Resolve address
                 //return (ruleMap1, captures) -> captures.get(name);
-                return null;
+                //return null;
+
+                return (ruleMap1, captures) -> {
+                    Object val = captures.get(captureAddress.get(0));
+                    for(int i = 1; i < captureAddress.size(); i++)
+                        val = ((List<Object>)val).get(captureAddress.get(i));
+                    return val;
+                };
             }
 
             /*@Override
@@ -254,14 +263,20 @@ public class Evaluator {
             public Action visitAlwaysAction(PalParser.AlwaysActionContext ctx) {
                 //List<Action> actions = ctx.action().stream().map(x -> evaluateAction(x)).collect(Collectors.toList());
                 //Action action = (ruleMap1, captures) -> actions.stream().map(x -> x.perform(ruleMap1, captures)).collect(Collectors.toList());
-                Action action = listActionFromContexts(ctx.action());
+                Action action = listActionFromContexts(ctx.action(), nameToCaptureAddressMap);
                 return new Call(action);
             }
         });
     }
 
-    private Action listActionFromContexts(List<PalParser.ActionContext> actionContexts) {
-        List<Action> actions = actionContexts.stream().map(x -> evaluateAction(x)).collect(Collectors.toList());
+    private Action listActionFromContexts(List<PalParser.ActionContext> actionContexts, Map<String, List<Integer>> nameToCaptureAddressMap) {
+        /*List<Action> actions = IntStream.range(0, actionContexts.size()).mapToObj(i -> {
+            ArrayList<Object> newCaptureAddress = new ArrayList<Object>(nameToCaptureAddressMap);
+            newCaptureAddress.add(i);
+            return evaluateAction(actionContexts.get(i), nameToCaptureAddressMap, captureAddress);
+        }).collect(Collectors.toList());*/
+
+        List<Action> actions = actionContexts.stream().map(x -> evaluateAction(x, nameToCaptureAddressMap)).collect(Collectors.toList());
         return listActionFromActions(actions);
     }
 
@@ -275,8 +290,8 @@ public class Evaluator {
             }).collect(Collectors.toList());
     }
 
-    private Pattern evaluatePattern(PalParser.PatternContext ctx) {
-        Pattern pattern = evaluatePatternTarget(ctx.pattern1());
+    private Pattern evaluatePattern(PalParser.PatternContext ctx, List<Integer> captureAddress, Map<String, List<Integer>> nameToCaptureAddressMap) {
+        Pattern pattern = evaluatePatternTarget(ctx.pattern1(), captureAddress, nameToCaptureAddressMap);
         boolean isRepeat = false;
 
         if(ctx.repeatPattern != null) {
@@ -285,6 +300,7 @@ public class Evaluator {
         }
 
         if (ctx.name != null)
+            nameToCaptureAddressMap.put(ctx.name.getText(), captureAddress);
             // Resolve address in captures/environment
             pattern = pattern;
             //pattern = Patterns.capture(pattern, ctx.name.getText(), !isRepeat);
@@ -303,14 +319,14 @@ public class Evaluator {
         return pattern;
     }
 
-    private Pattern evaluatePatternTarget(ParserRuleContext ctx) {
+    private Pattern evaluatePatternTarget(ParserRuleContext ctx, List<Integer> captureAddress, Map<String, List<Integer>> nameToCaptureAddressMap) {
         return ctx.accept(new PalBaseVisitor<Pattern>() {
             @Override
             public Pattern visitPattern1(PalParser.Pattern1Context ctx) {
-                Pattern lhs = evaluatePatternTarget(ctx.pattern2());
+                Pattern lhs = evaluatePatternTarget(ctx.pattern2(), captureAddress, nameToCaptureAddressMap);
 
                 for (PalParser.Pattern1Context rhsCtx : ctx.pattern1()) {
-                    Pattern rhs = evaluatePatternTarget(rhsCtx);
+                    Pattern rhs = evaluatePatternTarget(rhsCtx, captureAddress, nameToCaptureAddressMap);
                     lhs = lhs.or(rhs);
                 }
 
@@ -334,13 +350,21 @@ public class Evaluator {
 
             @Override
             public Pattern visitListPattern(PalParser.ListPatternContext ctx) {
-                return Patterns.conformsTo(ctx.pattern().stream().map(x -> evaluatePattern(x)).collect(Collectors.toList()));
+                return Patterns.conformsTo(IntStream.range(0, ctx.pattern().size()).mapToObj(i -> {
+                    ArrayList<Integer> newCaptureAddress = new ArrayList<Integer>(captureAddress);
+                    newCaptureAddress.add(i);
+                    return evaluatePattern(ctx.pattern().get(i), newCaptureAddress, nameToCaptureAddressMap);
+                }).collect(Collectors.toList()));
+
+                /*return Patterns.conformsTo(ctx.pattern().stream().map(x -> {
+                    return evaluatePattern(x, captureAddress, nameToCaptureAddressMap);
+                }).collect(Collectors.toList()));*/
             }
 
             @Override
             public Pattern visitMapPattern(PalParser.MapPatternContext ctx) {
                 List<Map.Entry<String, Pattern>> slots = ctx.slotPattern().stream()
-                    .map(x -> new AbstractMap.SimpleImmutableEntry<>(x.ID().getText(), evaluatePattern(x.pattern()))).collect(Collectors.toList());
+                    .map(x -> new AbstractMap.SimpleImmutableEntry<>(x.ID().getText(), evaluatePattern(x.pattern(), captureAddress, nameToCaptureAddressMap))).collect(Collectors.toList());
 
                 return Patterns.conformsToMap(slots);
             }
