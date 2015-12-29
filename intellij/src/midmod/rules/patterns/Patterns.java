@@ -241,11 +241,13 @@ public class Patterns {
                             Consumable listConsumable = new ListConsumable(otherList);
 
                             for(Map.Entry<EdgePattern, RuleMap.Node> e: target.edges()) {
-                                captures.startCompositeCapture();
-                                Environment innerCaptures = captures.getCurrent();
+                                //captures.startCompositeCapture();
+                                //Environment innerCaptures = captures.getCurrent();
+                                Environment innerCaptures = new Environment();
                                 RuleMap.Node an = matchesAlternative(innerCaptures, listConsumable, e);
                                 if(an != null && listConsumable.atEnd()) {
-                                    captures.endCompositeCapture();
+                                    captures.captureSingle(innerCaptures.toList());
+                                    //captures.endCompositeCapture();
                                     return an;
                                 }
                             }
@@ -528,8 +530,9 @@ public class Patterns {
 
                     @Override
                     public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
-                        captures.startCompositeCapture();
-                        Environment innerCaptures = captures.getCurrent();
+                        //captures.startCompositeCapture();
+                        //Environment innerCaptures = captures.getCurrent();
+                        Environment innerCaptures = new Environment();
 
                         while(!((Consumable)value).atEnd()) {
                             RuleMap.Node n = pseudoNode.match(value, innerCaptures);
@@ -537,7 +540,8 @@ public class Patterns {
                                 break;
                         }
 
-                        captures.endCompositeCapture();
+                        //captures.endCompositeCapture();
+                        captures.captureSingle(innerCaptures.toList());
 
                         return target;
                     }

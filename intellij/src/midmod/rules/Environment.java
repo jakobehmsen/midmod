@@ -1,6 +1,7 @@
 package midmod.rules;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Stack;
 
 public class Environment {
@@ -49,5 +50,9 @@ public class Environment {
 
     public void rollback() {
         index = markings.pop();
+    }
+
+    public List<Object> toList() {
+        return captures.subList(0, index);
     }
 }
