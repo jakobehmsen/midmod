@@ -563,4 +563,56 @@ public class Patterns {
             }
         };
     }
+
+    public static Pattern not(Pattern patternToNegate) {
+        return new Pattern() {
+            @Override
+            public boolean matchesList(Consumable value, Environment captures) {
+                return false;
+            }
+
+            @Override
+            public boolean matchesSingle(Object value, Environment captures) {
+                return false;
+            }
+
+            @Override
+            public RuleMap.Node findNode(RuleMap.Node node) {
+                RuleMap.Node pseudoNode = new RuleMap.Node();
+                RuleMap.Node patternToNegateNode = patternToNegate.findNode(pseudoNode);
+
+                class NotEdgePattern implements EdgePattern {
+                    Pattern thePatternToNegate = patternToNegate;
+
+                    @Override
+                    public int sortIndex() {
+                        return 2;
+                    }
+
+                    @Override
+                    public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
+                        RuleMap.Node n = pseudoNode.match(value, captures);
+                        if(n == null) {
+                            if(value instanceof Consumable) {
+                                // What if embedded pattern is repeat pattern? Should that be possible?
+                                // Or only single-capturing patterns?
+                                captures.captureSingle(((Consumable)value).peek());
+                                ((Consumable)value).consume();
+                            }
+
+                            return target;
+                        }
+                        return null;
+                    }
+
+                    @Override
+                    public boolean equals(Object obj) {
+                        return obj instanceof NotEdgePattern && this.thePatternToNegate.equals(((NotEdgePattern)obj).thePatternToNegate);
+                    }
+                }
+
+                return node.byPattern(new NotEdgePattern());
+            }
+        };
+    }
 }

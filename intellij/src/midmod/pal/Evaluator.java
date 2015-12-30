@@ -390,6 +390,13 @@ public class Evaluator {
             }
 
             @Override
+            public Pattern visitNotPattern(PalParser.NotPatternContext ctx) {
+                Pattern patternToNegate = evaluatePattern(ctx.pattern(), captureAddress, nameToCaptureAddressMap);
+
+                return Patterns.not(patternToNegate);
+            }
+
+            @Override
             public Pattern visitAnything(PalParser.AnythingContext ctx) {
                 return Patterns.anything;
             }
