@@ -1,5 +1,7 @@
 package midmod.pal;
 
+import java.util.List;
+
 public interface Consumable {
     Object peek();
     void consume();

@@ -1,17 +1,23 @@
 package midmod.rules.patterns;
 
 import midmod.pal.Consumable;
+import midmod.rules.Cardinality;
 import midmod.rules.Environment;
 import midmod.rules.RuleMap;
 
-public interface Pattern /*extends Comparable<Pattern>*/ {
-    /*default int compareTo(Pattern other) {
-        return sortIndex() - other.sortIndex();
+public interface Pattern extends Comparable<Pattern> {
+    default int compareTo(Pattern other) {
+        int deltaSortIndex = sortIndex() - other.sortIndex();
+
+        if(deltaSortIndex == 0)
+            return compareInstanceTo(other);
+
+        return deltaSortIndex;
     }
 
-    default int sortIndex() {
-        throw new UnsupportedOperationException();
-    }*/
+    int compareInstanceTo(Pattern other);
+
+    int sortIndex();
 
     boolean matchesList(Consumable value, Environment captures);
     boolean matchesSingle(Object value, Environment captures);
@@ -19,7 +25,23 @@ public interface Pattern /*extends Comparable<Pattern>*/ {
     default Pattern or(Pattern other) {
         Pattern self = this;
 
-        return new Pattern() {
+        class OrPattern implements Pattern {
+            Pattern theSelf = self;
+            Pattern theOther = other;
+
+            @Override
+            public int compareInstanceTo(Pattern other) {
+                int selfCompare = theSelf.compareTo(((OrPattern)other).theSelf);
+                int selfOther = theOther.compareTo(((OrPattern)other).theOther);
+
+                return selfCompare + selfOther;
+            }
+
+            @Override
+            public int sortIndex() {
+                return Math.max(self.sortIndex(), other.sortIndex());
+            }
+
             @Override
             public boolean matchesList(Consumable value, Environment captures) {
                 value.mark();
@@ -44,14 +66,23 @@ public interface Pattern /*extends Comparable<Pattern>*/ {
                 return null;
             }
 
+            @Override
+            public Cardinality cardinality() {
+                return self.cardinality().add(other.cardinality());
+            }
+
             /*@Override
             public RuleMap.Node matches(RuleMap.Node node, Object value, Map<String, Object> captures) {
                 return null;
             }*/
-        };
+        }
+
+        return new OrPattern();
     }
 
     RuleMap.Node findNode(RuleMap.Node node);
 
     //RuleMap.Node matches(RuleMap.Node node, Object value, Map<String, Object> captures);
+
+    Cardinality cardinality();
 }

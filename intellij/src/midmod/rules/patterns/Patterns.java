@@ -2,14 +2,13 @@ package midmod.rules.patterns;
 
 import midmod.pal.Consumable;
 import midmod.pal.ListConsumable;
-import midmod.rules.EdgePattern;
-import midmod.rules.Environment;
-import midmod.rules.RuleMap;
+import midmod.rules.*;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.IntStream;
 
 public class Patterns {
@@ -114,7 +113,19 @@ public class Patterns {
     }*/
 
     public static Pattern equalsObject(Object obj) {
-        return new Pattern() {
+        class EqualsPattern implements Pattern {
+            Pattern self = this;
+
+            @Override
+            public int compareInstanceTo(Pattern other) {
+                return 0;
+            }
+
+            @Override
+            public int sortIndex() {
+                return 0;
+            }
+
             @Override
             public boolean matchesList(Consumable value, Environment captures) {
                 boolean result = matchesSingle(value.peek(), captures);
@@ -155,8 +166,10 @@ public class Patterns {
                     }
 
                     @Override
-                    public int sortIndex() {
-                        return 0;
+                    public Pattern pattern() {
+                        //return 0;
+                        //return self.cardinality();
+                        return self;
                     }
 
                     @Override
@@ -186,7 +199,14 @@ public class Patterns {
                     }
                 });
             }
-        };
+
+            @Override
+            public Cardinality cardinality() {
+                return new ConcreteCardinality(1);
+            }
+        }
+
+        return new EqualsPattern();
     }
 
     public static Pattern binary(String operator, Class<?> lhsType, Class<?> rhsType) {
@@ -204,7 +224,19 @@ public class Patterns {
     }
 
     public static Pattern conformsTo(List<Pattern> list) {
-        return new Pattern() {
+        class SubsumesList implements Pattern {
+            Pattern self = this;
+
+            @Override
+            public int compareInstanceTo(Pattern other) {
+                return 0;
+            }
+
+            @Override
+            public int sortIndex() {
+                return 1;
+            }
+
             @Override
             public boolean matchesList(Consumable value, Environment captures) {
                 boolean result = matchesSingle(value.peek(), captures);
@@ -218,8 +250,8 @@ public class Patterns {
                     List<Object> otherList = (List<Object>) value;
                     Consumable listConsumable = new ListConsumable(otherList);
                     return IntStream.range(0, list.size())
-                       .allMatch(i ->
-                           list.get(i).matchesList(listConsumable, captures))
+                        .allMatch(i ->
+                            list.get(i).matchesList(listConsumable, captures))
                         && listConsumable.atEnd();
                 }
 
@@ -230,8 +262,8 @@ public class Patterns {
             public RuleMap.Node findNode(RuleMap.Node node) {
                 RuleMap.Node listNode = node.byPattern(new EdgePattern() {
                     @Override
-                    public int sortIndex() {
-                        return 0;
+                    public Pattern pattern() {
+                        return this.pattern();
                     }
 
                     @Override
@@ -241,30 +273,13 @@ public class Patterns {
                             Consumable listConsumable = new ListConsumable(otherList);
 
                             for(Map.Entry<EdgePattern, RuleMap.Node> e: target.edges()) {
-                                //captures.startCompositeCapture();
-                                //Environment innerCaptures = captures.getCurrent();
                                 Environment innerCaptures = new Environment();
                                 RuleMap.Node an = matchesAlternative(innerCaptures, listConsumable, e);
                                 if(an != null && listConsumable.atEnd()) {
                                     captures.captureSingle(innerCaptures.toList());
-                                    //captures.endCompositeCapture();
                                     return an;
                                 }
                             }
-
-                            /*captures.startCompositeCapture();
-                            Environment innerCaptures = captures.getCurrent();
-                            //Consumable listConsumable = new ListConsumable(otherList);
-                            RuleMap.Node n = target;
-                            while (true) {
-                                n = n.match(listConsumable, innerCaptures);
-                                if (listConsumable.atEnd()) {
-                                    captures.endCompositeCapture();
-                                    return n;
-                                }
-                                if (n == null)
-                                    return null;
-                            }*/
                         }
 
                         return null;
@@ -313,60 +328,35 @@ public class Patterns {
                 for (Pattern pattern : list)
                     n = pattern.findNode(n);
 
-                /*node.putPattern(new EdgePattern() {
-                    @Override
-                    public int sortIndex() {
-                        return 0;
-                    }
-
-                    @Override
-                    public RuleMap.Node matches(RuleMap.Node target, Object value, Map<String, Object> captures) {
-                        if(value instanceof List) {
-                            List<Object> otherList = (List<Object>) value;
-                            Consumable listConsumable = new ListConsumable(otherList);
-                            RuleMap.Node n;
-                            while(true) {
-                                n = target.match(listConsumable, captures);
-                                if(listConsumable.atEnd())
-                                    return n;
-                                if(n == null)
-                                    return null;
-                            }
-                        }
-
-                        return null;
-                    }
-
-                    @Override
-                    public String toString() {
-                        return "conforms to ";
-                    }
-
-                    @Override
-                    public boolean equals(Object obj) {
-                        return getClass().isInstance(obj);
-                    }
-                }, listNode);*/
-
-
-
-                /*RuleMap.Node bySequence = node.bySequence();
-
-                RuleMap.Node n = bySequence;
-
-                for (Pattern pattern : list)
-                    n = pattern.findNode(n);*/
-
                 return n;
             }
-        };
+
+            @Override
+            public Cardinality cardinality() {
+                return list.stream().map(x -> x.cardinality()).reduce(new ConcreteCardinality(1), (x, y) -> x.mul(y));
+            }
+        }
+
+        return new SubsumesList();
     }
 
     public static Pattern is(Class<?> type) {
         if(type == null)
             new String();
 
-        return new Pattern() {
+        class IsPattern implements Pattern {
+            Pattern self = this;
+
+            @Override
+            public int compareInstanceTo(Pattern other) {
+                return 0;
+            }
+
+            @Override
+            public int sortIndex() {
+                return 3;
+            }
+
             @Override
             public boolean matchesList(Consumable value, Environment captures) {
                 boolean result = matchesSingle(value.peek(), captures);
@@ -392,8 +382,10 @@ public class Patterns {
                     Class<?> theType = type;
 
                     @Override
-                    public int sortIndex() {
-                        return 1;
+                    public Pattern pattern() {
+                        //return 1;
+                        //return self.cardinality();
+                        return self;
                     }
 
                     @Override
@@ -421,11 +413,43 @@ public class Patterns {
                 //return node.byType(type);
                 return node.byPattern(new IsEdgePattern());
             }
-        };
+
+            @Override
+            public Cardinality cardinality() {
+                return new AbstractCardinality(0);
+            }
+        }
+
+        return new IsPattern();
     }
 
     public static Pattern conformsToMap(List<Map.Entry<String, Pattern>> map) {
-        return new Pattern() {
+        class SubsumesMap implements Pattern {
+            List<Map.Entry<String, Pattern>> theMap = map;
+
+            private boolean isMoreGeneral(List<Map.Entry<String, Pattern>> moreGeneralTest, List<Map.Entry<String, Pattern>> lessGeneralTest) {
+                return lessGeneralTest.stream().allMatch(x -> {
+                    Optional<Map.Entry<String, Pattern>> otherEntry = moreGeneralTest.stream().filter(y -> y.getKey().equals(x.getKey())).findFirst();
+
+                    return !otherEntry.isPresent() || x.getValue().compareTo(otherEntry.get().getValue()) > 0;
+                });
+            }
+
+            @Override
+            public int compareInstanceTo(Pattern other) {
+                if(isMoreGeneral(theMap, ((SubsumesMap)other).theMap))
+                    return 1;
+                else if(isMoreGeneral(((SubsumesMap)other).theMap, theMap))
+                    return -1;
+
+                return 0;
+            }
+
+            @Override
+            public int sortIndex() {
+                return 2;
+            }
+
             @Override
             public boolean matchesList(Consumable value, Environment captures) {
                 boolean result = matchesSingle(value.peek(), captures);
@@ -451,10 +475,29 @@ public class Patterns {
             public RuleMap.Node findNode(RuleMap.Node node) {
                 return null;
             }
-        };
+
+            @Override
+            public Cardinality cardinality() {
+                return null;
+            }
+        }
+
+        return new SubsumesMap();
     }
 
-    public static final Pattern anything = new Pattern() {
+    private static class AnyPattern implements Pattern {
+        Pattern self = this;
+
+        @Override
+        public int compareInstanceTo(Pattern other) {
+            return 0;
+        }
+
+        @Override
+        public int sortIndex() {
+            return 6;
+        }
+
         @Override
         public boolean matchesList(Consumable value, Environment captures) {
             value.consume();
@@ -470,8 +513,10 @@ public class Patterns {
         public RuleMap.Node findNode(RuleMap.Node node) {
             class AnythingEdgePattern implements EdgePattern {
                 @Override
-                public int sortIndex() {
-                    return 3;
+                public Pattern pattern() {
+                    //return 3;
+                    //return self.cardinality();
+                    return self;
                 }
 
                 @Override
@@ -499,10 +544,30 @@ public class Patterns {
 
             return node.byPattern(new AnythingEdgePattern());
         }
-    };
+
+        @Override
+        public Cardinality cardinality() {
+            return new AbstractCardinality(2);
+        }
+    }
+
+    public static final Pattern anything = new AnyPattern();
 
     public static Pattern repeat(Pattern pattern) {
-        return new Pattern() {
+        class RepeatPattern implements Pattern {
+            Pattern thePattern = pattern;
+            Pattern self = this;
+
+            @Override
+            public int compareInstanceTo(Pattern other) {
+                return thePattern.compareTo(((RepeatPattern)other).thePattern);
+            }
+
+            @Override
+            public int sortIndex() {
+                return 5;
+            }
+
             @Override
             public boolean matchesList(Consumable value, Environment captures) {
                 // Captured elements should implicitly be put into lists
@@ -524,8 +589,10 @@ public class Patterns {
                     RuleMap.Node patternNode = pattern.findNode(pseudoNode);
 
                     @Override
-                    public int sortIndex() {
-                        return 2;
+                    public Pattern pattern() {
+                        //return 2;
+                        //return self.cardinality();
+                        return self;
                     }
 
                     @Override
@@ -561,11 +628,31 @@ public class Patterns {
 
                 return repeatNode;
             }
-        };
+
+            @Override
+            public Cardinality cardinality() {
+                return new AbstractCardinality(1);
+            }
+        }
+
+        return new RepeatPattern();
     }
 
     public static Pattern not(Pattern patternToNegate) {
-        return new Pattern() {
+        class NotPattern implements Pattern {
+            Pattern thePattern = patternToNegate;
+            Pattern self = this;
+
+            @Override
+            public int compareInstanceTo(Pattern other) {
+                return patternToNegate.compareTo(((NotPattern)other).thePattern) * -1;
+            }
+
+            @Override
+            public int sortIndex() {
+                return 4;
+            }
+
             @Override
             public boolean matchesList(Consumable value, Environment captures) {
                 return false;
@@ -585,13 +672,23 @@ public class Patterns {
                     Pattern thePatternToNegate = patternToNegate;
 
                     @Override
-                    public int sortIndex() {
-                        return 2;
+                    public Pattern pattern() {
+                        //return 2;
+                        //return self.cardinality();
+                        return self;
                     }
 
                     @Override
                     public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
-                        RuleMap.Node n = pseudoNode.match(value, captures);
+                        if(value instanceof Consumable)
+                            ((Consumable)value).mark();
+
+                        Environment innerCaptures = new Environment();
+                        RuleMap.Node n = pseudoNode.match(value, innerCaptures);
+
+                        if(value instanceof Consumable)
+                            ((Consumable)value).rollback();
+
                         if(n == null) {
                             if(value instanceof Consumable) {
                                 // What if embedded pattern is repeat pattern? Should that be possible?
@@ -613,6 +710,16 @@ public class Patterns {
 
                 return node.byPattern(new NotEdgePattern());
             }
-        };
+
+            @Override
+            public Cardinality cardinality() {
+                return patternToNegate.cardinality();
+            }
+        }
+
+        /*if(patternToNegate instanceof NotPattern)
+            return ((NotPattern)patternToNegate).thePattern;*/
+
+        return new NotPattern();
     }
 }

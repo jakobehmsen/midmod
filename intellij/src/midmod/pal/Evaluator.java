@@ -391,7 +391,7 @@ public class Evaluator {
 
             @Override
             public Pattern visitNotPattern(PalParser.NotPatternContext ctx) {
-                Pattern patternToNegate = evaluatePattern(ctx.pattern(), captureAddress, nameToCaptureAddressMap);
+                Pattern patternToNegate = evaluatePatternTarget(ctx.pattern1(), captureAddress, nameToCaptureAddressMap);
 
                 return Patterns.not(patternToNegate);
             }

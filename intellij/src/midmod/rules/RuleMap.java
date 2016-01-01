@@ -1,7 +1,5 @@
 package midmod.rules;
 
-import midmod.pal.Consumable;
-import midmod.pal.ListConsumable;
 import midmod.rules.actions.Action;
 import midmod.rules.actions.Actions;
 import midmod.rules.patterns.Pattern;
@@ -14,7 +12,8 @@ public class RuleMap {
     public static class Node {
         private ArrayList<Map.Entry<EdgePattern, Node>> edges = new ArrayList<>();
 
-        private SortedMap<EdgePattern, Node> sortedEdges = new TreeMap<>((o1, o2) -> o1.sortIndex() - o2.sortIndex());
+        //private SortedMap<EdgePattern, Node> sortedEdges = new TreeMap<>((o1, o2) -> o1.cardinality() - o2.cardinality());
+        private SortedMap<EdgePattern, Node> sortedEdges = new TreeMap<>();
 
         /*private Hashtable<Object, Node> byEquals = new Hashtable<>();
         private Hashtable<Class<?>, Node> byType = new Hashtable<>();*/
@@ -68,7 +67,8 @@ public class RuleMap {
             if(e == null) {
                 e = new AbstractMap.SimpleImmutableEntry<>(pattern, new Node());
                 edges.add(e);
-                edges.sort((o1, o2) -> o1.getKey().sortIndex() - o2.getKey().sortIndex());
+                //edges.sort((o1, o2) -> o1.getKey().cardinality() - o2.getKey().cardinality());
+                edges.sort((o1, o2) -> o1.getKey().pattern().compareTo(o2.getKey().pattern()));
             }
 
             return e.getValue();
@@ -94,7 +94,8 @@ public class RuleMap {
             if(e == null) {
                 e = new AbstractMap.SimpleImmutableEntry<>(edgePattern, target);
                 edges.add(e);
-                edges.sort((o1, o2) -> o1.getKey().sortIndex() - o2.getKey().sortIndex());
+                //edges.sort((o1, o2) -> o1.getKey().cardinality() - o2.getKey().cardinality());
+                edges.sort((o1, o2) -> o1.getKey().pattern().compareTo(o2.getKey().pattern()));
             }
 
             //sortedEdges.put(edgePattern, target);

@@ -13,7 +13,7 @@ pattern2: typedPattern | literalPattern | notPattern | embeddedPattern;
 typedPattern: type=TYPE_CODE;
 literalPattern: string | number | listPattern | mapPattern | anything;
 listPattern: OPEN_SQ (pattern (COMMA pattern)*)? CLOSE_SQ;
-notPattern: EXCLAMATION pattern;
+notPattern: EXCLAMATION pattern1;
 embeddedPattern: OPEN_PAR pattern CLOSE_PAR;
 mapPattern: OPEN_BRA (slotPattern (COMMA slotPattern)*)? CLOSE_BRA;
 anything: UNDERSCORE;
