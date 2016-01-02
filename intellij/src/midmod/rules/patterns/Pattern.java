@@ -85,4 +85,8 @@ public interface Pattern extends Comparable<Pattern> {
     //RuleMap.Node matches(RuleMap.Node node, Object value, Map<String, Object> captures);
 
     Cardinality cardinality();
+
+    default RuleMap.Node findListItemNode(RuleMap.Node node) {
+        return findNode(node);
+    }
 }

@@ -263,7 +263,7 @@ public class Patterns {
                 RuleMap.Node listNode = node.byPattern(new EdgePattern() {
                     @Override
                     public Pattern pattern() {
-                        return this.pattern();
+                        return self;
                     }
 
                     @Override
@@ -326,9 +326,50 @@ public class Patterns {
                 RuleMap.Node n = listNode;
 
                 for (Pattern pattern : list)
-                    n = pattern.findNode(n);
+                    n = pattern.findListItemNode(n);
 
                 return n;
+            }
+
+            @Override
+            public RuleMap.Node findListItemNode(RuleMap.Node node) {
+                RuleMap.Node pseudoNode = new RuleMap.Node();
+
+                RuleMap.Node endNode = findNode(pseudoNode);
+
+                return node.byPattern(new EdgePattern() {
+                    @Override
+                    public Pattern pattern() {
+                        return self;
+                    }
+
+                    @Override
+                    public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
+                        Object theValue = value;
+                        if(value instanceof Consumable)
+                            theValue = ((Consumable)value).peek();
+
+                        RuleMap.Node n = pseudoNode.match(theValue, captures);
+
+                        if(n == endNode) {
+
+                            if (value instanceof Consumable) {
+                                captures.captureSingle(theValue);
+                                ((Consumable) value).consume();
+                            }
+
+                            return target;
+                        }
+
+                        return null;
+                    }
+                });
+
+                /*RuleMap.Node pseudoNode = new RuleMap.Node();
+
+                findNode(pseudoNode);
+
+                return pseudoNode;*/
             }
 
             @Override
