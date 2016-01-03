@@ -203,16 +203,19 @@ public class Evaluator {
             public Action visitAccess(PalParser.AccessContext ctx) {
                 String name = ctx.getText();
                 List<Integer> captureAddress = nameToCaptureAddressMap.get(name);
-                // Resolve address
-                //return (ruleMap1, captures) -> captures.get(name);
-                //return null;
+                int index = captureAddress.get(0);
 
                 return (ruleMap1, captures) -> {
+                    Object val = captures.get(index);
+                    return val;
+                };
+
+                /*return (ruleMap1, captures) -> {
                     Object val = captures.get(captureAddress.get(0));
                     for(int i = 1; i < captureAddress.size(); i++)
                         val = ((List<Object>)val).get(captureAddress.get(i));
                     return val;
-                };
+                };*/
             }
 
             /*@Override
@@ -299,8 +302,14 @@ public class Evaluator {
             isRepeat = true;
         }
 
-        if (ctx.name != null)
-            nameToCaptureAddressMap.put(ctx.name.getText(), captureAddress);
+        if (ctx.name != null) {
+            // Declare index for parameter
+            int index = nameToCaptureAddressMap.size();
+            List<Integer> theCaptureAddress = Arrays.asList(index);
+            nameToCaptureAddressMap.put(ctx.name.getText(), theCaptureAddress);
+            pattern = !isRepeat ? Patterns.captureSingle(index, pattern) : Patterns.captureMany(index, pattern);
+            //nameToCaptureAddressMap.put(ctx.name.getText(), captureAddress);
+        }
             // Resolve address in captures/environment
             pattern = pattern;
             //pattern = Patterns.capture(pattern, ctx.name.getText(), !isRepeat);

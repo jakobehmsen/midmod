@@ -42,4 +42,9 @@ public class ListConsumable implements Consumable {
     public void rollback() {
         index = marks.pop();
     }
+
+    @Override
+    public void propogate(Object value) {
+
+    }
 }

@@ -9,4 +9,5 @@ public interface Consumable {
     void mark();
     void commit();
     void rollback();
+    void propogate(Object value);
 }

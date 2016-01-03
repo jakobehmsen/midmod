@@ -21,9 +21,7 @@ public class CaptureConsumable implements Consumable {
 
     @Override
     public void consume() {
-        Object value = consumable.peek();
-        capturedElements.add(value);
-        capturedElementsCount++;
+        propogate(consumable.peek());
         consumable.consume();
     }
 
@@ -50,6 +48,12 @@ public class CaptureConsumable implements Consumable {
     public void rollback() {
         capturedElementsCount = markings.pop();
         consumable.rollback();
+    }
+
+    @Override
+    public void propogate(Object value) {
+        capturedElements.add(value);
+        capturedElementsCount++;
     }
 
     public List<Object> getCapturedElements() {

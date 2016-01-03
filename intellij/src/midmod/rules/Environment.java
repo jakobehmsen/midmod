@@ -13,8 +13,8 @@ public class Environment {
     }
 
     public void captureSingle(Object value) {
-        captures.add(index, value);
-        index++;
+        //captures.add(index, value);
+        //index++;
     }
 
     public void startCompositeCapture() {
@@ -54,5 +54,11 @@ public class Environment {
 
     public List<Object> toList() {
         return captures.subList(0, index);
+    }
+
+    public void captureSingle(int index, Object value) {
+        while(captures.size() < index + 1)
+            captures.add(null);
+        captures.set(index, value);
     }
 }
