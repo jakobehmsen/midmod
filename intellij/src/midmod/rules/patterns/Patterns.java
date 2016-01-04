@@ -8,7 +8,9 @@ import midmod.rules.*;
 
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Patterns {
@@ -477,10 +479,11 @@ public class Patterns {
             List<Map.Entry<String, Pattern>> theMap = map;
 
             private boolean isMoreGeneral(List<Map.Entry<String, Pattern>> moreGeneralTest, List<Map.Entry<String, Pattern>> lessGeneralTest) {
+                // How to compare this properly???
                 return lessGeneralTest.stream().allMatch(x -> {
                     Optional<Map.Entry<String, Pattern>> otherEntry = moreGeneralTest.stream().filter(y -> y.getKey().equals(x.getKey())).findFirst();
 
-                    return !otherEntry.isPresent() || x.getValue().compareTo(otherEntry.get().getValue()) > 0;
+                    return !otherEntry.isPresent() || x.getValue().compareTo(otherEntry.get().getValue()) < 0;
                 });
             }
 
@@ -522,7 +525,45 @@ public class Patterns {
 
             @Override
             public RuleMap.Node findNode(RuleMap.Node node) {
-                return null;
+                class SubsumesMapEdgePattern implements EdgePattern {
+                    Map<String, RuleMap.Node> nodes = map.stream()
+                        .collect(Collectors.toMap(x -> x.getKey(), x -> {
+                            RuleMap.Node n = new RuleMap.Node();
+                            x.getValue().findNode(n);
+                            return n;
+                        }));
+
+                    @Override
+                    public Pattern pattern() {
+                        return SubsumesMap.this;
+                    }
+
+                    @Override
+                    public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
+                        Consumable consumable = (Consumable)value;
+
+                        if(consumable.peek() instanceof Map) {
+                            Map<String, Object> otherMap = (Map<String, Object>) consumable.peek();
+                            return map.stream()
+                                .allMatch(e -> {
+                                    Object slotValue = otherMap.get(e.getKey());
+
+                                    if(slotValue != null) {
+                                        // Wrap into Consumable
+                                        slotValue = new ListConsumable(Arrays.asList(slotValue));
+                                        RuleMap.Node node = nodes.get(e.getKey());
+                                        return node.match(slotValue, captures) != null;
+                                    }
+                                    return false;
+                                    //return slotValue != null && e.getValue().matchesSingle(slotValue, captures);
+                                }) ? target : null;
+                        }
+
+                        return null;
+                    }
+                }
+
+                return node.byPattern(new SubsumesMapEdgePattern());
             }
 
             @Override

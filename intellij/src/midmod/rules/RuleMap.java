@@ -1,5 +1,7 @@
 package midmod.rules;
 
+import midmod.pal.Consumable;
+import midmod.pal.ListConsumable;
 import midmod.rules.actions.Action;
 import midmod.rules.actions.Actions;
 import midmod.rules.patterns.Pattern;
@@ -123,7 +125,10 @@ public class RuleMap {
     }
 
     public Action resolve(Object value, Environment captures) {
-        Node node = root.match(value, captures);
+        // Wrap into Consumable
+        Consumable consumable = new ListConsumable(Arrays.asList(value));
+        Node node = root.match(consumable, captures);
+        //Node node = root.match(value, captures);
 
         if(node != null) {
             return node.action;
