@@ -480,11 +480,11 @@ public class Patterns {
 
             private boolean isMoreGeneral(List<Map.Entry<String, Pattern>> moreGeneralTest, List<Map.Entry<String, Pattern>> lessGeneralTest) {
                 // How to compare this properly???
-                return lessGeneralTest.stream().allMatch(x -> {
-                    Optional<Map.Entry<String, Pattern>> otherEntry = moreGeneralTest.stream().filter(y -> y.getKey().equals(x.getKey())).findFirst();
+                return lessGeneralTest.stream().allMatch(lessGeneralEntry -> {
+                    Optional<Map.Entry<String, Pattern>> moreGeneralEntry = moreGeneralTest.stream().filter(y -> y.getKey().equals(lessGeneralEntry.getKey())).findFirst();
 
-                    return !otherEntry.isPresent() || x.getValue().compareTo(otherEntry.get().getValue()) < 0;
-                });
+                    return !moreGeneralEntry.isPresent() || lessGeneralEntry.getValue().compareTo(moreGeneralEntry.get().getValue()) <= 0;
+                }) && lessGeneralTest.size() >= moreGeneralTest.size();
             }
 
             @Override
