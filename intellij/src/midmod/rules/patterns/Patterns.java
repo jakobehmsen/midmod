@@ -8,7 +8,6 @@ import midmod.rules.*;
 
 import java.lang.reflect.Field;
 import java.util.*;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -201,11 +200,6 @@ public class Patterns {
                     }
                 });
             }
-
-            @Override
-            public Cardinality cardinality() {
-                return new ConcreteCardinality(1);
-            }
         }
 
         return new EqualsPattern();
@@ -381,11 +375,6 @@ public class Patterns {
 
                 return pseudoNode;*/
             }
-
-            @Override
-            public Cardinality cardinality() {
-                return list.stream().map(x -> x.cardinality()).reduce(new ConcreteCardinality(1), (x, y) -> x.mul(y));
-            }
         }
 
         return new SubsumesList();
@@ -464,17 +453,12 @@ public class Patterns {
                 //return node.byType(type);
                 return node.byPattern(new IsEdgePattern());
             }
-
-            @Override
-            public Cardinality cardinality() {
-                return new AbstractCardinality(0);
-            }
         }
 
         return new IsPattern();
     }
 
-    public static Pattern conformsToMap(List<Map.Entry<String, Pattern>> map) {
+    public static Pattern subsumesToMap(List<Map.Entry<String, Pattern>> map) {
         class SubsumesMap implements Pattern {
             List<Map.Entry<String, Pattern>> theMap = map;
 
@@ -565,11 +549,6 @@ public class Patterns {
 
                 return node.byPattern(new SubsumesMapEdgePattern());
             }
-
-            @Override
-            public Cardinality cardinality() {
-                return null;
-            }
         }
 
         return new SubsumesMap();
@@ -650,11 +629,6 @@ public class Patterns {
 
                 return node.byPattern(new CaptureEdgePattern());
             }
-
-            @Override
-            public Cardinality cardinality() {
-                return null;
-            }
         }
 
         return new CapturePattern();
@@ -720,10 +694,6 @@ public class Patterns {
             return node.byPattern(new AnythingEdgePattern());
         }
 
-        @Override
-        public Cardinality cardinality() {
-            return new AbstractCardinality(2);
-        }
     }
 
     public static final Pattern anything = new AnyPattern();
@@ -803,11 +773,6 @@ public class Patterns {
 
                 return repeatNode;
             }
-
-            @Override
-            public Cardinality cardinality() {
-                return new AbstractCardinality(1);
-            }
         }
 
         return new RepeatPattern();
@@ -885,11 +850,6 @@ public class Patterns {
                 }
 
                 return node.byPattern(new NotEdgePattern());
-            }
-
-            @Override
-            public Cardinality cardinality() {
-                return patternToNegate.cardinality();
             }
         }
 

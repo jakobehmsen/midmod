@@ -375,7 +375,7 @@ public class Evaluator {
                 List<Map.Entry<String, Pattern>> slots = ctx.slotPattern().stream()
                     .map(x -> new AbstractMap.SimpleImmutableEntry<>(x.ID().getText(), evaluatePattern(x.pattern(), captureAddress, nameToCaptureAddressMap))).collect(Collectors.toList());
 
-                return Patterns.conformsToMap(slots);
+                return Patterns.subsumesToMap(slots);
             }
 
             @Override

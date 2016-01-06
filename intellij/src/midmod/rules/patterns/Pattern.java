@@ -1,7 +1,6 @@
 package midmod.rules.patterns;
 
 import midmod.pal.Consumable;
-import midmod.rules.Cardinality;
 import midmod.rules.Environment;
 import midmod.rules.RuleMap;
 
@@ -66,11 +65,6 @@ public interface Pattern extends Comparable<Pattern> {
                 return null;
             }
 
-            @Override
-            public Cardinality cardinality() {
-                return self.cardinality().add(other.cardinality());
-            }
-
             /*@Override
             public RuleMap.Node matches(RuleMap.Node node, Object value, Map<String, Object> captures) {
                 return null;
@@ -83,8 +77,6 @@ public interface Pattern extends Comparable<Pattern> {
     RuleMap.Node findNode(RuleMap.Node node);
 
     //RuleMap.Node matches(RuleMap.Node node, Object value, Map<String, Object> captures);
-
-    Cardinality cardinality();
 
     default RuleMap.Node findListItemNode(RuleMap.Node node) {
         return findNode(node);
