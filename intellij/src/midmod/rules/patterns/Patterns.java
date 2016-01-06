@@ -70,15 +70,8 @@ public class Patterns {
                     }
 
                     @Override
-                    public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
-                        if(value instanceof Consumable)
-                            return matchesList(((Consumable) value), captures) ? target : null;
-
-                        RuleMap.Node n = matchesSingle(value, captures) ? target : null;
-                        if(n != null) {
-                            captures.captureSingle(value);
-                        }
-                        return n;
+                    public RuleMap.Node matches(RuleMap.Node target, Consumable consumable, Environment captures) {
+                        return matchesList(consumable, captures) ? target : null;
                     }
 
                     @Override
@@ -157,21 +150,19 @@ public class Patterns {
                     }
 
                     @Override
-                    public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
-                        Object theValue = value instanceof Consumable ? ((Consumable)value).peek() : value;
+                    public RuleMap.Node matches(RuleMap.Node target, Consumable consumable, Environment captures) {
+                        Object theValue = consumable.peek();
 
                         if (theValue instanceof List) {
                             List<Object> otherList = (List<Object>) theValue;
                             Consumable listConsumable = new ListConsumable(otherList);
-                            if(value instanceof Consumable)
-                                listConsumable = new ObservedConsumable(listConsumable, v ->
-                                    ((Consumable)value).propogate(v));
+                            listConsumable = new ObservedConsumable(listConsumable, v ->
+                                consumable.propogate(v));
 
                             for(Map.Entry<EdgePattern, RuleMap.Node> e: target.edges()) {
                                 RuleMap.Node an = matchesAlternative(captures, listConsumable, e);
                                 if(an != null && listConsumable.atEnd()) {
-                                    if(value instanceof Consumable)
-                                        ((Consumable)value).consume();
+                                    consumable.consume();
                                     return an;
                                 }
                             }
@@ -180,28 +171,28 @@ public class Patterns {
                         return null;
                     }
 
-                    private RuleMap.Node matchesAlternative(Environment innerCaptures, Consumable value, Map.Entry<EdgePattern, RuleMap.Node> edge) {
-                        value.mark();
+                    private RuleMap.Node matchesAlternative(Environment innerCaptures, Consumable consumable, Map.Entry<EdgePattern, RuleMap.Node> edge) {
+                        consumable.mark();
                         innerCaptures.mark();
-                        RuleMap.Node n = edge.getKey().matches(edge.getValue(), value, innerCaptures);
+                        RuleMap.Node n = edge.getKey().matches(edge.getValue(), consumable, innerCaptures);
                         if(n != null) {
-                            if(value.atEnd()) {
+                            if(consumable.atEnd()) {
                                 innerCaptures.commit();
-                                value.commit();
+                                consumable.commit();
                                 return n;
                             }
 
                             for(Map.Entry<EdgePattern, RuleMap.Node> e: n.edges()) {
-                                RuleMap.Node an = matchesAlternative(innerCaptures, value, e);
+                                RuleMap.Node an = matchesAlternative(innerCaptures, consumable, e);
                                 if(an != null) {
                                     innerCaptures.commit();
-                                    value.commit();
+                                    consumable.commit();
                                     return an;
                                 }
                             }
                         }
 
-                        value.rollback();
+                        consumable.rollback();
                         innerCaptures.rollback();
 
                         return null;
@@ -239,19 +230,15 @@ public class Patterns {
                     }
 
                     @Override
-                    public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
-                        Object theValue = value;
-                        if(value instanceof Consumable)
-                            theValue = ((Consumable)value).peek();
+                    public RuleMap.Node matches(RuleMap.Node target, Consumable consumable, Environment captures) {
+                        Object theValue = consumable.peek();
+                        Consumable theValueAsConsumable = new ListConsumable(Arrays.asList(theValue));
 
-                        RuleMap.Node n = pseudoNode.match(theValue, captures);
+                        RuleMap.Node n = pseudoNode.match(theValueAsConsumable, captures);
 
                         if(n == endNode) {
-
-                            if (value instanceof Consumable) {
-                                captures.captureSingle(theValue);
-                                ((Consumable) value).consume();
-                            }
+                            captures.captureSingle(theValue);
+                            consumable.consume();
 
                             return target;
                         }
@@ -312,14 +299,8 @@ public class Patterns {
                     }
 
                     @Override
-                    public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
-                        if(value instanceof Consumable)
-                            return matchesList(((Consumable) value), captures) ? target : null;
-
-                        RuleMap.Node n = matchesSingle(value, captures) ? target : null;
-                        if(n != null)
-                            captures.captureSingle(value);
-                        return n;
+                    public RuleMap.Node matches(RuleMap.Node target, Consumable consumable, Environment captures) {
+                        return matchesList(consumable, captures) ? target : null;
                     }
 
                     @Override
@@ -404,9 +385,7 @@ public class Patterns {
                     }
 
                     @Override
-                    public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
-                        Consumable consumable = (Consumable)value;
-
+                    public RuleMap.Node matches(RuleMap.Node target, Consumable consumable, Environment captures) {
                         if(consumable.peek() instanceof Map) {
                             Map<String, Object> otherMap = (Map<String, Object>) consumable.peek();
                             return map.stream()
@@ -415,9 +394,9 @@ public class Patterns {
 
                                     if(slotValue != null) {
                                         // Wrap into Consumable
-                                        slotValue = new ListConsumable(Arrays.asList(slotValue));
+                                        Consumable slotValueAsConsumable = new ListConsumable(Arrays.asList(slotValue));
                                         RuleMap.Node node = nodes.get(e.getKey());
-                                        return node.match(slotValue, captures) != null;
+                                        return node.match(slotValueAsConsumable, captures) != null;
                                     }
                                     return false;
                                 }) ? target : null;
@@ -479,15 +458,13 @@ public class Patterns {
                     }
 
                     @Override
-                    public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
+                    public RuleMap.Node matches(RuleMap.Node target, Consumable consumable, Environment captures) {
                         /*
                         Changed captures parameter into List in which, arguments are bound for actions
                         Don't use environment for capturing; decorate consumable and put the consumed
                         values into captures List at the given index.
                         - Could be prettyfied
                         */
-
-                        Consumable consumable = (Consumable) value;
 
                         CaptureConsumable captureConsumable = new CaptureConsumable(consumable);
 
@@ -547,13 +524,10 @@ public class Patterns {
                 }
 
                 @Override
-                public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
-                    if(value instanceof Consumable) {
-                        Object val = ((Consumable)value).peek();
-                        ((Consumable)value).consume();
-                        captures.captureSingle(val);
-                    } else
-                        captures.captureSingle(value);
+                public RuleMap.Node matches(RuleMap.Node target, Consumable consumable, Environment captures) {
+                    Object val = consumable.peek();
+                    consumable.consume();
+                    captures.captureSingle(val);
 
                     return target;
                 }
@@ -617,11 +591,11 @@ public class Patterns {
                     }
 
                     @Override
-                    public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
+                    public RuleMap.Node matches(RuleMap.Node target, Consumable consumable, Environment captures) {
                         Environment innerCaptures = new Environment();
 
-                        while(!((Consumable)value).atEnd()) {
-                            RuleMap.Node n = pseudoNode.match(value, innerCaptures);
+                        while(!consumable.atEnd()) {
+                            RuleMap.Node n = pseudoNode.match(consumable, innerCaptures);
                             if(n != patternNode)
                                 break;
                         }
@@ -690,22 +664,18 @@ public class Patterns {
                     }
 
                     @Override
-                    public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
-                        if(value instanceof Consumable)
-                            ((Consumable)value).mark();
+                    public RuleMap.Node matches(RuleMap.Node target, Consumable consumable, Environment captures) {
+                        consumable.mark();
 
-                        RuleMap.Node n = pseudoNode.match(value, captures);
+                        RuleMap.Node n = pseudoNode.match(consumable, captures);
 
-                        if(value instanceof Consumable)
-                            ((Consumable)value).rollback();
+                        consumable.rollback();
 
                         if(n == null) {
-                            if(value instanceof Consumable) {
-                                // What if embedded pattern is repeat pattern? Should that be possible?
-                                // Or only single-capturing patterns?
-                                captures.captureSingle(((Consumable)value).peek());
-                                ((Consumable)value).consume();
-                            }
+                            // What if embedded pattern is repeat pattern? Should that be possible?
+                            // Or only single-capturing patterns?
+                            captures.captureSingle(consumable.peek());
+                            consumable.consume();
 
                             return target;
                         }
