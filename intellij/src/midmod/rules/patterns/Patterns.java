@@ -13,106 +13,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Patterns {
-    /*public static Pattern capture(Pattern pattern, String name) {
-        return capture(pattern, name, true);
-    }*/
-
-    /*public static Pattern capture(Pattern pattern, String name, boolean isSingle) {
-        return new Pattern() {
-            @Override
-            public boolean matchesList(Consumable value, Environment captures) {
-                CaptureConsumable captureConsumable = new CaptureConsumable(value);
-
-                boolean result = pattern.matchesList(captureConsumable, captures);
-
-                if(result) {
-                    Object capture = isSingle
-                        ? captureConsumable.getCapturedElements().get(0)
-                        : captureConsumable.getCapturedElements();
-                    captures.put(name, capture);
-                }
-
-                return result;
-            }
-
-            @Override
-            public boolean matchesSingle(Object value, Environment captures) {
-                boolean result = pattern.matchesSingle(value, captures);
-
-                if(result) {
-                    Object capture = value;
-                    captures.put(name, capture);
-                }
-
-                return result;
-            }
-
-            @Override
-            public RuleMap.Node findNode(RuleMap.Node node) {
-                // sortIndex should be part of the atomic pattern that is added to the node
-
-
-
-                class CaptureEdgePattern implements EdgePattern {
-                    public EdgePattern edgePattern;
-
-                    @Override
-                    public int sortIndex() {
-                        return edgePattern.sortIndex();
-                    }
-
-                    @Override
-                    public RuleMap.Node matches(RuleMap.Node node, Object value, Environment captures) {
-                        if (value instanceof Consumable) {
-                            CaptureConsumable captureConsumable = new CaptureConsumable((Consumable) value);
-
-                            RuleMap.Node n = node.match(captureConsumable, captures);
-
-                            if (n != null) {
-                                Object capture = isSingle
-                                    ? captureConsumable.getCapturedElements().get(0)
-                                    : captureConsumable.getCapturedElements();
-                                captures.put(name, capture);
-                            }
-
-                            return n;
-                        }
-
-                        RuleMap.Node n = node.match(value, captures);
-
-                        if (n != null) {
-                            Object capture = value;
-                            captures.put(name, capture);
-                        }
-
-                        return n;
-                    }
-
-                    @Override
-                    public String toString() {
-                        return "capture " + name;
-                    }
-
-                    @Override
-                    public boolean equals(Object obj) {
-                        return obj instanceof CaptureEdgePattern;
-                    }
-                }
-
-                //RuleMap.Node captureNode = new RuleMap.Node();
-
-
-                CaptureEdgePattern captureEdgePattern = new CaptureEdgePattern();
-                RuleMap.Node captureNode = node.byPattern(captureEdgePattern);
-                RuleMap.Node patternNode = pattern.findNode(captureNode);
-                EdgePattern edgePattern = captureNode.getEdge(patternNode);
-                captureEdgePattern.edgePattern = edgePattern;
-
-                return captureNode;
-            }
-        };
-    }*/
-
     public static Pattern equalsObject(Object obj) {
         class EqualsPattern implements Pattern {
             Pattern self = this;
@@ -151,8 +51,6 @@ public class Patterns {
 
             @Override
             public RuleMap.Node findNode(RuleMap.Node node) {
-                //return node.byEquals(obj);
-
                 return node.byPattern(new EdgePattern() {
                     private Object theObj = obj;
                     private Field theObjField;
@@ -168,8 +66,6 @@ public class Patterns {
 
                     @Override
                     public Pattern pattern() {
-                        //return 0;
-                        //return self.cardinality();
                         return self;
                     }
 
@@ -210,8 +106,6 @@ public class Patterns {
             Patterns.equalsObject(operator),
             Patterns.is(lhsType),
             Patterns.is(rhsType)
-            /*Patterns.capture(Patterns.is(lhsType), "lhs"),
-            Patterns.capture(Patterns.is(rhsType), "rhs")*/
         );
     }
 
@@ -274,13 +168,10 @@ public class Patterns {
                                     ((Consumable)value).propogate(v));
 
                             for(Map.Entry<EdgePattern, RuleMap.Node> e: target.edges()) {
-                                //Environment innerCaptures = new Environment();
-                                //RuleMap.Node an = matchesAlternative(innerCaptures, listConsumable, e);
                                 RuleMap.Node an = matchesAlternative(captures, listConsumable, e);
                                 if(an != null && listConsumable.atEnd()) {
                                     if(value instanceof Consumable)
                                         ((Consumable)value).consume();
-                                    //captures.captureSingle(innerCaptures.toList());
                                     return an;
                                 }
                             }
@@ -368,12 +259,6 @@ public class Patterns {
                         return null;
                     }
                 });
-
-                /*RuleMap.Node pseudoNode = new RuleMap.Node();
-
-                findNode(pseudoNode);
-
-                return pseudoNode;*/
             }
         }
 
@@ -423,8 +308,6 @@ public class Patterns {
 
                     @Override
                     public Pattern pattern() {
-                        //return 1;
-                        //return self.cardinality();
                         return self;
                     }
 
@@ -450,7 +333,6 @@ public class Patterns {
                     }
                 }
 
-                //return node.byType(type);
                 return node.byPattern(new IsEdgePattern());
             }
         }
@@ -463,7 +345,6 @@ public class Patterns {
             List<Map.Entry<String, Pattern>> theMap = map;
 
             private boolean isMoreGeneral(List<Map.Entry<String, Pattern>> moreGeneralTest, List<Map.Entry<String, Pattern>> lessGeneralTest) {
-                // How to compare this properly???
                 return lessGeneralTest.stream().allMatch(lessGeneralEntry -> {
                     Optional<Map.Entry<String, Pattern>> moreGeneralEntry = moreGeneralTest.stream().filter(y -> y.getKey().equals(lessGeneralEntry.getKey())).findFirst();
 
@@ -539,7 +420,6 @@ public class Patterns {
                                         return node.match(slotValue, captures) != null;
                                     }
                                     return false;
-                                    //return slotValue != null && e.getValue().matchesSingle(slotValue, captures);
                                 }) ? target : null;
                         }
 
@@ -604,6 +484,7 @@ public class Patterns {
                         Changed captures parameter into List in which, arguments are bound for actions
                         Don't use environment for capturing; decorate consumable and put the consumed
                         values into captures List at the given index.
+                        - Could be prettyfied
                         */
 
                         Consumable consumable = (Consumable) value;
@@ -612,7 +493,6 @@ public class Patterns {
 
                         Consumable c = new ObservedConsumable(captureConsumable, v ->
                             consumable.propogate(v));
-                        //Environment singleCaptureEnvironment = new Environment();
 
                         RuleMap.Node n = pseudoNode.match(c, captures);
 
@@ -663,8 +543,6 @@ public class Patterns {
             class AnythingEdgePattern implements EdgePattern {
                 @Override
                 public Pattern pattern() {
-                    //return 3;
-                    //return self.cardinality();
                     return self;
                 }
 
@@ -735,15 +613,11 @@ public class Patterns {
 
                     @Override
                     public Pattern pattern() {
-                        //return 2;
-                        //return self.cardinality();
                         return self;
                     }
 
                     @Override
                     public RuleMap.Node matches(RuleMap.Node target, Object value, Environment captures) {
-                        //captures.startCompositeCapture();
-                        //Environment innerCaptures = captures.getCurrent();
                         Environment innerCaptures = new Environment();
 
                         while(!((Consumable)value).atEnd()) {
@@ -752,7 +626,6 @@ public class Patterns {
                                 break;
                         }
 
-                        //captures.endCompositeCapture();
                         captures.captureSingle(innerCaptures.toList());
 
                         return target;
@@ -813,8 +686,6 @@ public class Patterns {
 
                     @Override
                     public Pattern pattern() {
-                        //return 2;
-                        //return self.cardinality();
                         return self;
                     }
 
@@ -823,8 +694,6 @@ public class Patterns {
                         if(value instanceof Consumable)
                             ((Consumable)value).mark();
 
-                        //Environment innerCaptures = new Environment();
-                        //RuleMap.Node n = pseudoNode.match(value, innerCaptures);
                         RuleMap.Node n = pseudoNode.match(value, captures);
 
                         if(value instanceof Consumable)
@@ -852,9 +721,6 @@ public class Patterns {
                 return node.byPattern(new NotEdgePattern());
             }
         }
-
-        /*if(patternToNegate instanceof NotPattern)
-            return ((NotPattern)patternToNegate).thePattern;*/
 
         return new NotPattern();
     }
