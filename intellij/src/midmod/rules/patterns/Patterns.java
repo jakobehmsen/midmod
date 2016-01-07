@@ -6,7 +6,6 @@ import midmod.pal.ListConsumable;
 import midmod.pal.ObservedConsumable;
 import midmod.rules.*;
 
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -15,6 +14,7 @@ import java.util.stream.IntStream;
 public class Patterns {
     public static Pattern equalsObject(Object obj) {
         class EqualsPattern implements Pattern {
+            private Object theObj = obj;
             Pattern self = this;
 
             @Override
@@ -49,19 +49,14 @@ public class Patterns {
             }
 
             @Override
-            public RuleMap.Node findNode(RuleMap.Node node) {
-                return node.byPattern(new EdgePattern() {
-                    private Object theObj = obj;
-                    private Field theObjField;
+            public boolean equals(Object obj) {
+                return obj instanceof EqualsPattern && this.theObj.equals(((EqualsPattern)obj).theObj);
+            }
 
-                    {
-                        try {
-                            theObjField = getClass().getDeclaredField("theObj");
-                            theObjField.setAccessible(true);
-                        } catch (NoSuchFieldException e) {
-                            e.printStackTrace();
-                        }
-                    }
+            @Override
+            public RuleMap.Node findNode(RuleMap.Node node) {
+                class EqualsEdgePattern implements EdgePattern {
+                    private Object theObj = obj;
 
                     @Override
                     public Pattern pattern() {
@@ -80,13 +75,11 @@ public class Patterns {
 
                     @Override
                     public boolean equals(Object obj) {
-                        try {
-                            return getClass().isInstance(obj) && theObj.equals(theObjField.get(obj));
-                        } catch (IllegalAccessException e) {
-                            return false;
-                        }
+                        return obj instanceof EqualsEdgePattern && this.theObj.equals(((EqualsEdgePattern)obj).theObj);
                     }
-                });
+                }
+
+                return node.byPattern(new EqualsEdgePattern());
             }
         }
 
@@ -106,7 +99,8 @@ public class Patterns {
     }
 
     public static Pattern conformsTo(List<Pattern> list) {
-        class SubsumesList implements Pattern {
+        class SubsumesListPattern implements Pattern {
+            List<Pattern> theList = list;
             Pattern self = this;
 
             @Override
@@ -141,8 +135,13 @@ public class Patterns {
             }
 
             @Override
+            public boolean equals(Object obj) {
+                return obj instanceof SubsumesListPattern && this.theList.equals(((SubsumesListPattern)obj).theList);
+            }
+
+            @Override
             public RuleMap.Node findNode(RuleMap.Node node) {
-                RuleMap.Node listNode = node.byPattern(new EdgePattern() {
+                class SubsumesListEdgePattern implements EdgePattern {
                     @Override
                     public Pattern pattern() {
                         return self;
@@ -198,15 +197,17 @@ public class Patterns {
                     }
 
                     @Override
-                    public String toString() {
-                        return "conforms to ";
+                    public boolean equals(Object obj) {
+                        return obj instanceof SubsumesListEdgePattern;
                     }
 
                     @Override
-                    public boolean equals(Object obj) {
-                        return getClass().isInstance(obj);
+                    public String toString() {
+                        return "subsumes list ";
                     }
-                });
+                }
+
+                RuleMap.Node listNode = node.byPattern(new SubsumesListEdgePattern());
 
                 RuleMap.Node n = listNode;
 
@@ -247,7 +248,7 @@ public class Patterns {
             }
         }
 
-        return new SubsumesList();
+        return new SubsumesListPattern();
     }
 
     public static Pattern is(Class<?> type) {
@@ -255,6 +256,7 @@ public class Patterns {
             new String();
 
         class IsPattern implements Pattern {
+            Class<?> theType = type;
             Pattern self = this;
 
             @Override
@@ -286,9 +288,13 @@ public class Patterns {
             }
 
             @Override
+            public boolean equals(Object obj) {
+                return obj instanceof IsPattern && theType.equals(((IsPattern)obj).theType);
+            }
+
+            @Override
             public RuleMap.Node findNode(RuleMap.Node node) {
                 class IsEdgePattern implements EdgePattern {
-                    Class<?> theType = type;
 
                     @Override
                     public Pattern pattern() {
@@ -302,7 +308,7 @@ public class Patterns {
 
                     @Override
                     public boolean equals(Object obj) {
-                        return obj instanceof IsEdgePattern && theType.equals(((IsEdgePattern)obj).theType);
+                        return obj instanceof IsEdgePattern && theType.equals(((IsPattern)((IsEdgePattern)obj).pattern()).theType);
                     }
 
                     @Override
@@ -319,7 +325,7 @@ public class Patterns {
     }
 
     public static Pattern subsumesToMap(List<Map.Entry<String, Pattern>> map) {
-        class SubsumesMap implements Pattern {
+        class SubsumesMapPattern implements Pattern {
             List<Map.Entry<String, Pattern>> theMap = map;
 
             private boolean isMoreGeneral(List<Map.Entry<String, Pattern>> moreGeneralTest, List<Map.Entry<String, Pattern>> lessGeneralTest) {
@@ -332,9 +338,9 @@ public class Patterns {
 
             @Override
             public int compareInstanceTo(Pattern other) {
-                if(isMoreGeneral(theMap, ((SubsumesMap)other).theMap))
+                if(isMoreGeneral(theMap, ((SubsumesMapPattern)other).theMap))
                     return 1;
-                else if(isMoreGeneral(((SubsumesMap)other).theMap, theMap))
+                else if(isMoreGeneral(((SubsumesMapPattern)other).theMap, theMap))
                     return -1;
 
                 return 0;
@@ -367,6 +373,11 @@ public class Patterns {
             }
 
             @Override
+            public boolean equals(Object obj) {
+                return obj instanceof SubsumesMapPattern && this.theMap.equals(((SubsumesMapPattern)obj).theMap);
+            }
+
+            @Override
             public RuleMap.Node findNode(RuleMap.Node node) {
                 class SubsumesMapEdgePattern implements EdgePattern {
                     Map<String, RuleMap.Node> nodes = map.stream()
@@ -378,7 +389,7 @@ public class Patterns {
 
                     @Override
                     public Pattern pattern() {
-                        return SubsumesMap.this;
+                        return SubsumesMapPattern.this;
                     }
 
                     @Override
@@ -401,13 +412,18 @@ public class Patterns {
 
                         return null;
                     }
+
+                    @Override
+                    public boolean equals(Object obj) {
+                        return obj instanceof SubsumesMapEdgePattern && SubsumesMapPattern.this.theMap.equals(((SubsumesMapPattern)((SubsumesMapEdgePattern)obj).pattern()).theMap);
+                    }
                 }
 
                 return node.byPattern(new SubsumesMapEdgePattern());
             }
         }
 
-        return new SubsumesMap();
+        return new SubsumesMapPattern();
     }
 
 
@@ -425,7 +441,9 @@ public class Patterns {
 
             @Override
             public int compareInstanceTo(Pattern other) {
-                return this.thePattern.compareInstanceTo(((CapturePattern)other).thePattern);
+                if(other instanceof CapturePattern)
+                    return this.thePattern.compareInstanceTo(((CapturePattern)other).thePattern);
+                return this.thePattern.compareInstanceTo(other);
             }
 
             @Override
@@ -444,11 +462,16 @@ public class Patterns {
             }
 
             @Override
-            public RuleMap.Node findNode(RuleMap.Node node) {
-                RuleMap.Node pseudoNode = new RuleMap.Node();
-                RuleMap.Node endNode = thePattern.findNode(pseudoNode);
+            public boolean equals(Object obj) {
+                return obj instanceof CapturePattern && this.thePattern.equals(((CapturePattern)obj).thePattern);
+            }
 
+            @Override
+            public RuleMap.Node findNode(RuleMap.Node node) {
                 class CaptureEdgePattern implements EdgePattern {
+                    RuleMap.Node pseudoNode = new RuleMap.Node();
+                    RuleMap.Node endNode = thePattern.findNode(pseudoNode);
+
                     @Override
                     public Pattern pattern() {
                         return CapturePattern.this;
@@ -478,6 +501,16 @@ public class Patterns {
                         }
 
                         return null;
+                    }
+
+                    @Override
+                    public boolean equals(Object obj) {
+                        return obj instanceof CaptureEdgePattern && this.pseudoNode.getEdge(this.endNode).equals(((CaptureEdgePattern) obj).pseudoNode.getEdge(((CaptureEdgePattern) obj).endNode));
+                    }
+
+                    @Override
+                    public String toString() {
+                        return "captures " + index;
                     }
                 }
 
@@ -510,6 +543,11 @@ public class Patterns {
         @Override
         public boolean matchesSingle(Object value, Environment captures) {
             return true;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof AnyPattern;
         }
 
         @Override
@@ -600,13 +638,13 @@ public class Patterns {
                     }
 
                     @Override
-                    public boolean equals(Object obj) {
-                        return obj instanceof RepeatEdgePattern && pseudoNode.equals(((RepeatEdgePattern)obj).pseudoNode);
+                    public String toString() {
+                        return pattern + " ...";
                     }
 
                     @Override
-                    public String toString() {
-                        return pattern + " ...";
+                    public boolean equals(Object obj) {
+                        return obj instanceof RepeatEdgePattern && this.pseudoNode.getEdge(this.patternNode).equals(((RepeatEdgePattern) obj).pseudoNode.getEdge(((RepeatEdgePattern) obj).patternNode));
                     }
                 }
 
@@ -646,10 +684,9 @@ public class Patterns {
 
             @Override
             public RuleMap.Node findNode(RuleMap.Node node) {
-                RuleMap.Node pseudoNode = new RuleMap.Node();
-                RuleMap.Node patternToNegateNode = patternToNegate.findNode(pseudoNode);
-
                 class NotEdgePattern implements EdgePattern {
+                    RuleMap.Node pseudoNode = new RuleMap.Node();
+                    RuleMap.Node patternToNegateNode = patternToNegate.findNode(pseudoNode);
                     Pattern thePatternToNegate = patternToNegate;
 
                     @Override
@@ -677,7 +714,7 @@ public class Patterns {
 
                     @Override
                     public boolean equals(Object obj) {
-                        return obj instanceof NotEdgePattern && this.thePatternToNegate.equals(((NotEdgePattern)obj).thePatternToNegate);
+                        return obj instanceof NotEdgePattern && this.pseudoNode.getEdge(this.patternToNegateNode).equals(((NotEdgePattern)obj).pseudoNode.getEdge(((NotEdgePattern)obj).patternToNegateNode));
                     }
                 }
 

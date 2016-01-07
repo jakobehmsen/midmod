@@ -20,7 +20,9 @@ public class RuleMap {
         }
 
         public Node byPattern(EdgePattern pattern) {
-            Map.Entry<EdgePattern, Node> e = edges.stream().filter(x -> x.getKey().equals(pattern)).findFirst().orElse(null);
+            Map.Entry<EdgePattern, Node> e = edges.stream().filter(x ->
+                x.getKey().equals(pattern)
+            ).findFirst().orElse(null);
 
             if(e == null) {
                 e = new AbstractMap.SimpleImmutableEntry<>(pattern, new Node());
@@ -33,6 +35,10 @@ public class RuleMap {
 
         public Iterable<? extends Map.Entry<EdgePattern, Node>> edges() {
             return edges;
+        }
+
+        public EdgePattern getEdge(Node node) {
+            return edges.stream().filter(x -> x.getValue() == node).map(x -> x.getKey()).findFirst().orElse(null);
         }
     }
 
