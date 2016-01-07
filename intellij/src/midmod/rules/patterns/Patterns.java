@@ -31,7 +31,6 @@ public class Patterns {
             public boolean matchesList(Consumable value, Environment captures) {
                 boolean result = matchesSingle(value.peek(), captures);
                 if(result) {
-                    captures.captureSingle(value.peek());
                     value.consume();
                 }
                 return result;
@@ -97,8 +96,8 @@ public class Patterns {
     public static Pattern binary(String operator, Class<?> lhsType, Class<?> rhsType) {
         return Patterns.conformsTo(
             Patterns.equalsObject(operator),
-            Patterns.is(lhsType),
-            Patterns.is(rhsType)
+            Patterns.captureSingle(0, Patterns.is(lhsType)),
+            Patterns.captureSingle(1, Patterns.is(rhsType))
         );
     }
 
@@ -237,7 +236,6 @@ public class Patterns {
                         RuleMap.Node n = pseudoNode.match(theValueAsConsumable, captures);
 
                         if(n == endNode) {
-                            captures.captureSingle(theValue);
                             consumable.consume();
 
                             return target;
@@ -273,7 +271,6 @@ public class Patterns {
             public boolean matchesList(Consumable value, Environment captures) {
                 boolean result = matchesSingle(value.peek(), captures);
                 if(result) {
-                    captures.captureSingle(value.peek());
                     value.consume();
                 }
                 return result;
@@ -475,7 +472,7 @@ public class Patterns {
 
                         if(n == endNode) {
                             Object valueToCapture = valueExtractor.apply(captureConsumable.getCapturedElements());
-                            captures.captureSingle(index, valueToCapture);
+                            captures.capture(index, valueToCapture);
 
                             return target;
                         }
@@ -527,7 +524,6 @@ public class Patterns {
                 public RuleMap.Node matches(RuleMap.Node target, Consumable consumable, Environment captures) {
                     Object val = consumable.peek();
                     consumable.consume();
-                    captures.captureSingle(val);
 
                     return target;
                 }
@@ -599,8 +595,6 @@ public class Patterns {
                             if(n != patternNode)
                                 break;
                         }
-
-                        captures.captureSingle(innerCaptures.toList());
 
                         return target;
                     }
@@ -674,7 +668,6 @@ public class Patterns {
                         if(n == null) {
                             // What if embedded pattern is repeat pattern? Should that be possible?
                             // Or only single-capturing patterns?
-                            captures.captureSingle(consumable.peek());
                             consumable.consume();
 
                             return target;

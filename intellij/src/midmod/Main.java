@@ -75,35 +75,34 @@ public class Main {
     public static void main(String[] args) throws IOException {
         RuleMap rules = new RuleMap();
 
-        boolean addBuiltins = false;
+        boolean addBuiltins = true;
 
         if(addBuiltins) {
             rules.define(
-                Patterns.conformsTo(Patterns.equalsObject("+"),
-                    Patterns.is(String.class),
-                    Patterns.is(String.class)
-                    /*Patterns.capture(Patterns.is(String.class), "lhs"),
-                    Patterns.capture(Patterns.is(String.class), "rhs")*/
+                Patterns.conformsTo(
+                    Patterns.equalsObject("+"),
+                    Patterns.captureSingle(0, Patterns.is(String.class)),
+                    Patterns.captureSingle(1, Patterns.is(String.class))
                 ),
-                (ruleMap, captures) -> (String) captures.getByAddress(0, 1) + (String) captures.getByAddress(0, 2)
+                (ruleMap, captures) -> (String) captures.get(0) + (String) captures.get(1)
             );
 
             rules.define(
                 Patterns.conformsTo(
                     Patterns.equalsObject("toNative"),
-                    Patterns.is(String.class)//Patterns.capture(Patterns.is(String.class), "code")
+                    Patterns.captureSingle(0, Patterns.is(String.class))
                 ),
-                (ruleMap, captures) -> toNative(captures.getByAddress(0, 1))
+                (ruleMap, captures) -> toNative(captures.get(0))
             );
 
             rules.define(
                 Patterns.conformsTo(
                     Patterns.equalsObject("class"),
-                    Patterns.is(String.class)//Patterns.capture(Patterns.is(String.class), "name")
+                    Patterns.captureSingle(0, Patterns.is(String.class))
                 ),
                 (ruleMap, captures) -> {
                     try {
-                        return Class.forName((String) captures.getByAddress(0, 1));
+                        return Class.forName((String) captures.get(0));
                     } catch (ClassNotFoundException e) {
                         e.printStackTrace();
                     }
@@ -114,24 +113,19 @@ public class Main {
             rules.define(
                 Patterns.conformsTo(
                     Patterns.equalsObject("invoke"),
-                    Patterns.is(Class.class),
-                    Patterns.is(Object.class),
-                    Patterns.is(String.class),
-                    Patterns.is(List.class),
-                    Patterns.is(List.class)
-                    /*Patterns.capture(Patterns.is(Class.class), "class"),
-                    Patterns.capture(Patterns.is(Object.class), "instance"),
-                    Patterns.capture(Patterns.is(String.class), "methodName"),
-                    Patterns.capture(Patterns.is(List.class), "parameterTypes"),
-                    Patterns.capture(Patterns.is(List.class), "arguments")*/
-                ),
+                    Patterns.captureSingle(0, Patterns.is(Class.class)),
+                    Patterns.captureSingle(1, Patterns.is(Object.class)),
+                    Patterns.captureSingle(2, Patterns.is(String.class)),
+                    Patterns.captureSingle(3, Patterns.is(List.class)),
+                    Patterns.captureSingle(4, Patterns.is(List.class))
+                    ),
                 (ruleMap, captures) -> {
                     try {
-                        Class<?> klass = (Class<?>)captures.getByAddress(0, 1);
-                        Object instance = (Class<?>)captures.getByAddress(0, 2);
-                        String methodName = (String)captures.getByAddress(0, 3);
-                        List<Class<?>> parameterTypes = (List<Class<?>>)captures.getByAddress(0, 4);
-                        List<Object> arguments = (List<Object>)captures.getByAddress(0, 5);
+                        Class<?> klass = (Class<?>)captures.get(0);
+                        Object instance = (Class<?>)captures.get(1);
+                        String methodName = (String)captures.get(2);
+                        List<Class<?>> parameterTypes = (List<Class<?>>)captures.get(3);
+                        List<Object> arguments = (List<Object>)captures.get(4);
 
                         Class[] parameterTypesAsArray = parameterTypes.stream().toArray(s -> new Class[s]);
                         Method method = klass.getMethod(methodName, parameterTypesAsArray);
