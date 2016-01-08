@@ -9,7 +9,6 @@ import midmod.rules.*;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class Patterns {
     public static Pattern equalsObject(Object obj) {
@@ -27,7 +26,6 @@ public class Patterns {
                 return 0;
             }
 
-            @Override
             public boolean matchesList(Consumable value, Environment captures) {
                 boolean result = matchesSingle(value.peek(), captures);
                 if(result) {
@@ -36,7 +34,6 @@ public class Patterns {
                 return result;
             }
 
-            @Override
             public boolean matchesSingle(Object value, Environment captures) {
                 if(obj.equals("replace"))
                     new String();
@@ -111,27 +108,6 @@ public class Patterns {
             @Override
             public int sortIndex() {
                 return 1;
-            }
-
-            @Override
-            public boolean matchesList(Consumable value, Environment captures) {
-                boolean result = matchesSingle(value.peek(), captures);
-                value.consume();
-                return result;
-            }
-
-            @Override
-            public boolean matchesSingle(Object value, Environment captures) {
-                if(value instanceof List) {
-                    List<Object> otherList = (List<Object>) value;
-                    Consumable listConsumable = new ListConsumable(otherList);
-                    return IntStream.range(0, list.size())
-                        .allMatch(i ->
-                            list.get(i).matchesList(listConsumable, captures))
-                        && listConsumable.atEnd();
-                }
-
-                return false;
             }
 
             @Override
@@ -269,7 +245,6 @@ public class Patterns {
                 return 3;
             }
 
-            @Override
             public boolean matchesList(Consumable value, Environment captures) {
                 boolean result = matchesSingle(value.peek(), captures);
                 if(result) {
@@ -278,7 +253,6 @@ public class Patterns {
                 return result;
             }
 
-            @Override
             public boolean matchesSingle(Object value, Environment captures) {
                 if(type.isInstance(value)) {
                     return true;
@@ -349,27 +323,6 @@ public class Patterns {
             @Override
             public int sortIndex() {
                 return 2;
-            }
-
-            @Override
-            public boolean matchesList(Consumable value, Environment captures) {
-                boolean result = matchesSingle(value.peek(), captures);
-                value.consume();
-                return result;
-            }
-
-            @Override
-            public boolean matchesSingle(Object value, Environment captures) {
-                if(value instanceof Map) {
-                    Map<String, Object> otherMap = (Map<String, Object>) value;
-                    return map.stream()
-                        .allMatch(e -> {
-                            Object slotValue = otherMap.get(e.getKey());
-                            return slotValue != null && e.getValue().matchesSingle(slotValue, captures);
-                        });
-                }
-
-                return false;
             }
 
             @Override
@@ -452,16 +405,6 @@ public class Patterns {
             }
 
             @Override
-            public boolean matchesList(Consumable value, Environment captures) {
-                return false;
-            }
-
-            @Override
-            public boolean matchesSingle(Object value, Environment captures) {
-                return false;
-            }
-
-            @Override
             public boolean equals(Object obj) {
                 return obj instanceof CapturePattern && this.thePattern.equals(((CapturePattern)obj).thePattern);
             }
@@ -535,17 +478,6 @@ public class Patterns {
         }
 
         @Override
-        public boolean matchesList(Consumable value, Environment captures) {
-            value.consume();
-            return true;
-        }
-
-        @Override
-        public boolean matchesSingle(Object value, Environment captures) {
-            return true;
-        }
-
-        @Override
         public boolean equals(Object obj) {
             return obj instanceof AnyPattern;
         }
@@ -597,20 +529,6 @@ public class Patterns {
             @Override
             public int sortIndex() {
                 return 5;
-            }
-
-            @Override
-            public boolean matchesList(Consumable value, Environment captures) {
-                // Captured elements should implicitly be put into lists
-
-                while(!value.atEnd() && pattern.matchesList(value, captures));
-
-                return true;
-            }
-
-            @Override
-            public boolean matchesSingle(Object value, Environment captures) {
-                return false;
             }
 
             @Override
@@ -670,16 +588,6 @@ public class Patterns {
             @Override
             public int sortIndex() {
                 return 4;
-            }
-
-            @Override
-            public boolean matchesList(Consumable value, Environment captures) {
-                return false;
-            }
-
-            @Override
-            public boolean matchesSingle(Object value, Environment captures) {
-                return false;
             }
 
             @Override

@@ -1,7 +1,5 @@
 package midmod.rules.patterns;
 
-import midmod.pal.Consumable;
-import midmod.rules.Environment;
 import midmod.rules.RuleMap;
 
 public interface Pattern extends Comparable<Pattern> {
@@ -17,9 +15,6 @@ public interface Pattern extends Comparable<Pattern> {
     int compareInstanceTo(Pattern other);
 
     int sortIndex();
-
-    boolean matchesList(Consumable value, Environment captures);
-    boolean matchesSingle(Object value, Environment captures);
 
     default Pattern or(Pattern other) {
         Pattern self = this;
@@ -42,41 +37,17 @@ public interface Pattern extends Comparable<Pattern> {
             }
 
             @Override
-            public boolean matchesList(Consumable value, Environment captures) {
-                value.mark();
-
-                if(self.matchesList(value, captures)) {
-                    value.commit();
-                    return true;
-                }
-
-                value.rollback();
-
-                return other.matchesList(value, captures);
-            }
-
-            @Override
-            public boolean matchesSingle(Object value, Environment captures) {
-                return self.matchesSingle(value, captures) || other.matchesSingle(value, captures);
-            }
-
-            @Override
             public RuleMap.Node findNode(RuleMap.Node node) {
+                // TODO: Implement this!!!
+                // Should be a new embedded node, from which the two alternatives are added
                 return null;
             }
-
-            /*@Override
-            public RuleMap.Node matches(RuleMap.Node node, Object value, Map<String, Object> captures) {
-                return null;
-            }*/
         }
 
         return new OrPattern();
     }
 
     RuleMap.Node findNode(RuleMap.Node node);
-
-    //RuleMap.Node matches(RuleMap.Node node, Object value, Map<String, Object> captures);
 
     default RuleMap.Node findListItemNode(RuleMap.Node node) {
         return findNode(node);
