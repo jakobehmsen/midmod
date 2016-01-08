@@ -42,69 +42,9 @@ public class Evaluator {
 
     private Object evaluate(ParserRuleContext context) {
         return evaluateAction(context, new Hashtable<>()).perform(ruleMap, new Environment());
-
-        /*
-        // Should evaluateAction and then perform action
-
-        return context.accept(new PalBaseVisitor<Object>() {
-            @Override
-            public Object visitScript(PalParser.ScriptContext ctx) {
-                Object result = null;
-                for (PalParser.ScriptElementContext elementContext : ctx.scriptElement()) {
-                    result = evaluate(elementContext);
-                }
-                return result;
-            }
-
-            @Override
-            public Object visitNumber(PalParser.NumberContext ctx) {
-                return parseNumber(ctx);
-            }
-
-            @Override
-            public Object visitString(PalParser.StringContext ctx) {
-                return parseString(ctx);
-            }
-
-            @Override
-            public Object visitList(PalParser.ListContext ctx) {
-                return ctx.action().stream().map(x -> evaluate(x)).collect(Collectors.toList());
-            }
-
-            @Override
-            public Object visitDefine(PalParser.DefineContext ctx) {
-                Pattern pattern = evaluatePattern(ctx.pattern());
-                Action action = evaluateAction(ctx.action());
-
-                ruleMap.define(pattern, action);
-
-                return action;
-            }
-
-            @Override
-            public Object visitAction(PalParser.ActionContext ctx) {
-                return ctx.accept(new PalBaseVisitor<Object>() {
-                    @Override
-                    public Object visitMaybeAction(PalParser.MaybeActionContext ctx) {
-                        Object value = evaluate(ctx.actionTarget());
-
-                        if(ctx.isCall != null)
-                            return Call.on(ruleMap, value);
-
-                        return value;
-                    }
-
-                    @Override
-                    public Object visitAlwaysAction(PalParser.AlwaysActionContext ctx) {
-                        Object value = ctx.action().stream().map(x -> evaluate(x)).collect(Collectors.toList());
-                        return Call.on(ruleMap, value);
-                    }
-                });
-            }
-        });*/
     }
 
-    private Action evaluateAction(ParserRuleContext ctx, Map<String, List<Integer>> nameToCaptureAddressMap) {
+    private Action evaluateAction(ParserRuleContext ctx, Map<String, Integer> nameToCaptureAddressMap) {
         return ctx.accept(new PalBaseVisitor<Action>() {
             @Override
             public Action visitScript(PalParser.ScriptContext ctx) {
@@ -141,11 +81,6 @@ public class Evaluator {
 
             @Override
             public Action visitExpression3(PalParser.Expression3Context ctx) {
-
-                //ctx.isCall
-
-                // Derive action
-                // Conditionally wrap action into call
                 Action actionTarget = evaluateAction(ctx.actionTarget(), nameToCaptureAddressMap);
 
                 if(ctx.isCall != null)
@@ -168,15 +103,6 @@ public class Evaluator {
 
             @Override
             public Action visitList(PalParser.ListContext ctx) {
-                /*List<Action> actions = ctx.action().stream().map(x -> evaluateAction(x)).collect(Collectors.toList());
-                return (ruleMap1, captures) ->
-                    actions.stream().map(x -> {
-                        Object y = x.perform(ruleMap1, captures);
-                        if(y == null)
-                            new String();
-                        return y;
-                    }).collect(Collectors.toList());*/
-
                 return listActionFromContexts(ctx.action(), nameToCaptureAddressMap);
             }
 
@@ -194,91 +120,29 @@ public class Evaluator {
                 Pattern pattern = evaluatePattern(ctx.pattern(), Arrays.asList(0), nameToCaptureAddressMap);
                 Action action = evaluateAction(ctx.action(), nameToCaptureAddressMap);
 
-                //ruleMap.define(pattern, action);
-
                 return new Define(new Constant(pattern), new Constant(action));
             }
 
             @Override
             public Action visitAccess(PalParser.AccessContext ctx) {
                 String name = ctx.getText();
-                List<Integer> captureAddress = nameToCaptureAddressMap.get(name);
-                int index = captureAddress.get(0);
+                int index = nameToCaptureAddressMap.get(name);
 
                 return (ruleMap1, captures) -> {
                     Object val = captures.get(index);
                     return val;
                 };
-
-                /*return (ruleMap1, captures) -> {
-                    Object val = captures.get(captureAddress.get(0));
-                    for(int i = 1; i < captureAddress.size(); i++)
-                        val = ((List<Object>)val).get(captureAddress.get(i));
-                    return val;
-                };*/
             }
-
-            /*@Override
-            public Action visitMaybeAction(PalParser.MaybeActionContext ctx) {
-                Action target = ctx.actionTarget().accept(new PalBaseVisitor<Action>() {
-                    @Override
-                    public Action visitExpression1(PalParser.Expression1Context ctx) {
-                        Action lhs = evaluateAction(ctx.expression2());
-
-                        for (PalParser.Expression1Context rhsCtx : ctx.expression1()) {
-                            Action rhs = evaluateAction(rhsCtx);
-                            lhs = lhs.or(rhs);
-                        }
-
-                        return lhs;
-                    }
-
-                    @Override
-                    public Action visitString(PalParser.StringContext ctx) {
-                        String str = parseString(ctx);
-                        return (ruleMap1, captures) -> str;
-                    }
-
-                    @Override
-                    public Action visitNumber(PalParser.NumberContext ctx) {
-                        Object number = parseNumber(ctx);
-                        return (ruleMap1, captures) -> number;
-                    }
-
-                    @Override
-                    public Action visitList(PalParser.ListContext ctx) {
-                        List<Action> actions = ctx.action().stream().map(x -> evaluateAction(x)).collect(Collectors.toList());
-                        return (ruleMap1, captures) ->
-                            actions.stream().map(x -> x.perform(ruleMap1, captures)).collect(Collectors.toList());
-                    }
-
-                    @Override
-                    public Action visitIdentifier(PalParser.IdentifierContext ctx) {
-                        String name = ctx.getText();
-                        return (ruleMap1, captures) -> captures.get(name);
-                    }
-                });
-
-                return ctx.isCall != null ? new Call(target) : target;
-            }*/
 
             @Override
             public Action visitAlwaysAction(PalParser.AlwaysActionContext ctx) {
-                //List<Action> actions = ctx.action().stream().map(x -> evaluateAction(x)).collect(Collectors.toList());
-                //Action action = (ruleMap1, captures) -> actions.stream().map(x -> x.perform(ruleMap1, captures)).collect(Collectors.toList());
                 Action action = listActionFromContexts(ctx.action(), nameToCaptureAddressMap);
                 return new Call(action);
             }
         });
     }
 
-    private Action listActionFromContexts(List<PalParser.ActionContext> actionContexts, Map<String, List<Integer>> nameToCaptureAddressMap) {
-        /*List<Action> actions = IntStream.range(0, actionContexts.size()).mapToObj(i -> {
-            ArrayList<Object> newCaptureAddress = new ArrayList<Object>(nameToCaptureAddressMap);
-            newCaptureAddress.add(i);
-            return evaluateAction(actionContexts.get(i), nameToCaptureAddressMap, captureAddress);
-        }).collect(Collectors.toList());*/
-
+    private Action listActionFromContexts(List<PalParser.ActionContext> actionContexts, Map<String, Integer> nameToCaptureAddressMap) {
         List<Action> actions = actionContexts.stream().map(x -> evaluateAction(x, nameToCaptureAddressMap)).collect(Collectors.toList());
         return listActionFromActions(actions);
     }
@@ -293,7 +157,7 @@ public class Evaluator {
             }).collect(Collectors.toList());
     }
 
-    private Pattern evaluatePattern(PalParser.PatternContext ctx, List<Integer> captureAddress, Map<String, List<Integer>> nameToCaptureAddressMap) {
+    private Pattern evaluatePattern(PalParser.PatternContext ctx, List<Integer> captureAddress, Map<String, Integer> nameToCaptureAddressMap) {
         Pattern pattern = evaluatePatternTarget(ctx.pattern1(), captureAddress, nameToCaptureAddressMap);
         boolean isRepeat = false;
 
@@ -305,30 +169,14 @@ public class Evaluator {
         if (ctx.name != null) {
             // Declare index for parameter
             int index = nameToCaptureAddressMap.size();
-            List<Integer> theCaptureAddress = Arrays.asList(index);
-            nameToCaptureAddressMap.put(ctx.name.getText(), theCaptureAddress);
+            nameToCaptureAddressMap.put(ctx.name.getText(), index);
             pattern = !isRepeat ? Patterns.captureSingle(index, pattern) : Patterns.captureMany(index, pattern);
-            //nameToCaptureAddressMap.put(ctx.name.getText(), captureAddress);
         }
-            // Resolve address in captures/environment
-            pattern = pattern;
-            //pattern = Patterns.capture(pattern, ctx.name.getText(), !isRepeat);
-            //pattern = pattern.andThen(Patterns.capture(ctx.name.getText()));
-
-        // TODO:
-        // Put consumption right after last part of pattern, to fix issues like
-        // or'ing where consumption other may occur multiple times
-        // pattern = pattern.andThen(Patterns.consume);
-        // Probably not the right thing to do: Instead, backtrack within or, something like:
-        // 0: mark
-        // 1: first case.match
-        // 2: rewind
-        // 3: second case match
 
         return pattern;
     }
 
-    private Pattern evaluatePatternTarget(ParserRuleContext ctx, List<Integer> captureAddress, Map<String, List<Integer>> nameToCaptureAddressMap) {
+    private Pattern evaluatePatternTarget(ParserRuleContext ctx, List<Integer> captureAddress, Map<String, Integer> nameToCaptureAddressMap) {
         return ctx.accept(new PalBaseVisitor<Pattern>() {
             @Override
             public Pattern visitPattern1(PalParser.Pattern1Context ctx) {
@@ -364,10 +212,6 @@ public class Evaluator {
                     newCaptureAddress.add(i);
                     return evaluatePattern(ctx.pattern().get(i), newCaptureAddress, nameToCaptureAddressMap);
                 }).collect(Collectors.toList()));
-
-                /*return Patterns.conformsTo(ctx.pattern().stream().map(x -> {
-                    return evaluatePattern(x, captureAddress, nameToCaptureAddressMap);
-                }).collect(Collectors.toList()));*/
             }
 
             @Override
