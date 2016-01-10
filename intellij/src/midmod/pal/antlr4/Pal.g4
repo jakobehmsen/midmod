@@ -6,7 +6,7 @@ grammar Pal;
 
 script: scriptElement*;
 scriptElement: define | action;
-define: pattern EQUALS_GREATER action;
+define: (name=ID EQUALS)? pattern EQUALS_GREATER action;
 pattern: pattern1 (repeatPattern=ELLIPSIS)? (name=ID)?;
 pattern1: pattern2 (PIPE pattern1)*;
 pattern2: typedPattern | literalPattern | notPattern | embeddedPattern;

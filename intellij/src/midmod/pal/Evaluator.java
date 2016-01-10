@@ -4,6 +4,7 @@ import midmod.pal.antlr4.PalBaseVisitor;
 import midmod.pal.antlr4.PalLexer;
 import midmod.pal.antlr4.PalParser;
 import midmod.rules.Environment;
+import midmod.rules.Rule;
 import midmod.rules.RuleMap;
 import midmod.rules.actions.*;
 import midmod.rules.patterns.Pattern;
@@ -119,6 +120,11 @@ public class Evaluator {
             public Action visitDefine(PalParser.DefineContext ctx) {
                 Pattern pattern = evaluatePattern(ctx.pattern(), Arrays.asList(0), nameToCaptureAddressMap);
                 Action action = evaluateAction(ctx.action(), nameToCaptureAddressMap);
+
+                if(ctx.name != null) {
+                    String name = ctx.name.getText();
+                    return new Define(new Constant(Patterns.equalsObject(name)), new Constant(new Constant(new Rule(pattern, action))));
+                }
 
                 return new Define(new Constant(pattern), new Constant(action));
             }
