@@ -12,6 +12,14 @@ public class Rule {
         this.action = action;
     }
 
+    public Pattern getPattern() {
+        return pattern;
+    }
+
+    public Action getAction() {
+        return action;
+    }
+
     @Override
     public String toString() {
         return pattern + " => " + action;

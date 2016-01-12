@@ -5,6 +5,7 @@ import midmod.pal.Consumable;
 import midmod.pal.ListConsumable;
 import midmod.pal.ObservedConsumable;
 import midmod.rules.*;
+import midmod.rules.actions.Action;
 
 import java.util.*;
 import java.util.function.Function;
@@ -462,6 +463,78 @@ public class Patterns {
         }
 
         return new CapturePattern();
+    }
+
+    public static Pattern reference(RuleMap rules, String name) {
+        class ReferencePattern implements Pattern {
+            private Rule resolveRule() {
+                Environment captures = new Environment();
+
+                Action action = rules.resolve(name, captures);
+
+                return ((Rule) action.perform(rules, captures));
+            }
+
+            private Pattern resolvePattern() {
+                return resolveRule().getPattern();
+            }
+
+            @Override
+            public int compareInstanceTo(Pattern other) {
+                // What if the value of the rules for name changes?
+                // Should it be possible to observe the rules for changes and then notisfy outwards when changes occur?
+                Pattern pattern = resolvePattern();
+                return pattern.compareInstanceTo(other);
+                /*Pattern patternOther = ((ReferencePattern)other).resolvePattern();
+
+                return pattern.compareInstanceTo(patternOther);*/
+            }
+
+            @Override
+            public int sortIndex() {
+                // What if the value of the rules for name changes?
+                // Should it be possible to observe the rules for changes and then notisfy outwards when changes occur?
+                Pattern pattern = resolvePattern();
+
+                return pattern.sortIndex();
+            }
+
+            @Override
+            public RuleMap.Node findNode(RuleMap.Node node) {
+                class ReferenceEdgePattern implements EdgePattern {
+                    RuleMap.Node pseudoNode = new RuleMap.Node();
+                    RuleMap.Node patternNode = resolvePattern().findNode(pseudoNode);
+
+                    @Override
+                    public Pattern pattern() {
+                        return ReferencePattern.this;
+                    }
+
+                    @Override
+                    public RuleMap.Node matches(RuleMap.Node target, Consumable consumable, Environment captures) {
+                        Environment innerCaptures = new Environment();
+                        RuleMap.Node n =  pseudoNode.match(consumable, innerCaptures);
+
+                        if(n != null) {
+                            Object result = resolveRule().getAction().perform(rules, innerCaptures);
+                            consumable.propogate(result);
+                            return target;
+                        }
+
+                        return null;
+                    }
+
+                    @Override
+                    public boolean equals(Object obj) {
+                        return obj instanceof ReferenceEdgePattern && this.pseudoNode.getEdge(this.patternNode).equals(((ReferenceEdgePattern) obj).pseudoNode.getEdge(((ReferenceEdgePattern) obj).patternNode));
+                    }
+                }
+
+                return node.byPattern(new ReferenceEdgePattern());
+            }
+        }
+
+        return new ReferencePattern();
     }
 
     private static class AnyPattern implements Pattern {

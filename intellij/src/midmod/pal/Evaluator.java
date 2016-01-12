@@ -229,6 +229,13 @@ public class Evaluator {
             }
 
             @Override
+            public Pattern visitReferencePattern(PalParser.ReferencePatternContext ctx) {
+                String name = ctx.name.getText();
+
+                return Patterns.reference(ruleMap, name);
+            }
+
+            @Override
             public Pattern visitTypedPattern(PalParser.TypedPatternContext ctx) {
                 Class<?> type = null;
                 String typeName = ctx.type.getText();

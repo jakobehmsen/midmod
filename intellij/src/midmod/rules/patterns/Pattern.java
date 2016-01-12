@@ -5,7 +5,7 @@ import midmod.rules.EdgePattern;
 import midmod.rules.Environment;
 import midmod.rules.RuleMap;
 
-public interface Pattern extends Comparable<Pattern> {
+public interface Pattern {
     default int compareTo(Pattern other) {
         int deltaSortIndex = sortIndex() - other.sortIndex();
 
