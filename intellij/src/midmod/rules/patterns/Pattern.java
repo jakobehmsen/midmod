@@ -36,7 +36,9 @@ public interface Pattern {
 
             @Override
             public int sortIndex() {
-                return Math.max(self.sortIndex(), other.sortIndex());
+                //return Math.max(self.sortIndex(), other.sortIndex());
+
+                return SortIndex.OR;
             }
 
             @Override

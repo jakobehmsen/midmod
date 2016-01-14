@@ -24,7 +24,7 @@ public class Patterns {
 
             @Override
             public int sortIndex() {
-                return 0;
+                return SortIndex.EQUALS;
             }
 
             public boolean matchesList(Consumable value, Environment captures) {
@@ -108,7 +108,7 @@ public class Patterns {
 
             @Override
             public int sortIndex() {
-                return 1;
+                return SortIndex.SUBSUMES_LIST;
             }
 
             @Override
@@ -243,7 +243,7 @@ public class Patterns {
 
             @Override
             public int sortIndex() {
-                return 3;
+                return SortIndex.IS;
             }
 
             public boolean matchesList(Consumable value, Environment captures) {
@@ -323,7 +323,7 @@ public class Patterns {
 
             @Override
             public int sortIndex() {
-                return 2;
+                return SortIndex.SUBSUMES_MAP;
             }
 
             @Override
@@ -547,7 +547,7 @@ public class Patterns {
 
         @Override
         public int sortIndex() {
-            return 6;
+            return SortIndex.ANY;
         }
 
         @Override
@@ -601,7 +601,7 @@ public class Patterns {
 
             @Override
             public int sortIndex() {
-                return 5;
+                return SortIndex.REPEAT;
             }
 
             @Override
@@ -660,7 +660,7 @@ public class Patterns {
 
             @Override
             public int sortIndex() {
-                return 4;
+                return SortIndex.NOT;
             }
 
             @Override
