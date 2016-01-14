@@ -28,6 +28,8 @@ public class Environment {
     public void capture(int index, Object value) {
         while(captures.size() < index + 1)
             captures.add(null);
+        /*if(value instanceof ValueConvertible)
+            value = ((ValueConvertible)value).toValue();*/
         captures.set(index, value);
     }
 }

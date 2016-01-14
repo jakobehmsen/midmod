@@ -3,7 +3,9 @@ package midmod.rules;
 import midmod.rules.actions.Action;
 import midmod.rules.patterns.Pattern;
 
-public class Rule {
+import java.util.Arrays;
+
+public class Rule implements ValueConvertible {
     private Pattern pattern;
     private Action action;
 
@@ -23,5 +25,12 @@ public class Rule {
     @Override
     public String toString() {
         return pattern + " => " + action;
+    }
+
+    @Override
+    public Object toValue() {
+        //return null;
+        // Pattern and Action must be ValueConvertibles as well
+        return Arrays.asList(pattern, action);
     }
 }
