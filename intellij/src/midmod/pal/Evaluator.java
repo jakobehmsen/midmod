@@ -93,13 +93,15 @@ public class Evaluator {
             @Override
             public Action visitString(PalParser.StringContext ctx) {
                 String str = parseString(ctx);
-                return (ruleMap1, captures) -> str;
+                return new Constant(str);
+                //return (ruleMap1, captures) -> str;
             }
 
             @Override
             public Action visitNumber(PalParser.NumberContext ctx) {
                 Object number = parseNumber(ctx);
-                return (ruleMap1, captures) -> number;
+                return new Constant(number);
+                //return (ruleMap1, captures) -> number;
             }
 
             @Override
@@ -112,8 +114,20 @@ public class Evaluator {
                 List<Map.Entry<String, Action>> slots = ctx.slot().stream()
                     .map(x -> new AbstractMap.SimpleImmutableEntry<>(x.ID().getText(), evaluateAction(x.action(), nameToCaptureAddressMap))).collect(Collectors.toList());
 
-                return (ruleMap1, captures) ->
-                    slots.stream().collect(Collectors.toMap(x -> x.getKey(), x -> x.getValue().perform(ruleMap1, captures)));
+                return new Action() {
+                    @Override
+                    public Object perform(RuleMap ruleMap, Environment captures) {
+                        return slots.stream().collect(Collectors.toMap(x -> x.getKey(), x -> x.getValue().perform(ruleMap, captures)));
+                    }
+
+                    @Override
+                    public Object toValue() {
+                        return Arrays.asList("map", slots.stream().map(x -> Arrays.asList(x.getKey(), x.getValue().toValue())).collect(Collectors.toList()));
+                    }
+                };
+
+                //return (ruleMap1, captures) ->
+                //    slots.stream().collect(Collectors.toMap(x -> x.getKey(), x -> x.getValue().perform(ruleMap1, captures)));
             }
 
             @Override
@@ -134,10 +148,23 @@ public class Evaluator {
                 String name = ctx.getText();
                 int index = nameToCaptureAddressMap.get(name);
 
-                return (ruleMap1, captures) -> {
+                return new Action() {
+                    @Override
+                    public Object perform(RuleMap ruleMap, Environment captures) {
+                        Object val = captures.get(index);
+                        return val;
+                    }
+
+                    @Override
+                    public Object toValue() {
+                        return Arrays.asList("access", index);
+                    }
+                };
+
+                /*return (ruleMap1, captures) -> {
                     Object val = captures.get(index);
                     return val;
-                };
+                };*/
             }
 
             @Override
@@ -154,13 +181,30 @@ public class Evaluator {
     }
 
     private Action listActionFromActions(List<Action> actions) {
-        return (ruleMap1, captures) ->
+        return new Action() {
+            @Override
+            public Object perform(RuleMap ruleMap, Environment captures) {
+                return actions.stream().map(x -> {
+                    Object y = x.perform(ruleMap, captures);
+                    if(y == null)
+                        return x.perform(ruleMap, captures);
+                    return y;
+                }).collect(Collectors.toList());
+            }
+
+            @Override
+            public Object toValue() {
+                return Arrays.asList("list", actions.stream().map(x -> x.toValue()).collect(Collectors.toList()));
+            }
+        };
+
+        /*return (ruleMap1, captures) ->
             actions.stream().map(x -> {
                 Object y = x.perform(ruleMap1, captures);
                 if(y == null)
                     return x.perform(ruleMap1, captures);
                 return y;
-            }).collect(Collectors.toList());
+            }).collect(Collectors.toList());*/
     }
 
     private Pattern evaluatePattern(PalParser.PatternContext ctx, List<Integer> captureAddress, Map<String, Integer> nameToCaptureAddressMap) {

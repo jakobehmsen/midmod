@@ -4,8 +4,11 @@ import midmod.pal.Consumable;
 import midmod.rules.EdgePattern;
 import midmod.rules.Environment;
 import midmod.rules.RuleMap;
+import midmod.rules.ValueConvertible;
 
-public interface Pattern {
+import java.util.Arrays;
+
+public interface Pattern extends ValueConvertible {
     default int compareTo(Pattern other) {
         int deltaSortIndex = sortIndex() - other.sortIndex();
 
@@ -92,6 +95,11 @@ public interface Pattern {
                 // Should be a new embedded node, from which the two alternatives are added
                 return null;
                 */
+            }
+
+            @Override
+            public Object toValue() {
+                return Arrays.asList("or", self.toValue(), other.toValue());
             }
         }
 

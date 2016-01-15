@@ -4,6 +4,8 @@ import midmod.rules.Environment;
 import midmod.rules.RuleMap;
 import midmod.rules.ValueConvertible;
 
+import java.util.Arrays;
+
 public class Constant implements Action {
     private Object value;
 
@@ -15,5 +17,11 @@ public class Constant implements Action {
     public Object perform(RuleMap ruleMap, Environment captures) {
         //return value;
         return value instanceof ValueConvertible ? ((ValueConvertible)value).toValue() : value;
+    }
+
+    @Override
+    public Object toValue() {
+        // Should value be checked as ValueConvertible?
+        return Arrays.asList("constant", value);
     }
 }

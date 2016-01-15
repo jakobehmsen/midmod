@@ -79,6 +79,12 @@ public class Patterns {
 
                 return node.byPattern(new EqualsEdgePattern());
             }
+
+            @Override
+            public Object toValue() {
+                // Should obj be converted/checked as ValueConvertible?
+                return Arrays.asList("equals", obj);
+            }
         }
 
         return new EqualsPattern();
@@ -223,6 +229,11 @@ public class Patterns {
                     }
                 });
             }
+
+            @Override
+            public Object toValue() {
+                return Arrays.asList("subsumes-list", list.stream().map(x -> x.toValue()).collect(Collectors.toList()));
+            }
         }
 
         return new SubsumesListPattern();
@@ -293,6 +304,11 @@ public class Patterns {
                 }
 
                 return node.byPattern(new IsEdgePattern());
+            }
+
+            @Override
+            public Object toValue() {
+                return Arrays.asList("is", type);
             }
         }
 
@@ -374,6 +390,11 @@ public class Patterns {
                 }
 
                 return node.byPattern(new SubsumesMapEdgePattern());
+            }
+
+            @Override
+            public Object toValue() {
+                return Arrays.asList("subsumes-map", map.stream().map(x -> Arrays.asList(x.getKey(), x.getValue().toValue())).collect(Collectors.toList()));
             }
         }
 
@@ -460,6 +481,12 @@ public class Patterns {
 
                 return node.byPattern(new CaptureEdgePattern());
             }
+
+            @Override
+            public Object toValue() {
+                // TODO: How to convert valueExtractor?
+                return Arrays.asList("capture", index, pattern.toValue());
+            }
         }
 
         return new CapturePattern();
@@ -532,6 +559,11 @@ public class Patterns {
 
                 return node.byPattern(new ReferenceEdgePattern());
             }
+
+            @Override
+            public Object toValue() {
+                return Arrays.asList("reference", name);
+            }
         }
 
         return new ReferencePattern();
@@ -585,6 +617,10 @@ public class Patterns {
             return node.byPattern(new AnythingEdgePattern());
         }
 
+        @Override
+        public Object toValue() {
+            return Arrays.asList("any");
+        }
     }
 
     public static final Pattern anything = new AnyPattern();
@@ -643,6 +679,11 @@ public class Patterns {
 
                 return repeatNode;
             }
+
+            @Override
+            public Object toValue() {
+                return Arrays.asList("repeat", pattern.toValue());
+            }
         }
 
         return new RepeatPattern();
@@ -700,6 +741,11 @@ public class Patterns {
                 }
 
                 return node.byPattern(new NotEdgePattern());
+            }
+
+            @Override
+            public Object toValue() {
+                return Arrays.asList("not", patternToNegate.toValue());
             }
         }
 

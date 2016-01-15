@@ -3,7 +3,9 @@ package midmod.rules.actions;
 import midmod.rules.Environment;
 import midmod.rules.RuleMap;
 
+import java.util.Arrays;
 import java.util.Hashtable;
+import java.util.stream.Collectors;
 
 public class Call implements Action {
     private Action action;
@@ -25,5 +27,10 @@ public class Call implements Action {
         Action resolvedAction = ruleMap.resolve(value, resolvedCaptures);
 
         return resolvedAction.perform(ruleMap, resolvedCaptures);
+    }
+
+    @Override
+    public Object toValue() {
+        return Arrays.asList("call", action.toValue());
     }
 }
