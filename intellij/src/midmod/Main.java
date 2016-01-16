@@ -122,7 +122,7 @@ public class Main {
                 (ruleMap, captures) -> {
                     try {
                         Class<?> klass = (Class<?>)captures.get(0);
-                        Object instance = (Class<?>)captures.get(1);
+                        Object instance = captures.get(1);
                         String methodName = (String)captures.get(2);
                         List<Class<?>> parameterTypes = (List<Class<?>>)captures.get(3);
                         List<Object> arguments = (List<Object>)captures.get(4);
