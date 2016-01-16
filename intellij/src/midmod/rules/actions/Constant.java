@@ -15,8 +15,9 @@ public class Constant implements Action {
 
     @Override
     public Object perform(RuleMap ruleMap, Environment captures) {
-        //return value;
-        return value instanceof ValueConvertible ? ((ValueConvertible)value).toValue() : value;
+        return value;
+        // Have a special constant that converts using ValueConvertible?
+        //return value instanceof ValueConvertible ? ((ValueConvertible)value).toValue() : value;
     }
 
     @Override
