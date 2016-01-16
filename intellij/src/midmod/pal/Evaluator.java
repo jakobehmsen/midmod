@@ -132,8 +132,9 @@ public class Evaluator {
 
             @Override
             public Action visitDefine(PalParser.DefineContext ctx) {
-                Pattern pattern = evaluatePattern(ctx.pattern(), Arrays.asList(0), nameToCaptureAddressMap);
-                Action action = evaluateAction(ctx.action(), nameToCaptureAddressMap);
+                Map<String, Integer> nameToCaptureAddressMapForDef = new Hashtable<String, Integer>();
+                Pattern pattern = evaluatePattern(ctx.pattern(), Arrays.asList(0), nameToCaptureAddressMapForDef);
+                Action action = evaluateAction(ctx.action(), nameToCaptureAddressMapForDef);
 
                 if(ctx.name != null) {
                     String name = ctx.name.getText();
