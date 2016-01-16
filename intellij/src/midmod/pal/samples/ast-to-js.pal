@@ -1,9 +1,9 @@
 ["toString", _ obj] => ("invoke", ("class", "java.lang.Object"), obj, "toString", [], [])
 ["replace", %s string, %s pattern, %s replacement] =>
     (
-        "invoke", ("class", "java.lang.String"), obj, "replace",
-        [("class", "java.lang.String"), ("class", "java.lang.String"), ("class", "java.lang.String")],
-        [string, pattern, replacement]
+        "invoke", ("class", "java.lang.String"), string, "replace",
+        [("class", "java.lang.CharSequence"), ("class", "java.lang.CharSequence")],
+        [pattern, replacement]
     )
 ["+", %s lhs, %s rhs] => ("invoke", ("class", "java.lang.String"), lhs, "concat", [("class", "java.lang.String")], [rhs])
 ["+", %s lhs, _ rhs] => lhs + ("toString", rhs)
@@ -13,6 +13,15 @@
 ["to-js", %d value] => value
 ["to-js", ["+" | "-" operator, _ lhs, _ rhs]] => ("to-js", lhs) + " " + operator + " " + ("to-js", rhs)
 ["to-js", [">" | "<" operator, _ lhs, _ rhs]] => ("to-js", lhs) + " " + operator + " " + ("to-js", rhs)
+
+["to-js", ["if", _ condition, _ ifTrue, _ ifFalse]] =>
+    ["if(" + ("to-js", condition) + ") {\n",
+        [("to-js", ifTrue) + "\n"],
+    "} else {\n",
+        [("to-js", ifFalse) + "\n"],
+    "}"]
+["to-js", ["if", _ condition, _ ifTrue]] => ("to-js", ["if", condition, []])
+["to-js", []] => ""
 
 /*
 // {|...|...} is a closure
@@ -42,15 +51,6 @@
     "} else {\n" +
     ("to-js", ifFalse) + "\n" +
     "}"*/
-
-["to-js", ["if", _ condition, _ ifTrue, _ ifFalse]] =>
-    ["if(" + ("to-js", condition) + ") {\n",
-        [("to-js", ifTrue) + "\n"],
-    "} else {\n",
-        [("to-js", ifFalse) + "\n"],
-    "}"]
-["to-js", ["if", _ condition, _ ifTrue]] => ("to-js", ["if", condition, []])
-["to-js", []] => ""
 
 /*
 [%s ...] => "strings"
