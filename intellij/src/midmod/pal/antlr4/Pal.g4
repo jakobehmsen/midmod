@@ -32,8 +32,8 @@ list: OPEN_SQ (action (COMMA action)*)? CLOSE_SQ;
 map:
     OPEN_BRA
     (
-        (slot (COMMA slot)*)?
-        | (define (COMMA define)*)
+        (isMap=slot (COMMA slot)*)?
+        | (isRuleMap=define (COMMA define)*)
     )
     CLOSE_BRA;
 slot: ID EQUALS action;
