@@ -16,14 +16,26 @@ literalPattern: string | number | listPattern | mapPattern | anything;
 listPattern: OPEN_SQ (pattern (COMMA pattern)*)? CLOSE_SQ;
 notPattern: EXCLAMATION pattern1;
 embeddedPattern: OPEN_PAR pattern CLOSE_PAR;
-mapPattern: OPEN_BRA (slotPattern (COMMA slotPattern)*)? CLOSE_BRA;
+mapPattern:
+    OPEN_BRA
+    (
+        (isMap=slotPattern (COMMA slotPattern)*)?
+        | (isRuleMap=pattern (COMMA pattern)*)
+    )
+    CLOSE_BRA;
 anything: UNDERSCORE;
 slotPattern: ID EQUALS pattern;
 literal: string | number | list | map;
 string: STRING;
 number: NUMBER;
 list: OPEN_SQ (action (COMMA action)*)? CLOSE_SQ;
-map: OPEN_BRA (slot (COMMA slot)*)? CLOSE_BRA;
+map:
+    OPEN_BRA
+    (
+        (slot (COMMA slot)*)?
+        | (define (COMMa define)*)
+    )
+    CLOSE_BRA;
 slot: ID EQUALS action;
 action: expression1;
 expression1: expression2 expression1Tail*;
