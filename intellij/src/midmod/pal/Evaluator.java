@@ -111,28 +111,40 @@ public class Evaluator {
 
             @Override
             public Action visitMap(PalParser.MapContext ctx) {
-                List<Map.Entry<String, Action>> slots = ctx.slot().stream()
-                    .map(x -> new AbstractMap.SimpleImmutableEntry<>(x.ID().getText(), evaluateAction(x.action(), nameToCaptureAddressMap))).collect(Collectors.toList());
+                if(ctx.isMap != null) {
+                    List<Map.Entry<String, Action>> slots = ctx.slot().stream()
+                        .map(x -> new AbstractMap.SimpleImmutableEntry<>(x.ID().getText(), evaluateAction(x.action(), nameToCaptureAddressMap))).collect(Collectors.toList());
 
-                return new Action() {
-                    @Override
-                    public Object perform(RuleMap ruleMap, Environment captures) {
-                        return slots.stream().collect(Collectors.toMap(x -> x.getKey(), x -> x.getValue().perform(ruleMap, captures)));
-                    }
+                    return new Action() {
+                        @Override
+                        public Object perform(RuleMap ruleMap, Environment captures) {
+                            return slots.stream().collect(Collectors.toMap(x -> x.getKey(), x -> x.getValue().perform(ruleMap, captures)));
+                        }
 
-                    @Override
-                    public Object toValue() {
-                        return Arrays.asList("map", slots.stream().map(x -> Arrays.asList(x.getKey(), x.getValue().toValue())).collect(Collectors.toList()));
-                    }
-                };
+                        @Override
+                        public Object toValue() {
+                            return Arrays.asList("map", slots.stream().map(x -> Arrays.asList(x.getKey(), x.getValue().toValue())).collect(Collectors.toList()));
+                        }
+                    };
+                } else {
+                    // Should be a closure around the lexical context.
+                    // I.e., is shouldn't be a constant but instead be created dynamically (where needed/captured are used)
+                    RuleMap ruleMap = new RuleMap();
 
-                //return (ruleMap1, captures) ->
-                //    slots.stream().collect(Collectors.toMap(x -> x.getKey(), x -> x.getValue().perform(ruleMap1, captures)));
+                    ctx.define().forEach(x -> {
+                        Map<String, Integer> nameToCaptureAddressMapForDef = new Hashtable<>();
+                        Pattern pattern = evaluatePattern(x.pattern(), Arrays.asList(0), nameToCaptureAddressMapForDef);
+                        Action action = evaluateAction(x.action(), nameToCaptureAddressMapForDef);
+                        ruleMap.define(pattern, action);
+                    });
+
+                    return new Constant(ruleMap);
+                }
             }
 
             @Override
             public Action visitDefine(PalParser.DefineContext ctx) {
-                Map<String, Integer> nameToCaptureAddressMapForDef = new Hashtable<String, Integer>();
+                Map<String, Integer> nameToCaptureAddressMapForDef = new Hashtable<>();
                 Pattern pattern = evaluatePattern(ctx.pattern(), Arrays.asList(0), nameToCaptureAddressMapForDef);
                 Action action = evaluateAction(ctx.action(), nameToCaptureAddressMapForDef);
 
@@ -267,10 +279,17 @@ public class Evaluator {
 
             @Override
             public Pattern visitMapPattern(PalParser.MapPatternContext ctx) {
-                List<Map.Entry<String, Pattern>> slots = ctx.slotPattern().stream()
-                    .map(x -> new AbstractMap.SimpleImmutableEntry<>(x.ID().getText(), evaluatePattern(x.pattern(), captureAddress, nameToCaptureAddressMap))).collect(Collectors.toList());
+                if(ctx.isMap != null) {
+                    List<Map.Entry<String, Pattern>> slots = ctx.slotPattern().stream()
+                        .map(x -> new AbstractMap.SimpleImmutableEntry<>(x.ID().getText(), evaluatePattern(x.pattern(), captureAddress, nameToCaptureAddressMap))).collect(Collectors.toList());
 
-                return Patterns.subsumesToMap(slots);
+                    return Patterns.subsumesToMap(slots);
+                } else {
+                    List<Pattern> patterns = ctx.pattern().stream()
+                        .map(x -> evaluatePattern(x, captureAddress, nameToCaptureAddressMap)).collect(Collectors.toList());
+
+                    return Patterns.subsumesToRuleMap(patterns);
+                }
             }
 
             @Override

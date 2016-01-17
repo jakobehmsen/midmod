@@ -366,7 +366,7 @@ public class Patterns {
                     public RuleMap.Node matches(RuleMap.Node target, Consumable consumable, Environment captures) {
                         if(consumable.peek() instanceof Map) {
                             Map<String, Object> otherMap = (Map<String, Object>) consumable.peek();
-                            return map.stream()
+                            boolean subsumes = map.stream()
                                 .allMatch(e -> {
                                     Object slotValue = otherMap.get(e.getKey());
 
@@ -377,7 +377,13 @@ public class Patterns {
                                         return node.match(slotValueAsConsumable, captures) != null;
                                     }
                                     return false;
-                                }) ? target : null;
+                                });
+
+                            if(subsumes) {
+                                consumable.consume();
+                                return target;
+                            }
+                            return null;
                         }
 
                         return null;
@@ -567,6 +573,64 @@ public class Patterns {
         }
 
         return new ReferencePattern();
+    }
+
+    public static Pattern subsumesToRuleMap(List<Pattern> patterns) {
+        class RuleMapPattern implements Pattern {
+            private List<Pattern> thePatterns = patterns;
+
+            @Override
+            public int compareInstanceTo(Pattern other) {
+                // How to compare rule map patterns?
+                return 0;
+            }
+
+            @Override
+            public int sortIndex() {
+                return SortIndex.SUBSUMES_RULE_MAP;
+            }
+
+            @Override
+            public boolean equals(Object obj) {
+                return obj instanceof RuleMapPattern && this.thePatterns.equals(((RuleMapPattern)obj).thePatterns);
+            }
+
+            @Override
+            public RuleMap.Node findNode(RuleMap.Node node) {
+                class RuleMapEdgePattern implements EdgePattern {
+                    @Override
+                    public Pattern pattern() {
+                        return RuleMapPattern.this;
+                    }
+
+                    @Override
+                    public RuleMap.Node matches(RuleMap.Node target, Consumable consumable, Environment captures) {
+                        if(consumable.peek() instanceof RuleMap) {
+                            RuleMap otherRuleMap = (RuleMap) consumable.peek();
+                            boolean subsumes = patterns.stream()
+                                .allMatch(e ->
+                                    otherRuleMap.defines(e));
+                            if(subsumes) {
+                                consumable.consume();;
+                                return target;
+                            }
+                            return null;
+                        }
+
+                        return null;
+                    }
+                }
+
+                return node.byPattern(new RuleMapEdgePattern());
+            }
+
+            @Override
+            public Object toValue() {
+                return Arrays.asList("rule-map", patterns.stream().map(x -> x.toValue()).collect(Collectors.toList()));
+            }
+        }
+
+        return new RuleMapPattern();
     }
 
     private static class AnyPattern implements Pattern {

@@ -45,6 +45,11 @@ public class RuleMap {
     private Node root = new Node();
     private LinkedHashMap<Pattern, Action> rules = new LinkedHashMap<>();
 
+    public boolean defines(Pattern pattern) {
+        //return rules.containsKey(pattern);
+        return rules.keySet().stream().anyMatch(x -> x.equals(pattern));
+    }
+
     public void define(Pattern pattern, Action action) {
         Node node = pattern.findNode(root);
         if(node == null)
