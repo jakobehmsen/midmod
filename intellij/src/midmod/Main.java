@@ -5,6 +5,7 @@ import midmod.pal.Evaluator;
 import midmod.rules.RuleMap;
 import midmod.rules.actions.Action;
 import midmod.rules.actions.Actions;
+import midmod.rules.actions.Call;
 import midmod.rules.patterns.*;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -110,6 +111,23 @@ public class Main {
                     return null; // Should be an error; how to handle errors? First class frames? Special case matching?
                 }
             );
+
+            rules.define(
+                Patterns.conformsTo(
+                    Patterns.equalsObject("match"),
+                    Patterns.captureSingle(0, Patterns.anything),
+                    Patterns.captureSingle(1, Patterns.is(RuleMap.class))
+                ),
+                (ruleMap, captures) -> {
+                    Object value = captures.get(0);
+                    RuleMap rulesToUse = (RuleMap) captures.get(1);
+
+                    Object result = Call.on(rulesToUse, value);
+
+                    return result;
+                }
+            );
+
             rules.define(
                 Patterns.conformsTo(
                     Patterns.equalsObject("invoke"),
