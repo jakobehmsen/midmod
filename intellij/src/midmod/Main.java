@@ -341,7 +341,7 @@ public class Main {
         dict1.put("FirstName", "John");
         dict1.put("LastName", "Johnson");
 
-        //dict1.addListener(Cells.get("Name").addListener(Cells.func((String x) -> x + "Extended").addListener(Cells.define("NameX").addListener(dict2))));
+        //dict1.addListener(Cells.getIndexFor("Name").addListener(Cells.func((String x) -> x + "Extended").addListener(Cells.define("NameX").addListener(dict2))));
 
         dict1.addListener(Cells.get("Composite").addListener(Cells.get("X").addListener(Cells.put("CX").addListener(dict2))));
 
@@ -374,12 +374,12 @@ public class Main {
             allAreStrings,
             strings -> ((List<String>) (Object) Arrays.asList(strings)).stream().collect(Collectors.joining(":")));
 
-        //((DictionaryCell)dict1.get("Composite")).define("X", "SomeNewValue");
+        //((DictionaryCell)dict1.getIndexFor("Composite")).define("X", "SomeNewValue");
 
 
         //dict1_1.define("X", "someValue2");
 
-        //Cells.reduce(dict1.withListener(Cells.get("FirstName")), dict1.withListener(Cells.get("LastName")), String.class, String.class, (x, y) -> x + " " + y).addListener(Cells.define("FullName").addListener(dict2));
+        //Cells.reduce(dict1.withListener(Cells.getIndexFor("FirstName")), dict1.withListener(Cells.getIndexFor("LastName")), String.class, String.class, (x, y) -> x + " " + y).addListener(Cells.define("FullName").addListener(dict2));
 
         dict1.put("Composite", dict1_1);
 

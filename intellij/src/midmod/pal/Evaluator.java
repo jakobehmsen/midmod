@@ -42,10 +42,10 @@ public class Evaluator {
     }
 
     private Object evaluate(ParserRuleContext context) {
-        return evaluateAction(context, new Hashtable<>()).perform(ruleMap, new Environment());
+        return evaluateAction(context, new MetaEnvironment(null)).perform(ruleMap, new Environment());
     }
 
-    private Action evaluateAction(ParserRuleContext ctx, Map<String, Integer> nameToCaptureAddressMap) {
+    private Action evaluateAction(ParserRuleContext ctx, MetaEnvironment nameToCaptureAddressMap) {
         return ctx.accept(new PalBaseVisitor<Action>() {
             @Override
             public Action visitScript(PalParser.ScriptContext ctx) {
@@ -129,22 +129,37 @@ public class Evaluator {
                 } else {
                     // Should be a closure around the lexical context.
                     // I.e., is shouldn't be a constant but instead be created dynamically (where needed/captured are used)
-                    RuleMap ruleMap = new RuleMap();
+                    //RuleMap ruleMap = new RuleMap();
 
-                    ctx.define().forEach(x -> {
-                        Map<String, Integer> nameToCaptureAddressMapForDef = new Hashtable<>();
+                    MetaEnvironment nameToCaptureAddressMapForDef = new MetaEnvironment(nameToCaptureAddressMap);
+
+                    Map<Pattern, Action> patternActionMap = ctx.define().stream().map(x -> {
                         Pattern pattern = evaluatePattern(x.pattern(), Arrays.asList(0), nameToCaptureAddressMapForDef);
                         Action action = evaluateAction(x.action(), nameToCaptureAddressMapForDef);
-                        ruleMap.define(pattern, action);
-                    });
+                        //ruleMap.define(pattern, action);
+                        return new AbstractMap.SimpleImmutableEntry<>(pattern, action);
+                    }).collect(Collectors.toMap(x -> x.getKey(), x -> x.getValue()));
 
-                    return new Constant(ruleMap);
+                    return new Action() {
+                        @Override
+                        public Object perform(RuleMap ruleMap, Environment captures) {
+                            RuleMap newRuleMap = new RuleMap();
+
+                            nameToCaptureAddressMapForDef.setupRuleMap(ruleMap, newRuleMap, captures);
+
+                            patternActionMap.entrySet().forEach(x -> newRuleMap.define(x.getKey(), x.getValue()));
+
+                            return newRuleMap;
+                        }
+                    };
+
+                    //return new Constant(ruleMap);
                 }
             }
 
             @Override
             public Action visitDefine(PalParser.DefineContext ctx) {
-                Map<String, Integer> nameToCaptureAddressMapForDef = new Hashtable<>();
+                MetaEnvironment nameToCaptureAddressMapForDef = new MetaEnvironment(nameToCaptureAddressMap);
                 Pattern pattern = evaluatePattern(ctx.pattern(), Arrays.asList(0), nameToCaptureAddressMapForDef);
                 Action action = evaluateAction(ctx.action(), nameToCaptureAddressMapForDef);
 
@@ -159,7 +174,8 @@ public class Evaluator {
             @Override
             public Action visitAccess(PalParser.AccessContext ctx) {
                 String name = ctx.getText();
-                int index = nameToCaptureAddressMap.get(name);
+                return nameToCaptureAddressMap.createActionFor(name);
+                /*int index = nameToCaptureAddressMap.getIndexFor(name);
 
                 return new Action() {
                     @Override
@@ -172,10 +188,10 @@ public class Evaluator {
                     public Object toValue() {
                         return Arrays.asList("access", index);
                     }
-                };
+                };*/
 
                 /*return (ruleMap1, captures) -> {
-                    Object val = captures.get(index);
+                    Object val = captures.getIndexFor(index);
                     return val;
                 };*/
             }
@@ -188,7 +204,7 @@ public class Evaluator {
         });
     }
 
-    private Action listActionFromContexts(List<PalParser.ActionContext> actionContexts, Map<String, Integer> nameToCaptureAddressMap) {
+    private Action listActionFromContexts(List<PalParser.ActionContext> actionContexts, MetaEnvironment nameToCaptureAddressMap) {
         List<Action> actions = actionContexts.stream().map(x -> evaluateAction(x, nameToCaptureAddressMap)).collect(Collectors.toList());
         return listActionFromActions(actions);
     }
@@ -220,7 +236,7 @@ public class Evaluator {
             }).collect(Collectors.toList());*/
     }
 
-    private Pattern evaluatePattern(PalParser.PatternContext ctx, List<Integer> captureAddress, Map<String, Integer> nameToCaptureAddressMap) {
+    private Pattern evaluatePattern(PalParser.PatternContext ctx, List<Integer> captureAddress, MetaEnvironment nameToCaptureAddressMap) {
         Pattern pattern = evaluatePatternTarget(ctx.pattern1(), captureAddress, nameToCaptureAddressMap);
         boolean isRepeat = false;
 
@@ -239,7 +255,7 @@ public class Evaluator {
         return pattern;
     }
 
-    private Pattern evaluatePatternTarget(ParserRuleContext ctx, List<Integer> captureAddress, Map<String, Integer> nameToCaptureAddressMap) {
+    private Pattern evaluatePatternTarget(ParserRuleContext ctx, List<Integer> captureAddress, MetaEnvironment nameToCaptureAddressMap) {
         return ctx.accept(new PalBaseVisitor<Pattern>() {
             @Override
             public Pattern visitPattern1(PalParser.Pattern1Context ctx) {

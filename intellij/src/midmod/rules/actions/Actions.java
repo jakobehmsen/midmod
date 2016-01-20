@@ -21,6 +21,6 @@ public class Actions {
             }
         };
 
-        //return (ruleMap, captures) -> function.apply((T)captures.get(0), (R)captures.get(1));
+        //return (ruleMap, captures) -> function.apply((T)captures.getIndexFor(0), (R)captures.getIndexFor(1));
     }
 }
