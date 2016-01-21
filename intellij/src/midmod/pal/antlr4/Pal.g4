@@ -33,7 +33,7 @@ map:
     OPEN_BRA
     (
         (isMap=slot (COMMA slot)*)?
-        | (isRuleMap=define (COMMA define)*)
+        | (isRuleMap=define define*)
     )
     CLOSE_BRA;
 slot: ID EQUALS action;
