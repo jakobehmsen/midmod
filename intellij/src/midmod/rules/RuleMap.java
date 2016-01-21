@@ -15,8 +15,8 @@ public class RuleMap {
         private ArrayList<Map.Entry<EdgePattern, Node>> edges = new ArrayList<>();
         private Action action;
 
-        public Node match(Consumable consumable, Environment captures) {
-            return edges.stream().map(x -> x.getKey().matches(x.getValue(), consumable, captures)).filter(x -> x != null).findFirst().orElse(null);
+        public Node match(Consumable consumable, Environment captures, RuleMap local) {
+            return edges.stream().map(x -> x.getKey().matches(x.getValue(), consumable, captures, local)).filter(x -> x != null).findFirst().orElse(null);
         }
 
         public Node byPattern(EdgePattern pattern) {
@@ -62,10 +62,10 @@ public class RuleMap {
         define(Patterns.binary(operator, lhsType, rhsType), Actions.binary(function));
     }
 
-    public Action resolve(Object value, Environment captures) {
+    public Action resolve(Object value, Environment captures, RuleMap local) {
         // Wrap into Consumable
         Consumable consumable = new ListConsumable(Arrays.asList(value));
-        Node node = root.match(consumable, captures);
+        Node node = root.match(consumable, captures, local);
 
         if(node != null)
             return node.action;

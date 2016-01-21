@@ -5,30 +5,24 @@ import midmod.rules.RuleMap;
 
 import java.util.Arrays;
 
-public class Call implements Action {
+public class Match implements Action {
     private Action action;
 
-    public Call(Action action) {
+    public Match(Action action) {
         this.action = action;
     }
 
     @Override
     public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
-        return action.perform(ruleMap, local, captures);
+        Object value = action.perform(ruleMap, local, captures);
+
+        return on(ruleMap, local, value);
     }
 
     public static Object on(RuleMap ruleMap, RuleMap local, Object value) {
         //Hashtable<String, Object> resolvedCaptures = new Hashtable<>();
         Environment resolvedCaptures = new Environment();
         Action resolvedAction = ruleMap.resolve(value, resolvedCaptures, local);
-
-        return resolvedAction.perform(ruleMap, local, resolvedCaptures);
-    }
-
-    public static Object onLocal(RuleMap ruleMap, RuleMap local, Object value) {
-        //Hashtable<String, Object> resolvedCaptures = new Hashtable<>();
-        Environment resolvedCaptures = new Environment();
-        Action resolvedAction = local.resolve(value, resolvedCaptures, local);
 
         return resolvedAction.perform(ruleMap, local, resolvedCaptures);
     }

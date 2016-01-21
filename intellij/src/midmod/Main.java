@@ -4,9 +4,8 @@ import midmod.json.Parser;
 import midmod.pal.Evaluator;
 import midmod.rules.RuleMap;
 import midmod.rules.actions.Action;
-import midmod.rules.actions.Actions;
 import midmod.rules.actions.Call;
-import midmod.rules.patterns.*;
+import midmod.rules.patterns.Patterns;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
@@ -15,16 +14,17 @@ import org.objectweb.asm.util.TraceClassVisitor;
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
 import java.awt.event.KeyAdapter;
-import java.io.*;
+import java.awt.event.KeyEvent;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.awt.event.KeyEvent;
 
 public class Main {
     private static int nativeActions;
@@ -85,7 +85,7 @@ public class Main {
                     Patterns.captureSingle(0, Patterns.is(String.class)),
                     Patterns.captureSingle(1, Patterns.is(String.class))
                 ),
-                (ruleMap, captures) -> (String) captures.get(0) + (String) captures.get(1)
+                (ruleMap, local, captures) -> (String) captures.get(0) + (String) captures.get(1)
             );
 
             rules.define(
@@ -93,7 +93,7 @@ public class Main {
                     Patterns.equalsObject("toNative"),
                     Patterns.captureSingle(0, Patterns.is(String.class))
                 ),
-                (ruleMap, captures) -> toNative(captures.get(0))
+                (ruleMap, local, captures) -> toNative(captures.get(0))
             );
 
             rules.define(
@@ -101,7 +101,7 @@ public class Main {
                     Patterns.equalsObject("class"),
                     Patterns.captureSingle(0, Patterns.is(String.class))
                 ),
-                (ruleMap, captures) -> {
+                (ruleMap, local, captures) -> {
                     try {
                         return Class.forName((String) captures.get(0));
                     } catch (ClassNotFoundException e) {
@@ -118,13 +118,34 @@ public class Main {
                     Patterns.captureSingle(0, Patterns.anything),
                     Patterns.captureSingle(1, Patterns.is(RuleMap.class))
                 ),
-                (ruleMap, captures) -> {
+                (ruleMap, local, captures) -> {
                     Object value = captures.get(0);
                     RuleMap rulesToUse = (RuleMap) captures.get(1);
 
-                    Object result = Call.on(rulesToUse, value);
+                    Object result = Call.onLocal(rules, rulesToUse, value);
 
                     return result;
+                }
+            );
+
+            rules.define(
+                Patterns.conformsTo(
+                    Patterns.equalsObject("map"),
+                    Patterns.captureSingle(0, Patterns.is(List.class)),
+                    Patterns.captureSingle(1, Patterns.is(RuleMap.class))
+                ),
+                (ruleMap, local, captures) -> {
+                    List<Object> list = (List<Object>) captures.get(0);
+                    RuleMap rulesToUse = (RuleMap) captures.get(1);
+
+                    return list.stream().map(x ->
+                        {
+                            Object result = Call.onLocal(rules, rulesToUse, x);
+                            return result;
+                        }).collect(Collectors.toList());
+                    /*Object result = Call.on(rulesToUse, value);
+
+                    return result;*/
                 }
             );
 
@@ -137,7 +158,7 @@ public class Main {
                     Patterns.captureSingle(3, Patterns.is(List.class)),
                     Patterns.captureSingle(4, Patterns.is(List.class))
                     ),
-                (ruleMap, captures) -> {
+                (ruleMap, local, captures) -> {
                     try {
                         Class<?> klass = (Class<?>)captures.get(0);
                         Object instance = captures.get(1);

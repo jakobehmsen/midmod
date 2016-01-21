@@ -57,7 +57,7 @@ public interface Pattern extends ValueConvertible {
                     }
 
                     @Override
-                    public RuleMap.Node matches(RuleMap.Node target, Consumable consumable, Environment captures) {
+                    public RuleMap.Node matches(RuleMap.Node target, Consumable consumable, Environment captures, RuleMap local) {
                         /*consumable.mark();
                         captures.mark();
 
@@ -77,7 +77,7 @@ public interface Pattern extends ValueConvertible {
 
                         return n != null ? target : null;*/
 
-                        RuleMap.Node n = contentNode.match(consumable, captures);
+                        RuleMap.Node n = contentNode.match(consumable, captures, local);
                         return n != null ? target : null;
                     }
                     @Override

@@ -7,7 +7,9 @@ import midmod.rules.actions.Call;
 import midmod.rules.actions.Constant;
 import midmod.rules.patterns.Patterns;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Hashtable;
+import java.util.Map;
 
 public class MetaEnvironment {
     private MetaEnvironment outer;
@@ -31,12 +33,12 @@ public class MetaEnvironment {
             // This action could probably be built by composing multiple Call actions
             return new Action() {
                 @Override
-                public Object perform(RuleMap ruleMap, Environment captures) {
+                public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
                     RuleMap context = ruleMap;
                     for(int i = distance; i > 0; i--) {
-                        context = (RuleMap)Call.on(context, "context");
+                        context = (RuleMap) Call.onLocal(context, local, "context");
                     }
-                    Object value = Call.on(context, name);
+                    Object value = Call.onLocal(context, local, name);
                     return value;
                 }
 
@@ -68,7 +70,7 @@ public class MetaEnvironment {
         if(index != null) {
             return new Action() {
                 @Override
-                public Object perform(RuleMap ruleMap, Environment captures) {
+                public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
                     Object val = captures.get(index);
                     return val;
                 }

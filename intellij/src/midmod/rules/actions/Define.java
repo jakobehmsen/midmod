@@ -16,14 +16,14 @@ public class Define implements Action {
     }
 
     @Override
-    public Object perform(RuleMap ruleMap, Environment captures) {
+    public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
         // TODO: When constant action is performed, then value is implicitly converted
         // Either: create a new Define action (or change this) that requires direct
         // patterns and actions rather than evaluated actions, and/or add support
         // for mapping values back into patterns and actions.
         // The first option is the easiest one.
-        Pattern pattern = (Pattern)patternAction.perform(ruleMap, captures);
-        Action action = (Action)actionAction.perform(ruleMap, captures);
+        Pattern pattern = (Pattern)patternAction.perform(ruleMap, local, captures);
+        Action action = (Action)actionAction.perform(ruleMap, local, captures);
 
         ruleMap.define(pattern, action);
 

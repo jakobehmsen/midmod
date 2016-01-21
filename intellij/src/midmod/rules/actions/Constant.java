@@ -2,7 +2,6 @@ package midmod.rules.actions;
 
 import midmod.rules.Environment;
 import midmod.rules.RuleMap;
-import midmod.rules.ValueConvertible;
 
 import java.util.Arrays;
 
@@ -14,7 +13,7 @@ public class Constant implements Action {
     }
 
     @Override
-    public Object perform(RuleMap ruleMap, Environment captures) {
+    public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
         return value;
         // Have a special constant that converts using ValueConvertible?
         //return value instanceof ValueConvertible ? ((ValueConvertible)value).toValue() : value;

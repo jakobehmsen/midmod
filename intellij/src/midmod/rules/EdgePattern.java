@@ -8,5 +8,5 @@ import java.util.Map;
 public interface EdgePattern {
     Pattern pattern();
 
-    RuleMap.Node matches(RuleMap.Node target, Consumable consumable, Environment captures);
+    RuleMap.Node matches(RuleMap.Node target, Consumable consumable, Environment captures, RuleMap local);
 }

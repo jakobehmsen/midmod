@@ -15,11 +15,11 @@ public class Block implements Action {
     }
 
     @Override
-    public Object perform(RuleMap ruleMap, Environment captures) {
+    public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
         Object res = null;
 
         for (Action action : actions)
-            res = action.perform(ruleMap, captures);
+            res = action.perform(ruleMap, local, captures);
 
         return res;
     }

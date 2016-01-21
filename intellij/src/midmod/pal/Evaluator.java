@@ -42,7 +42,7 @@ public class Evaluator {
     }
 
     private Object evaluate(ParserRuleContext context) {
-        return evaluateAction(context, new MetaEnvironment(null)).perform(ruleMap, new Environment());
+        return evaluateAction(context, new MetaEnvironment(null)).perform(ruleMap, ruleMap, new Environment());
     }
 
     private Action evaluateAction(ParserRuleContext ctx, MetaEnvironment nameToCaptureAddressMap) {
@@ -61,7 +61,7 @@ public class Evaluator {
                 for (PalParser.Expression1TailContext rhsCtx : ctx.expression1Tail()) {
                     Action rhs = evaluateAction(rhsCtx.expression1(), nameToCaptureAddressMap);
                     String operator = rhsCtx.BIN_OP1().getText();
-                    lhs = new Call(listActionFromActions(Arrays.asList(new Constant(operator), lhs, rhs)));
+                    lhs = new Match(listActionFromActions(Arrays.asList(new Constant(operator), lhs, rhs)));
                 }
 
                 return lhs;
@@ -74,7 +74,7 @@ public class Evaluator {
                 for (PalParser.Expression2TailContext rhsCtx : ctx.expression2Tail()) {
                     Action rhs = evaluateAction(rhsCtx.expression1(), nameToCaptureAddressMap);
                     String operator = rhsCtx.BIN_OP2().getText();
-                    lhs = new Call(listActionFromActions(Arrays.asList(new Constant(operator), lhs, rhs)));
+                    lhs = new Match(listActionFromActions(Arrays.asList(new Constant(operator), lhs, rhs)));
                 }
 
                 return lhs;
@@ -85,7 +85,7 @@ public class Evaluator {
                 Action actionTarget = evaluateAction(ctx.actionTarget(), nameToCaptureAddressMap);
 
                 if(ctx.isCall != null)
-                    return new Call(actionTarget);
+                    return new Match(actionTarget);
 
                 return actionTarget;
             }
@@ -117,8 +117,8 @@ public class Evaluator {
 
                     return new Action() {
                         @Override
-                        public Object perform(RuleMap ruleMap, Environment captures) {
-                            return slots.stream().collect(Collectors.toMap(x -> x.getKey(), x -> x.getValue().perform(ruleMap, captures)));
+                        public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
+                            return slots.stream().collect(Collectors.toMap(x -> x.getKey(), x -> x.getValue().perform(ruleMap, local, captures)));
                         }
 
                         @Override
@@ -142,7 +142,7 @@ public class Evaluator {
 
                     return new Action() {
                         @Override
-                        public Object perform(RuleMap ruleMap, Environment captures) {
+                        public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
                             RuleMap newRuleMap = new RuleMap();
 
                             nameToCaptureAddressMapForDef.setupRuleMap(ruleMap, newRuleMap, captures);
@@ -199,7 +199,7 @@ public class Evaluator {
             @Override
             public Action visitAlwaysAction(PalParser.AlwaysActionContext ctx) {
                 Action action = listActionFromContexts(ctx.action(), nameToCaptureAddressMap);
-                return new Call(action);
+                return new Match(action);
             }
         });
     }
@@ -212,11 +212,11 @@ public class Evaluator {
     private Action listActionFromActions(List<Action> actions) {
         return new Action() {
             @Override
-            public Object perform(RuleMap ruleMap, Environment captures) {
+            public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
                 return actions.stream().map(x -> {
-                    Object y = x.perform(ruleMap, captures);
+                    Object y = x.perform(ruleMap, local, captures);
                     if(y == null)
-                        return x.perform(ruleMap, captures);
+                        return x.perform(ruleMap, local, captures);
                     return y;
                 }).collect(Collectors.toList());
             }
