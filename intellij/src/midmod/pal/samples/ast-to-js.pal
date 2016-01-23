@@ -27,11 +27,8 @@
 // {|...|...} is a closure
 // Indention support via lists within lists
 ["js-to-string", %s s] => s
-["js-to-string", %i depth, [_ ...] l] => ("map", l, {|item| ("js-to-string-item", depth, item)})
-// Or perhaps (for map):
 ["js-to-string", %i depth, [_ ...] l] => ("map", l, {_ item => ("js-to-string-item", depth, item)})
-// With this syntax, static first class rule maps (that implicitly close around their context (if necessary)) can be supported:
-// ("someOp", {["firstCase", _ ...] => ... ["secondCase", _ ...] => ...}
+["js-to-string", [_ ...] l] => ("js-to-string", 0, l)
 
 // Rule map in pattern:
 // {"whatever"} rules => ("match", "whatever", rules)
@@ -40,6 +37,7 @@
 
 // Or embedded rule definition action is a closure
 ["js-to-string", %i depth, [_ ...] l] => ("map", _ item => ("js-to-string-item", depth, item))
+
 ["js-to-string-item", %i depth, [_ ...] item] =>
     ("indention", depth + 1) + ("replace", ("js-to-string", depth + 1, item), "\n", ("indention", depth + 1) + "\n")
 ["js-to-string-item", %i depth, %s item] => item
