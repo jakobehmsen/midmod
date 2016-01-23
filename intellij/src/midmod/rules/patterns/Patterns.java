@@ -500,6 +500,8 @@ public class Patterns {
 
     public static Pattern reference(RuleMap rules, String name) {
         class ReferencePattern implements Pattern {
+            private String theName = name;
+
             private Rule resolveRule() {
                 Environment captures = new Environment();
 
@@ -521,6 +523,11 @@ public class Patterns {
                 /*Pattern patternOther = ((ReferencePattern)other).resolvePattern();
 
                 return pattern.compareInstanceTo(patternOther);*/
+            }
+
+            @Override
+            public boolean equals(Object obj) {
+                return obj instanceof ReferencePattern && this.theName.equals(((ReferencePattern)obj).theName);
             }
 
             @Override
@@ -619,6 +626,11 @@ public class Patterns {
 
                         return null;
                     }
+
+                    @Override
+                    public boolean equals(Object obj) {
+                        return obj instanceof RuleMapEdgePattern && pattern().equals(((RuleMapEdgePattern)obj).pattern());
+                    }
                 }
 
                 return node.byPattern(new RuleMapEdgePattern());
@@ -705,6 +717,11 @@ public class Patterns {
             }
 
             @Override
+            public boolean equals(Object obj) {
+                return obj instanceof RepeatPattern && this.thePattern.equals(((RepeatPattern)obj).thePattern);
+            }
+
+            @Override
             public RuleMap.Node findNode(RuleMap.Node node) {
                 class RepeatEdgePattern implements EdgePattern {
                     RuleMap.Node pseudoNode = new RuleMap.Node();
@@ -766,6 +783,11 @@ public class Patterns {
             @Override
             public int sortIndex() {
                 return SortIndex.NOT;
+            }
+
+            @Override
+            public boolean equals(Object obj) {
+                return obj instanceof NotPattern && this.thePattern.equals(((NotPattern)obj).thePattern);
             }
 
             @Override

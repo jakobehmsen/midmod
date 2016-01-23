@@ -45,6 +45,17 @@ public interface Pattern extends ValueConvertible {
             }
 
             @Override
+            public boolean equals(Object obj) {
+                if(obj instanceof OrPattern) {
+                    OrPattern objOrPattern = (OrPattern)obj;
+                    return this.theSelf.equals(((OrPattern) obj).theSelf) &&
+                        this.theOther.equals(((OrPattern) obj).theOther);
+                }
+
+                return false;
+            }
+
+            @Override
             public RuleMap.Node findNode(RuleMap.Node node) {
                 class OrEdgePattern implements EdgePattern {
                     RuleMap.Node contentNode = new RuleMap.Node();
