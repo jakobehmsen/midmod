@@ -48,8 +48,8 @@ public interface Pattern extends ValueConvertible {
             public boolean equals(Object obj) {
                 if(obj instanceof OrPattern) {
                     OrPattern objOrPattern = (OrPattern)obj;
-                    return this.theSelf.equals(((OrPattern) obj).theSelf) &&
-                        this.theOther.equals(((OrPattern) obj).theOther);
+                    return this.theSelf.equals(objOrPattern.theSelf) &&
+                        this.theOther.equals(objOrPattern.theOther);
                 }
 
                 return false;
@@ -111,6 +111,11 @@ public interface Pattern extends ValueConvertible {
             @Override
             public Object toValue() {
                 return Arrays.asList("or", self.toValue(), other.toValue());
+            }
+
+            @Override
+            public String toString() {
+                return self + " | " + other;
             }
         }
 

@@ -85,6 +85,11 @@ public class Patterns {
                 // Should obj be converted/checked as ValueConvertible?
                 return Arrays.asList("equals", obj);
             }
+
+            @Override
+            public String toString() {
+                return obj.toString();
+            }
         }
 
         return new EqualsPattern();
@@ -234,6 +239,11 @@ public class Patterns {
             public Object toValue() {
                 return Arrays.asList("subsumes-list", list.stream().map(x -> x.toValue()).collect(Collectors.toList()));
             }
+
+            @Override
+            public String toString() {
+                return list.toString();
+            }
         }
 
         return new SubsumesListPattern();
@@ -309,6 +319,15 @@ public class Patterns {
             @Override
             public Object toValue() {
                 return Arrays.asList("is", type);
+            }
+
+            @Override
+            public String toString() {
+                if(type.equals(String.class))
+                    return "%s";
+                else if(type.equals(int.class))
+                    return "%i";
+                return "<NA>";
             }
         }
 
@@ -402,6 +421,13 @@ public class Patterns {
             public Object toValue() {
                 return Arrays.asList("subsumes-map", map.stream().map(x -> Arrays.asList(x.getKey(), x.getValue().toValue())).collect(Collectors.toList()));
             }
+
+            @Override
+            public String toString() {
+                return "{" +
+                    map.stream().map(x -> x.getKey().toString() + ": " + x.getValue().toString()).collect(Collectors.joining(", ")) +
+                    "}";
+            }
         }
 
         return new SubsumesMapPattern();
@@ -493,6 +519,11 @@ public class Patterns {
                 // TODO: How to convert valueExtractor?
                 return Arrays.asList("capture", index, pattern.toValue());
             }
+
+            @Override
+            public String toString() {
+                return pattern + " " + index;
+            }
         }
 
         return new CapturePattern();
@@ -577,6 +608,11 @@ public class Patterns {
             public Object toValue() {
                 return Arrays.asList("reference", name);
             }
+
+            @Override
+            public String toString() {
+                return name;
+            }
         }
 
         return new ReferencePattern();
@@ -640,6 +676,11 @@ public class Patterns {
             public Object toValue() {
                 return Arrays.asList("rule-map", patterns.stream().map(x -> x.toValue()).collect(Collectors.toList()));
             }
+
+            @Override
+            public String toString() {
+                return "{" + patterns.stream().map(x -> x.toString()).collect(Collectors.joining(" ")) + "}";
+            }
         }
 
         return new RuleMapPattern();
@@ -696,6 +737,11 @@ public class Patterns {
         @Override
         public Object toValue() {
             return Arrays.asList("any");
+        }
+
+        @Override
+        public String toString() {
+            return "_";
         }
     }
 
@@ -765,6 +811,11 @@ public class Patterns {
             public Object toValue() {
                 return Arrays.asList("repeat", pattern.toValue());
             }
+
+            @Override
+            public String toString() {
+                return thePattern + "...";
+            }
         }
 
         return new RepeatPattern();
@@ -832,6 +883,11 @@ public class Patterns {
             @Override
             public Object toValue() {
                 return Arrays.asList("not", patternToNegate.toValue());
+            }
+
+            @Override
+            public String toString() {
+                return "!" + thePattern;
             }
         }
 
