@@ -18,6 +18,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -134,7 +136,7 @@ public class Evaluator {
                     MetaEnvironment nameToCaptureAddressMapForDef = new MetaEnvironment(nameToCaptureAddressMap);
 
                     Map<Pattern, Action> patternActionMap = ctx.define().stream().map(x -> {
-                        Pattern pattern = evaluatePattern(x.pattern(), Arrays.asList(0), nameToCaptureAddressMapForDef);
+                        Pattern pattern = evaluatePattern(x.pattern(), Arrays.asList(0), nameToCaptureAddressMapForDef).apply(new Environment());
                         Action action = evaluateAction(x.action(), nameToCaptureAddressMapForDef);
                         //ruleMap.define(pattern, action);
                         return new AbstractMap.SimpleImmutableEntry<>(pattern, action);
@@ -160,7 +162,7 @@ public class Evaluator {
             @Override
             public Action visitDefine(PalParser.DefineContext ctx) {
                 MetaEnvironment nameToCaptureAddressMapForDef = new MetaEnvironment(nameToCaptureAddressMap);
-                Pattern pattern = evaluatePattern(ctx.pattern(), Arrays.asList(0), nameToCaptureAddressMapForDef);
+                Pattern pattern = evaluatePattern(ctx.pattern(), Arrays.asList(0), nameToCaptureAddressMapForDef).apply(new Environment());
                 Action action = evaluateAction(ctx.action(), nameToCaptureAddressMapForDef);
 
                 if(ctx.name != null) {
@@ -201,6 +203,15 @@ public class Evaluator {
                 Action action = listActionFromContexts(ctx.action(), nameToCaptureAddressMap);
                 return new Match(action);
             }
+
+            @Override
+            public Action visitPatternLiteral(PalParser.PatternLiteralContext ctx) {
+                List<Integer> captureAddress = new ArrayList<Integer>();
+                //MetaEnvironment patternLiteralNameToCaptureAddressMap = new MetaEnvironment(null);
+                Function<Environment, Pattern> patternSupplier = evaluatePattern(ctx.pattern(), captureAddress, nameToCaptureAddressMap);
+                return (ruleMap1, local, captures) ->
+                    patternSupplier.apply(captures);
+            }
         });
     }
 
@@ -236,12 +247,30 @@ public class Evaluator {
             }).collect(Collectors.toList());*/
     }
 
-    private Pattern evaluatePattern(PalParser.PatternContext ctx, List<Integer> captureAddress, MetaEnvironment nameToCaptureAddressMap) {
-        Pattern pattern = evaluatePatternTarget(ctx.pattern1(), captureAddress, nameToCaptureAddressMap);
+    private Function<Environment, Pattern> evaluatePattern(PalParser.PatternContext ctx, List<Integer> captureAddress, MetaEnvironment nameToCaptureAddressMap) {
+        if(ctx.isAction != null) {
+            //return Patterns.action();
+            // What should the outer environment be?
+            //MetaEnvironment metaNameToCaptureAddressMap = new MetaEnvironment(null);
+            Action action = evaluateAction(ctx.mesaAction().action(), nameToCaptureAddressMap);
+            // Should some non-pattern values implicitly be converted into patterns? Such as string and ints?
+            return captures -> {
+                Pattern pattern;
+                Object res = action.perform(ruleMap, ruleMap, captures);
+                if(res instanceof Pattern)
+                    pattern = (Pattern)res;
+                else
+                    pattern = Patterns.equalsObject(res);
+                return pattern;
+            };
+        }
+
+        Function<Environment, Pattern> patternTarget = evaluatePatternTarget(ctx.pattern1(), captureAddress, nameToCaptureAddressMap);
         boolean isRepeat = false;
 
         if(ctx.repeatPattern != null) {
-            pattern = Patterns.repeat(pattern);
+            Function<Environment, Pattern> repeatPatternTarget = patternTarget;
+            patternTarget = captures -> Patterns.repeat(repeatPatternTarget.apply(captures));
             isRepeat = true;
         }
 
@@ -249,74 +278,80 @@ public class Evaluator {
             // Declare index for parameter
             int index = nameToCaptureAddressMap.size();
             nameToCaptureAddressMap.put(ctx.name.getText(), index);
-            pattern = !isRepeat ? Patterns.captureSingle(index, pattern) : Patterns.captureMany(index, pattern);
+            Function<Environment, Pattern> capturePatternTarget = patternTarget;
+            patternTarget = !isRepeat
+                ? captures -> Patterns.captureSingle(index, capturePatternTarget.apply(captures))
+                : captures -> Patterns.captureMany(index, capturePatternTarget.apply(captures));
         }
 
-        return pattern;
+        return patternTarget;
     }
 
-    private Pattern evaluatePatternTarget(ParserRuleContext ctx, List<Integer> captureAddress, MetaEnvironment nameToCaptureAddressMap) {
-        return ctx.accept(new PalBaseVisitor<Pattern>() {
+    private Function<Environment, Pattern> evaluatePatternTarget(ParserRuleContext ctx, List<Integer> captureAddress, MetaEnvironment nameToCaptureAddressMap) {
+        return ctx.accept(new PalBaseVisitor<Function<Environment, Pattern>>() {
             @Override
-            public Pattern visitPattern1(PalParser.Pattern1Context ctx) {
-                Pattern lhs = evaluatePatternTarget(ctx.pattern2(), captureAddress, nameToCaptureAddressMap);
+            public Function<Environment, Pattern> visitPattern1(PalParser.Pattern1Context ctx) {
+                Function<Environment, Pattern> lhs = evaluatePatternTarget(ctx.pattern2(), captureAddress, nameToCaptureAddressMap);
 
                 for (PalParser.Pattern1Context rhsCtx : ctx.pattern1()) {
-                    Pattern rhs = evaluatePatternTarget(rhsCtx, captureAddress, nameToCaptureAddressMap);
-                    lhs = lhs.or(rhs);
+                    Function<Environment, Pattern> rhs = evaluatePatternTarget(rhsCtx, captureAddress, nameToCaptureAddressMap);
+                    Function<Environment, Pattern> theLhs = lhs;
+                    lhs = captures -> theLhs.apply(captures).or(rhs.apply(captures));
                 }
 
                 return lhs;
             }
 
             @Override
-            public Pattern visitString(PalParser.StringContext ctx) {
+            public Function<Environment, Pattern> visitString(PalParser.StringContext ctx) {
                 String str = parseString(ctx);
-                return Patterns.equalsObject(str);
+                return captures -> Patterns.equalsObject(str);
             }
 
             @Override
-            public Pattern visitNumber(PalParser.NumberContext ctx) {
+            public Function<Environment, Pattern> visitNumber(PalParser.NumberContext ctx) {
                 Object number = parseNumber(ctx);
                 if (number instanceof Integer)
-                    return Patterns.equalsObject(number);
+                    return captures -> Patterns.equalsObject(number);
                 else
-                    return Patterns.equalsObject(number);
+                    return captures -> Patterns.equalsObject(number);
             }
 
             @Override
-            public Pattern visitListPattern(PalParser.ListPatternContext ctx) {
-                return Patterns.conformsTo(IntStream.range(0, ctx.pattern().size()).mapToObj(i -> {
+            public Function<Environment, Pattern> visitListPattern(PalParser.ListPatternContext ctx) {
+                List<Function<Environment, Pattern>> patterns = IntStream.range(0, ctx.pattern().size()).mapToObj(i -> {
                     ArrayList<Integer> newCaptureAddress = new ArrayList<Integer>(captureAddress);
                     newCaptureAddress.add(i);
                     return evaluatePattern(ctx.pattern().get(i), newCaptureAddress, nameToCaptureAddressMap);
-                }).collect(Collectors.toList()));
+                }).collect(Collectors.toList());
+                return captures -> Patterns.conformsTo(patterns.stream().map(x -> x.apply(captures)).collect(Collectors.toList()));
             }
 
             @Override
-            public Pattern visitMapPattern(PalParser.MapPatternContext ctx) {
+            public Function<Environment, Pattern> visitMapPattern(PalParser.MapPatternContext ctx) {
                 if(ctx.isMap != null) {
-                    List<Map.Entry<String, Pattern>> slots = ctx.slotPattern().stream()
+                    List<Map.Entry<String, Function<Environment, Pattern>>> slots = ctx.slotPattern().stream()
                         .map(x -> new AbstractMap.SimpleImmutableEntry<>(x.ID().getText(), evaluatePattern(x.pattern(), captureAddress, nameToCaptureAddressMap))).collect(Collectors.toList());
 
-                    return Patterns.subsumesToMap(slots);
+                    return captures -> Patterns.subsumesToMap(slots.stream().map(x ->
+                        new AbstractMap.SimpleImmutableEntry<>(x.getKey(), x.getValue().apply(captures))).collect(Collectors.toList()));
                 } else {
-                    List<Pattern> patterns = ctx.pattern().stream()
+                    List<Function<Environment, Pattern>> patterns = ctx.pattern().stream()
                         .map(x -> evaluatePattern(x, captureAddress, nameToCaptureAddressMap)).collect(Collectors.toList());
 
-                    return Patterns.subsumesToRuleMap(patterns);
+                    return captures -> Patterns.subsumesToRuleMap(patterns.stream().map(x -> x.apply(captures)).collect(Collectors.toList()));
                 }
             }
 
             @Override
-            public Pattern visitReferencePattern(PalParser.ReferencePatternContext ctx) {
+            public Function<Environment, Pattern> visitReferencePattern(PalParser.ReferencePatternContext ctx) {
                 String name = ctx.name.getText();
 
-                return Patterns.reference(ruleMap, name);
+                return captures -> Patterns.reference(ruleMap, name);
             }
 
             @Override
-            public Pattern visitTypedPattern(PalParser.TypedPatternContext ctx) {
+            public Function<Environment, Pattern> visitTypedPattern(PalParser.TypedPatternContext ctx) {
                 Class<?> type = null;
                 String typeName = ctx.type.getText();
 
@@ -332,19 +367,21 @@ public class Evaluator {
                         break;
                 }
 
-                return Patterns.is(type);
+                Class<?> theType = type;
+
+                return captures -> Patterns.is(theType);
             }
 
             @Override
-            public Pattern visitNotPattern(PalParser.NotPatternContext ctx) {
-                Pattern patternToNegate = evaluatePatternTarget(ctx.pattern1(), captureAddress, nameToCaptureAddressMap);
+            public Function<Environment, Pattern> visitNotPattern(PalParser.NotPatternContext ctx) {
+                Function<Environment, Pattern> patternToNegate = evaluatePatternTarget(ctx.pattern1(), captureAddress, nameToCaptureAddressMap);
 
-                return Patterns.not(patternToNegate);
+                return captures -> Patterns.not(patternToNegate.apply(captures));
             }
 
             @Override
-            public Pattern visitAnything(PalParser.AnythingContext ctx) {
-                return Patterns.anything;
+            public Function<Environment, Pattern> visitAnything(PalParser.AnythingContext ctx) {
+                return captures -> Patterns.anything;
             }
         });
     }

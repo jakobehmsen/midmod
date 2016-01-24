@@ -13,6 +13,9 @@ import java.util.stream.Collectors;
 
 public class Patterns {
     public static Pattern equalsObject(Object obj) {
+        if(obj instanceof List)
+            new String();
+
         class EqualsPattern implements Pattern {
             private Object theObj = obj;
             Pattern self = this;

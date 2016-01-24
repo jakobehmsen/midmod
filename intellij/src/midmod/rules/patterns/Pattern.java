@@ -7,6 +7,7 @@ import midmod.rules.RuleMap;
 import midmod.rules.ValueConvertible;
 
 import java.util.Arrays;
+import java.util.function.Supplier;
 
 public interface Pattern extends ValueConvertible {
     default int compareTo(Pattern other) {
