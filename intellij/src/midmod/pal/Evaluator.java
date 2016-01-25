@@ -160,6 +160,24 @@ public class Evaluator {
             }
 
             @Override
+            public Action visitDefineNameAndParams(PalParser.DefineNameAndParamsContext ctx) {
+                MetaEnvironment nameToCaptureAddressMapForDef = new MetaEnvironment(nameToCaptureAddressMap);
+                String name = ctx.ID().getText();
+                Environment environment = new Environment();
+                List<Pattern> paramPatterns = ctx.pattern().stream()
+                    .map(x -> evaluatePattern(x, Arrays.asList(0), nameToCaptureAddressMapForDef))
+                    .map(x -> x.apply(environment))
+                    .collect(Collectors.toList());
+                ArrayList<Pattern> patterns = new ArrayList<>();
+                patterns.add(Patterns.equalsObject(name));
+                patterns.addAll(paramPatterns);
+                Pattern pattern = Patterns.conformsTo(patterns);
+                Action action = evaluateAction(ctx.action(), nameToCaptureAddressMapForDef);
+
+                return new Define(new Constant(pattern), new Constant(action));
+            }
+
+            @Override
             public Action visitDefine(PalParser.DefineContext ctx) {
                 MetaEnvironment nameToCaptureAddressMapForDef = new MetaEnvironment(nameToCaptureAddressMap);
                 Pattern pattern = evaluatePattern(ctx.pattern(), Arrays.asList(0), nameToCaptureAddressMapForDef).apply(new Environment());

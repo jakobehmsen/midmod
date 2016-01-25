@@ -5,7 +5,8 @@ Pal: Pattern Action Language
 grammar Pal;
 
 script: scriptElement*;
-scriptElement: define | action;
+scriptElement: defineNameAndParams | define | action;
+defineNameAndParams: name=ID OPEN_PAR (pattern (COMMA pattern)*)? CLOSE_PAR EQUALS action;
 define: (name=ID EQUALS)? pattern EQUALS_GREATER action;
 pattern: pattern1 (repeatPattern=ELLIPSIS)? (name=ID)? | isAction=mesaAction;
 pattern1: pattern2 (PIPE pattern1)*;
