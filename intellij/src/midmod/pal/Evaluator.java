@@ -199,8 +199,12 @@ public class Evaluator {
             }
 
             @Override
-            public Action visitAlwaysAction(PalParser.AlwaysActionContext ctx) {
-                Action action = listActionFromContexts(ctx.action(), nameToCaptureAddressMap);
+            public Action visitNameAndArgs(PalParser.NameAndArgsContext ctx) {
+                ArrayList<Action> actions = new ArrayList<>();
+                String name = ctx.name.getText();
+                actions.add(new Constant(name));
+                actions.addAll(ctx.action().stream().map(x -> evaluateAction(x, nameToCaptureAddressMap)).collect(Collectors.toList()));
+                Action action = listActionFromActions(actions);
                 return new Match(action);
             }
 

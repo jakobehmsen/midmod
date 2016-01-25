@@ -44,9 +44,9 @@ expression1Tail: BIN_OP1 expression1;
 expression2: expression3 expression2Tail*;
 expression2Tail: BIN_OP2 expression1;
 expression3: actionTarget isCall=QUESTION_MARK?;
-actionTarget: access | literal | alwaysAction | patternLiteral;
+actionTarget: access | literal | patternLiteral | nameAndArgs;
 access: ID;
-alwaysAction: OPEN_PAR (action (COMMA action)*) CLOSE_PAR;
+nameAndArgs: name = ID OPEN_PAR (action (COMMA action)*)? CLOSE_PAR;
 patternLiteral: HASH pattern;
 
 DOLLAR: '$';
