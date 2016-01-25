@@ -1,3 +1,4 @@
+/*
 ["toString", _ obj] => ("invoke", ("class", "java.lang.Object"), obj, "toString", [], [])
 ["replace", %s string, %s pattern, %s replacement] =>
     (
@@ -22,6 +23,31 @@
     "}"]
 ["to-js", ["if", _ condition, _ ifTrue]] => ("to-js", ["if", condition, []])
 ["to-js", []] => ""
+*/
+
+toString(_ obj) = invoke(class("java.lang.Object"), obj, "toString", [], [])
+replace(%s string, %s pattern, %s replacement) = invoke(
+    class("java.lang.String"), string, "replace",
+        [class("java.lang.CharSequence"), class("java.lang.CharSequence")],
+        [pattern, replacement]
+)
+["+", %s lhs, %s rhs] => invoke(class("java.lang.String"), lhs, "concat", [class("java.lang.String")], [rhs])
+["+", %s lhs, _ rhs] => lhs + toString(rhs)
+["+", _ lhs, %s rhs] => toString(lhs) + rhs
+
+toJs(%i value) = value
+toJs(%d value) = value
+toJs(["+" | "-" operator, _ lhs, _ rhs]) = toJs(lhs) + " " + operator + " " + toJs(rhs)
+toJs ([">" | "<" operator, _ lhs, _ rhs]) = toJs(lhs) + " " + operator + " " + toJs(rhs)
+
+toJs(["if", _ condition, _ ifTrue, _ ifFalse]) =
+    ["if(" + toJs(condition) + ") {\n",
+        [toJs(ifTrue) + "\n"],
+    "} else {\n",
+        [toJs(ifFalse) + "\n"],
+    "}"]
+toJs(["if", _ condition, _ ifTrue]) = toJs(["if", condition, []])
+toJs([]) = ""
 
 /*
 // {|...|...} is a closure
