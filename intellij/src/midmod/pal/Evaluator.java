@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -32,6 +31,38 @@ public class Evaluator {
 
     public Object evaluate(String sourceCode) throws IOException {
         return evaluate(new ByteArrayInputStream(sourceCode.getBytes()));
+    }
+
+    public Object evaluateAsValue(InputStream sourceCode) throws IOException {
+        CharStream charStream = new ANTLRInputStream(sourceCode);
+        PalLexer lexer = new PalLexer(charStream);
+        CommonTokenStream tokenStream = new CommonTokenStream(lexer);
+        PalParser parser = new PalParser(tokenStream);
+
+        return evaluateAsValue(parser.script());
+    }
+
+    private Object evaluateAsValue(ParserRuleContext context) {
+        Action action = evaluateAction(context, new MetaEnvironment(null));
+        Object actionAsValue = action.toValue();
+        actionAsValue = expandMacros(actionAsValue);
+        action = parseActionFromValue(actionAsValue);
+        return action.perform(ruleMap, ruleMap, new Environment());
+    }
+
+    private RuleMap actionParser = new RuleMap();
+
+    {
+        Constant.defineParseRule(actionParser);
+        Block.defineParseRule(actionParser);
+    }
+
+    private Action parseActionFromValue(Object value) {
+        return (Action)Match.on(actionParser, actionParser, value);
+    }
+
+    private Object expandMacros(Object value) {
+        return value;
     }
 
     public Object evaluate(InputStream sourceCode) throws IOException {

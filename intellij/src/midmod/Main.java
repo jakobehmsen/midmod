@@ -234,7 +234,8 @@ public class Main {
                     }
 
                     try {
-                        Object result = evaluator.evaluate(new ByteArrayInputStream(sourceCode.getBytes()));
+                        //Object result = evaluator.evaluate(new ByteArrayInputStream(sourceCode.getBytes()));
+                        Object result = evaluator.evaluateAsValue(new ByteArrayInputStream(sourceCode.getBytes()));
 
                         String outputText = " " + result;
                         console.getDocument().insertString(end, outputText, null);
