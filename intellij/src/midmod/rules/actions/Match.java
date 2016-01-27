@@ -29,6 +29,6 @@ public class Match implements Action {
 
     @Override
     public Object toValue() {
-        return Arrays.asList("call", action.toValue());
+        return Arrays.asList("match", action.toValue());
     }
 }

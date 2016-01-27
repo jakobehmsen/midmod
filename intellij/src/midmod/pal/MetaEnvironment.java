@@ -5,6 +5,8 @@ import midmod.rules.RuleMap;
 import midmod.rules.actions.Action;
 import midmod.rules.actions.Call;
 import midmod.rules.actions.Constant;
+import midmod.rules.actions.LoadAsConstant;
+import midmod.rules.patterns.Pattern;
 import midmod.rules.patterns.Patterns;
 
 import java.util.Arrays;
@@ -114,5 +116,14 @@ public class MetaEnvironment {
             String name = x.getKey();
             int distance = x.getValue();
         });*/
+    }
+
+    public void addClosedCaptures(Map<Pattern, Action> patternActionMap) {
+        nameToCaptureAddressMapClosed.entrySet().forEach(x -> {
+            String name = x.getKey();
+            int index = x.getValue();
+            patternActionMap.put(Patterns.equalsObject(name), new LoadAsConstant(index));
+            //newRuleMap.define(Patterns.equalsObject(name), new Constant(captures.get(index)));
+        });
     }
 }

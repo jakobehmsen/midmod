@@ -148,7 +148,9 @@ public class Evaluator {
                     List<Map.Entry<String, Action>> slots = ctx.slot().stream()
                         .map(x -> new AbstractMap.SimpleImmutableEntry<>(x.ID().getText(), evaluateAction(x.action(), nameToCaptureAddressMap))).collect(Collectors.toList());
 
-                    return new Action() {
+                    return new NewMap(slots);
+
+                    /*return new Action() {
                         @Override
                         public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
                             return slots.stream().collect(Collectors.toMap(x -> x.getKey(), x -> x.getValue().perform(ruleMap, local, captures)));
@@ -158,7 +160,7 @@ public class Evaluator {
                         public Object toValue() {
                             return Arrays.asList("map", slots.stream().map(x -> Arrays.asList(x.getKey(), x.getValue().toValue())).collect(Collectors.toList()));
                         }
-                    };
+                    };*/
                 } else {
                     // Should be a closure around the lexical context.
                     // I.e., is shouldn't be a constant but instead be created dynamically (where needed/captured are used)
@@ -169,11 +171,14 @@ public class Evaluator {
                     Map<Pattern, Action> patternActionMap = ctx.define().stream().map(x -> {
                         Pattern pattern = evaluatePattern(x.pattern(), Arrays.asList(0), nameToCaptureAddressMapForDef).apply(new Environment());
                         Action action = evaluateAction(x.action(), nameToCaptureAddressMapForDef);
-                        //ruleMap.define(pattern, action);
-                        return new AbstractMap.SimpleImmutableEntry<>(pattern, action);
+                        return new AbstractMap.SimpleImmutableEntry<>(pattern, new Constant(action));
                     }).collect(Collectors.toMap(x -> x.getKey(), x -> x.getValue()));
 
-                    return new Action() {
+                    nameToCaptureAddressMapForDef.addClosedCaptures(patternActionMap);
+
+                    return new NewRuleMap(patternActionMap);
+
+                    /*return new Action() {
                         @Override
                         public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
                             RuleMap newRuleMap = new RuleMap();
@@ -184,7 +189,7 @@ public class Evaluator {
 
                             return newRuleMap;
                         }
-                    };
+                    };*/
 
                     //return new Constant(ruleMap);
                 }
@@ -259,7 +264,7 @@ public class Evaluator {
 
             @Override
             public Action visitPatternLiteral(PalParser.PatternLiteralContext ctx) {
-                List<Integer> captureAddress = new ArrayList<Integer>();
+                List<Integer> captureAddress = new ArrayList<>();
                 //MetaEnvironment patternLiteralNameToCaptureAddressMap = new MetaEnvironment(null);
                 Function<Environment, Pattern> patternSupplier = evaluatePattern(ctx.pattern(), captureAddress, nameToCaptureAddressMap);
                 return (ruleMap1, local, captures) ->
