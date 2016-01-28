@@ -15,4 +15,8 @@ public class PatternFactory {
     public static List<Object> equalsObject(Object obj) {
         return Arrays.asList("equals", obj);
     }
+
+    public static List<Object> subsumesList(List<Object>... items) {
+        return Arrays.asList("subsumes-list", Arrays.asList(items));
+    }
 }

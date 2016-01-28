@@ -87,6 +87,16 @@ public class Main {
             Patterns.conformsTo(Patterns.equalsObject("equals"), Patterns.captureSingle(0, Patterns.anything)),
             (ruleMap, local, captures) ->
                 Patterns.equalsObject(captures.get(0)));
+        patternMappers.define(
+            Patterns.conformsTo(
+                Patterns.equalsObject("subsumes-list"),
+                Patterns.conformsTo(Patterns.captureMany(0, Patterns.repeat(Patterns.anything)))
+            ),
+            (ruleMap, local, captures) ->
+            {
+                List<Object> items = (List<Object>) captures.get(0);
+                return Patterns.conformsTo(items.stream().map(x -> (Pattern)Match.on(patternMappers, local, x)).collect(Collectors.toList()));
+            });
 
         RuleMap actionMappers = new RuleMap();
 
@@ -119,8 +129,17 @@ public class Main {
 
         //PatternFactory.newRuleMap(PatternFactory.equalsObject("myString"), ActionFactory.constant("x"));
 
-        Match.on(builtins, builtins, PatternFactory.newRuleMap(
+        /*Match.on(builtins, builtins, PatternFactory.newRuleMap(
             PatternFactory.rule(PatternFactory.equalsObject("myString"), ActionFactory.constant("x")))
+        );*/
+        Match.on(builtins, builtins, PatternFactory.newRuleMap(
+            PatternFactory.rule(
+                PatternFactory.subsumesList(
+                    PatternFactory.equalsObject("str1"),
+                    PatternFactory.equalsObject("str2")
+                ),
+                ActionFactory.constant("x"))
+            )
         );
 
         boolean addBuiltins = true;
