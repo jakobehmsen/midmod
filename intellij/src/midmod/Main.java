@@ -101,6 +101,49 @@ public class Main {
         RuleMap actionMappers = new RuleMap();
 
         actionMappers.define(
+            Patterns.conformsTo(
+                Patterns.equalsObject("global-rules")
+            ),
+            (ruleMap, local, captures) -> new Action() {
+                @Override
+                public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
+                    return ruleMap;
+                }
+            }
+        );
+        actionMappers.define(
+            Patterns.conformsTo(
+                Patterns.equalsObject("define"),
+                Patterns.captureSingle(0, Patterns.anything),
+                Patterns.captureSingle(1, Patterns.anything),
+                Patterns.captureSingle(2, Patterns.anything)
+            ),
+            (ruleMap, local, captures) -> {
+                List<Object> targetExpressionValue = (List<Object>) captures.get(0);
+                List<Object> patternExpressionExpressionValue = (List<Object>) captures.get(1);
+                List<Object> actionExpressionExpressionValue = (List<Object>) captures.get(2);
+
+                Action target = (Action) Match.on(actionMappers, local, targetExpressionValue);
+                Action patternExpressionExpression = (Action) Match.on(actionMappers, local, patternExpressionExpressionValue);
+                Action actionExpressionExpression = (Action) Match.on(actionMappers, local, actionExpressionExpressionValue);
+
+                return new Action() {
+                    @Override
+                    public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
+                        RuleMap rm = (RuleMap) target.perform(ruleMap, local, captures);
+                        List<Object> patternExpressionValue = (List<Object>) patternExpressionExpression.perform(ruleMap, local, captures);
+                        List<Object> actionExpressionsValue = (List<Object>) actionExpressionExpression.perform(ruleMap, local, captures);
+                        Pattern pattern = (Pattern) Match.on(patternMappers, local, patternExpressionValue);
+                        Action action = (Action) Match.on(actionMappers, local, actionExpressionsValue);
+                        rm.define(pattern, action);
+
+                        return rm;
+                    }
+                };
+            }
+        );
+
+        actionMappers.define(
             Patterns.conformsTo(Patterns.equalsObject("constant"), Patterns.captureSingle(0, Patterns.anything)),
             (ruleMap, local, captures) ->
                 new Constant(captures.get(0)));
@@ -126,13 +169,36 @@ public class Main {
                 return rm;
             }
         );
+        /*builtins.define(
+            Patterns.conformsTo(
+                Patterns.equalsObject("global-rules")
+            ),
+            (ruleMap, local, captures) -> ruleMap
+        );
+        builtins.define(
+            Patterns.conformsTo(
+                Patterns.equalsObject("define"),
+                Patterns.captureSingle(0, Patterns.anything),
+                Patterns.captureSingle(1, Patterns.anything),
+                Patterns.captureSingle(2, Patterns.anything)
+            ),
+            (ruleMap, local, captures) -> {
+                RuleMap rm = (RuleMap) captures.get(0);
+                List<Object> patternExpression = (List<Object>) captures.get(1);
+                List<Object> actionExpression = (List<Object>) captures.get(2);
+                Pattern pattern = (Pattern) Match.on(patternMappers, local, patternExpression);
+                Action action = (Action) Match.on(actionMappers, local, actionExpression);
+                rm.define(pattern, action);
+                return action;
+            }
+        );*/
 
         //PatternFactory.newRuleMap(PatternFactory.equalsObject("myString"), ActionFactory.constant("x"));
 
         /*Match.on(builtins, builtins, PatternFactory.newRuleMap(
             PatternFactory.rule(PatternFactory.equalsObject("myString"), ActionFactory.constant("x")))
         );*/
-        Match.on(builtins, builtins, PatternFactory.newRuleMap(
+        /*Match.on(builtins, builtins, PatternFactory.newRuleMap(
             PatternFactory.rule(
                 PatternFactory.subsumesList(
                     PatternFactory.equalsObject("str1"),
@@ -140,7 +206,16 @@ public class Main {
                 ),
                 ActionFactory.constant("x"))
             )
-        );
+        );*/
+        Action action = (Action) Match.on(actionMappers, actionMappers, ActionFactory.define(
+            ActionFactory.globalRules(),
+            ActionFactory.constant(PatternFactory.subsumesList(
+                PatternFactory.equalsObject("str1"),
+                PatternFactory.equalsObject("str2")
+            )),
+            ActionFactory.constant(ActionFactory.constant("x"))
+        ));
+        action.perform(actionMappers, actionMappers, new Environment());
 
         boolean addBuiltins = true;
 
