@@ -305,6 +305,46 @@ public class Evaluator {
             }).collect(Collectors.toList());*/
     }
 
+    /*private Action evaluatePatternFromAction(PalParser.PatternContext ctx, List<Integer> captureAddress, MetaEnvironment nameToCaptureAddressMap) {
+        if(ctx.isAction != null) {
+            //return Patterns.action();
+            // What should the outer environment be?
+            //MetaEnvironment metaNameToCaptureAddressMap = new MetaEnvironment(null);
+            Action action = evaluateAction(ctx.mesaAction().action(), nameToCaptureAddressMap);
+            // Should some non-pattern values implicitly be converted into patterns? Such as string and ints?
+            return (ruleMap1, local1, captures) -> {
+                Pattern pattern;
+                Object res = action.perform(ruleMap, ruleMap, captures);
+                if(res instanceof Pattern)
+                    pattern = (Pattern)res;
+                else
+                    pattern = Patterns.equalsObject(res);
+                return pattern;
+            };
+        }
+
+        Action patternTarget = evaluatePatternTarget(ctx.pattern1(), captureAddress, nameToCaptureAddressMap);
+        boolean isRepeat = false;
+
+        if(ctx.repeatPattern != null) {
+            Action repeatPatternTarget = patternTarget;
+            patternTarget = captures -> Patterns.repeat(repeatPatternTarget.apply(captures));
+            isRepeat = true;
+        }
+
+        if (ctx.name != null) {
+            // Declare index for parameter
+            int index = nameToCaptureAddressMap.size();
+            nameToCaptureAddressMap.put(ctx.name.getText(), index);
+            Action capturePatternTarget = patternTarget;
+            patternTarget = !isRepeat
+                ? captures -> Patterns.captureSingle(index, capturePatternTarget.apply(captures))
+                : captures -> Patterns.captureMany(index, capturePatternTarget.apply(captures));
+        }
+
+        return patternTarget;
+    }*/
+
     private Function<Environment, Pattern> evaluatePattern(PalParser.PatternContext ctx, List<Integer> captureAddress, MetaEnvironment nameToCaptureAddressMap) {
         if(ctx.isAction != null) {
             //return Patterns.action();

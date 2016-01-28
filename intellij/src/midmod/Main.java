@@ -2,9 +2,12 @@ package midmod;
 
 import midmod.json.Parser;
 import midmod.pal.Evaluator;
+import midmod.rules.Environment;
 import midmod.rules.RuleMap;
+import midmod.rules.actions.*;
 import midmod.rules.actions.Action;
-import midmod.rules.actions.Call;
+import midmod.rules.patterns.Pattern;
+import midmod.rules.patterns.PatternFactory;
 import midmod.rules.patterns.Patterns;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -75,6 +78,50 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
         RuleMap rules = new RuleMap();
+
+        RuleMap builtins = new RuleMap();
+
+        RuleMap patternMappers = new RuleMap();
+
+        patternMappers.define(
+            Patterns.conformsTo(Patterns.equalsObject("equals"), Patterns.captureSingle(0, Patterns.anything)),
+            (ruleMap, local, captures) ->
+                Patterns.equalsObject(captures.get(0)));
+
+        RuleMap actionMappers = new RuleMap();
+
+        actionMappers.define(
+            Patterns.conformsTo(Patterns.equalsObject("constant"), Patterns.captureSingle(0, Patterns.anything)),
+            (ruleMap, local, captures) ->
+                new Constant(captures.get(0)));
+
+        builtins.define(
+            Patterns.conformsTo(
+                Patterns.equalsObject("new-rule-map"),
+                Patterns.conformsTo(
+                    Patterns.captureMany(0, Patterns.repeat(Patterns.conformsTo(
+                        Patterns.anything,
+                        Patterns.anything
+                    )))
+                )
+            ),
+            (ruleMap, local, captures) -> {
+                List<Object> patternActions = (List<Object>) captures.get(0);
+                RuleMap rm = new RuleMap();
+                patternActions.forEach(x -> {
+                    Pattern pattern = (Pattern) Match.on(patternMappers, local, ((List<Object>)x).get(0));
+                    Action action = (Action) Match.on(actionMappers, local, ((List<Object>)x).get(1));
+                    rm.define(pattern, action);
+                });
+                return rm;
+            }
+        );
+
+        //PatternFactory.newRuleMap(PatternFactory.equalsObject("myString"), ActionFactory.constant("x"));
+
+        Match.on(builtins, builtins, PatternFactory.newRuleMap(
+            PatternFactory.rule(PatternFactory.equalsObject("myString"), ActionFactory.constant("x")))
+        );
 
         boolean addBuiltins = true;
 
