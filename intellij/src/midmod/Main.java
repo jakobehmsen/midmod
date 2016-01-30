@@ -125,6 +125,63 @@ public class Main {
                 }).collect(Collectors.toList());
                 return Patterns.subsumesToMap(map);
             });
+        patternMappers.define(
+            Patterns.subsumesList(
+                Patterns.equalsObject("capture-single"),
+                Patterns.captureSingle(0, Patterns.is(Integer.class)),
+                Patterns.captureSingle(1, Patterns.anything)
+            ),
+            (ruleMap, local, captures) ->
+                Patterns.captureSingle((int) captures.get(0), (Pattern) Match.on(patternMappers, local, captures.get(1))));
+        patternMappers.define(
+            Patterns.subsumesList(
+                Patterns.equalsObject("capture-many"),
+                Patterns.captureSingle(0, Patterns.is(Integer.class)),
+                Patterns.captureSingle(1, Patterns.anything)
+            ),
+            (ruleMap, local, captures) ->
+                Patterns.captureMany((int) captures.get(0), (Pattern) Match.on(patternMappers, local, captures.get(1))));
+        patternMappers.define(
+            Patterns.subsumesList(
+                Patterns.equalsObject("subsumes-rule-map"),
+                Patterns.subsumesList(
+                    Patterns.captureMany(0, Patterns.repeat(Patterns.anything))
+                )
+            ),
+            (ruleMap, local, captures) ->
+            {
+                List<Object> patternValues = (List<Object>) captures.get(0);
+                List<Pattern> patterns = patternValues.stream().map(x -> {
+                    return (Pattern) Match.on(patternMappers, local, x);
+                }).collect(Collectors.toList());
+                return Patterns.subsumesToRuleMap(patterns);
+            });
+        patternMappers.define(
+            Patterns.subsumesList(Patterns.equalsObject("anything")),
+            (ruleMap, local, captures) ->
+                Patterns.anything);
+        patternMappers.define(
+            Patterns.subsumesList(
+                Patterns.equalsObject("repeat"),
+                Patterns.captureSingle(0, Patterns.anything)
+            ),
+            (ruleMap, local, captures) ->
+                Patterns.repeat((Pattern) Match.on(patternMappers, local, captures.get(0))));
+        patternMappers.define(
+            Patterns.subsumesList(
+                Patterns.equalsObject("not"),
+                Patterns.captureSingle(0, Patterns.anything)
+            ),
+            (ruleMap, local, captures) ->
+                Patterns.not((Pattern) Match.on(patternMappers, local, captures.get(0))));
+        patternMappers.define(
+            Patterns.subsumesList(
+                Patterns.equalsObject("or"),
+                Patterns.captureSingle(0, Patterns.anything),
+                Patterns.captureSingle(1, Patterns.anything)
+            ),
+            (ruleMap, local, captures) ->
+                ((Pattern) Match.on(patternMappers, local, captures.get(0))).or((Pattern) Match.on(patternMappers, local, captures.get(1))));
 
         actionMappers.define(
             Patterns.subsumesList(
@@ -240,7 +297,15 @@ public class Main {
                 PatternFactory.is(String.class),
                 PatternFactory.subsumesMap(
                     PatternFactory.slotDefinition("x", PatternFactory.equalsObject("y"))
-                )
+                ),
+                PatternFactory.captureSingle(0, PatternFactory.is(String.class)),
+                PatternFactory.subsumesRuleMap(
+                    PatternFactory.equalsObject("str1"),
+                    PatternFactory.equalsObject("str2"),
+                    PatternFactory.anything()
+                ),
+                PatternFactory.repeat(PatternFactory.not(PatternFactory.equalsObject("end"))),
+                PatternFactory.or(PatternFactory.equalsObject("end"), PatternFactory.equalsObject("EOF"))
             )),
             ActionFactory.constant(ActionFactory.constant("x"))
         ));

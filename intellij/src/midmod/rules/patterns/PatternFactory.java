@@ -31,4 +31,32 @@ public class PatternFactory {
     public static List<Object> subsumesMap(List<Object>... slotDefinitions) {
         return Arrays.asList("subsumes-map", Arrays.asList(slotDefinitions));
     }
+
+    public static List<Object> captureSingle(int index, List<Object> pattern) {
+        return Arrays.asList("capture-single", index, pattern);
+    }
+
+    public static List<Object> captureMany(int index, List<Object> pattern) {
+        return Arrays.asList("capture-many", index, pattern);
+    }
+
+    public static List<Object> subsumesRuleMap(List<Object>... patterns) {
+        return Arrays.asList("subsumes-rule-map", Arrays.asList(patterns));
+    }
+
+    public static List<Object> anything() {
+        return Arrays.asList("anything");
+    }
+
+    public static List<Object> not(List<Object> pattern) {
+        return Arrays.asList("not", pattern);
+    }
+
+    public static List<Object> repeat(List<Object> pattern) {
+        return Arrays.asList("repeat", pattern);
+    }
+
+    public static List<Object> or(List<Object> lhs, List<Object> rhs) {
+        return Arrays.asList("or", lhs, rhs);
+    }
 }
