@@ -207,7 +207,7 @@ public class Evaluator {
                 ArrayList<Pattern> patterns = new ArrayList<>();
                 patterns.add(Patterns.equalsObject(name));
                 patterns.addAll(paramPatterns);
-                Pattern pattern = Patterns.conformsTo(patterns);
+                Pattern pattern = Patterns.subsumesList(patterns);
                 Action action = evaluateAction(ctx.action(), nameToCaptureAddressMapForDef);
 
                 return new Define(new Constant(pattern), new Constant(action));
@@ -422,7 +422,7 @@ public class Evaluator {
                     newCaptureAddress.add(i);
                     return evaluatePattern(ctx.pattern().get(i), newCaptureAddress, nameToCaptureAddressMap);
                 }).collect(Collectors.toList());
-                return captures -> Patterns.conformsTo(patterns.stream().map(x -> x.apply(captures)).collect(Collectors.toList()));
+                return captures -> Patterns.subsumesList(patterns.stream().map(x -> x.apply(captures)).collect(Collectors.toList()));
             }
 
             @Override

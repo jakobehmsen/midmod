@@ -27,7 +27,7 @@ public class Constant implements Action {
     }
 
     public static void defineParseRule(RuleMap ruleMap) {
-        ruleMap.define(Patterns.conformsTo(
+        ruleMap.define(Patterns.subsumesList(
             Patterns.equalsObject("constant"),
             Patterns.captureSingle(0, Patterns.anything)
         ), (ruleMap1, local, captures) -> new Constant(captures.get(0)));

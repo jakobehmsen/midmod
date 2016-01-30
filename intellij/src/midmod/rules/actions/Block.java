@@ -5,7 +5,6 @@ import midmod.rules.RuleMap;
 import midmod.rules.patterns.Patterns;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,7 +35,7 @@ public class Block implements Action {
     }
 
     public static void defineParseRule(RuleMap ruleMap) {
-        ruleMap.define(Patterns.captureSingle(0, Patterns.conformsTo(
+        ruleMap.define(Patterns.captureSingle(0, Patterns.subsumesList(
             Patterns.equalsObject("block"),
             Patterns.repeat(Patterns.anything)
         )), (ruleMap1, local, captures) -> {

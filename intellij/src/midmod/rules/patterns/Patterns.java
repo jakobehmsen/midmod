@@ -99,18 +99,18 @@ public class Patterns {
     }
 
     public static Pattern binary(String operator, Class<?> lhsType, Class<?> rhsType) {
-        return Patterns.conformsTo(
+        return Patterns.subsumesList(
             Patterns.equalsObject(operator),
             Patterns.captureSingle(0, Patterns.is(lhsType)),
             Patterns.captureSingle(1, Patterns.is(rhsType))
         );
     }
 
-    public static Pattern conformsTo(Pattern... items) {
-        return conformsTo(Arrays.asList(items));
+    public static Pattern subsumesList(Pattern... items) {
+        return subsumesList(Arrays.asList(items));
     }
 
-    public static Pattern conformsTo(List<Pattern> list) {
+    public static Pattern subsumesList(List<Pattern> list) {
         class SubsumesListPattern implements Pattern {
             List<Pattern> theList = list;
             Pattern self = this;

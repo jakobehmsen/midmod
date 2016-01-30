@@ -24,8 +24,10 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -83,25 +85,49 @@ public class Main {
 
         RuleMap patternMappers = new RuleMap();
 
+        RuleMap actionMappers = new RuleMap();
+
         patternMappers.define(
-            Patterns.conformsTo(Patterns.equalsObject("equals"), Patterns.captureSingle(0, Patterns.anything)),
+            Patterns.subsumesList(Patterns.equalsObject("equals"), Patterns.captureSingle(0, Patterns.anything)),
             (ruleMap, local, captures) ->
                 Patterns.equalsObject(captures.get(0)));
         patternMappers.define(
-            Patterns.conformsTo(
+            Patterns.subsumesList(
                 Patterns.equalsObject("subsumes-list"),
-                Patterns.conformsTo(Patterns.captureMany(0, Patterns.repeat(Patterns.anything)))
+                Patterns.subsumesList(Patterns.captureMany(0, Patterns.repeat(Patterns.anything)))
             ),
             (ruleMap, local, captures) ->
             {
                 List<Object> items = (List<Object>) captures.get(0);
-                return Patterns.conformsTo(items.stream().map(x -> (Pattern)Match.on(patternMappers, local, x)).collect(Collectors.toList()));
+                return Patterns.subsumesList(items.stream().map(x -> (Pattern) Match.on(patternMappers, local, x)).collect(Collectors.toList()));
+            });
+        patternMappers.define(
+            Patterns.subsumesList(Patterns.equalsObject("is"), Patterns.captureSingle(0, Patterns.is(Class.class))),
+            (ruleMap, local, captures) ->
+                Patterns.is((Class<?>) captures.get(0)));
+        patternMappers.define(
+            Patterns.subsumesList(
+                Patterns.equalsObject("subsumes-map"),
+                Patterns.subsumesList(
+                    Patterns.captureMany(0, Patterns.repeat(Patterns.subsumesList(
+                        Patterns.anything,
+                        Patterns.anything
+                    )))
+                )
+            ),
+            (ruleMap, local, captures) ->
+            {
+                List<Object> slotDefinitions = (List<Object>) captures.get(0);
+                List<Map.Entry<String, Pattern>> map = slotDefinitions.stream().map(x -> {
+                    String name = (String) ((List<Object>) x).get(0);
+                    List<Object> value = (List<Object>) ((List<Object>) x).get(1);
+                    return new AbstractMap.SimpleImmutableEntry<>(name, (Pattern) Match.on(patternMappers, local, value));
+                }).collect(Collectors.toList());
+                return Patterns.subsumesToMap(map);
             });
 
-        RuleMap actionMappers = new RuleMap();
-
         actionMappers.define(
-            Patterns.conformsTo(
+            Patterns.subsumesList(
                 Patterns.equalsObject("global-rules")
             ),
             (ruleMap, local, captures) -> new Action() {
@@ -112,7 +138,7 @@ public class Main {
             }
         );
         actionMappers.define(
-            Patterns.conformsTo(
+            Patterns.subsumesList(
                 Patterns.equalsObject("define"),
                 Patterns.captureSingle(0, Patterns.anything),
                 Patterns.captureSingle(1, Patterns.anything),
@@ -144,15 +170,15 @@ public class Main {
         );
 
         actionMappers.define(
-            Patterns.conformsTo(Patterns.equalsObject("constant"), Patterns.captureSingle(0, Patterns.anything)),
+            Patterns.subsumesList(Patterns.equalsObject("constant"), Patterns.captureSingle(0, Patterns.anything)),
             (ruleMap, local, captures) ->
                 new Constant(captures.get(0)));
 
         builtins.define(
-            Patterns.conformsTo(
+            Patterns.subsumesList(
                 Patterns.equalsObject("new-rule-map"),
-                Patterns.conformsTo(
-                    Patterns.captureMany(0, Patterns.repeat(Patterns.conformsTo(
+                Patterns.subsumesList(
+                    Patterns.captureMany(0, Patterns.repeat(Patterns.subsumesList(
                         Patterns.anything,
                         Patterns.anything
                     )))
@@ -170,13 +196,13 @@ public class Main {
             }
         );
         /*builtins.define(
-            Patterns.conformsTo(
+            Patterns.subsumesList(
                 Patterns.equalsObject("global-rules")
             ),
             (ruleMap, local, captures) -> ruleMap
         );
         builtins.define(
-            Patterns.conformsTo(
+            Patterns.subsumesList(
                 Patterns.equalsObject("define"),
                 Patterns.captureSingle(0, Patterns.anything),
                 Patterns.captureSingle(1, Patterns.anything),
@@ -211,7 +237,10 @@ public class Main {
             ActionFactory.globalRules(),
             ActionFactory.constant(PatternFactory.subsumesList(
                 PatternFactory.equalsObject("str1"),
-                PatternFactory.equalsObject("str2")
+                PatternFactory.is(String.class),
+                PatternFactory.subsumesMap(
+                    PatternFactory.slotDefinition("x", PatternFactory.equalsObject("y"))
+                )
             )),
             ActionFactory.constant(ActionFactory.constant("x"))
         ));
@@ -221,7 +250,7 @@ public class Main {
 
         if(addBuiltins) {
             rules.define(
-                Patterns.conformsTo(
+                Patterns.subsumesList(
                     Patterns.equalsObject("+"),
                     Patterns.captureSingle(0, Patterns.is(String.class)),
                     Patterns.captureSingle(1, Patterns.is(String.class))
@@ -230,7 +259,7 @@ public class Main {
             );
 
             rules.define(
-                Patterns.conformsTo(
+                Patterns.subsumesList(
                     Patterns.equalsObject("toNative"),
                     Patterns.captureSingle(0, Patterns.is(String.class))
                 ),
@@ -238,7 +267,7 @@ public class Main {
             );
 
             rules.define(
-                Patterns.conformsTo(
+                Patterns.subsumesList(
                     Patterns.equalsObject("class"),
                     Patterns.captureSingle(0, Patterns.is(String.class))
                 ),
@@ -254,7 +283,7 @@ public class Main {
             );
 
             rules.define(
-                Patterns.conformsTo(
+                Patterns.subsumesList(
                     Patterns.equalsObject("match"),
                     Patterns.captureSingle(0, Patterns.anything),
                     Patterns.captureSingle(1, Patterns.is(RuleMap.class))
@@ -270,7 +299,7 @@ public class Main {
             );
 
             rules.define(
-                Patterns.conformsTo(
+                Patterns.subsumesList(
                     Patterns.equalsObject("map"),
                     Patterns.captureSingle(0, Patterns.is(List.class)),
                     Patterns.captureSingle(1, Patterns.is(RuleMap.class))
@@ -291,14 +320,14 @@ public class Main {
             );
 
             rules.define(
-                Patterns.conformsTo(
+                Patterns.subsumesList(
                     Patterns.equalsObject("invoke"),
                     Patterns.captureSingle(0, Patterns.is(Class.class)),
                     Patterns.captureSingle(1, Patterns.is(Object.class)),
                     Patterns.captureSingle(2, Patterns.is(String.class)),
                     Patterns.captureSingle(3, Patterns.is(List.class)),
                     Patterns.captureSingle(4, Patterns.is(List.class))
-                    ),
+                ),
                 (ruleMap, local, captures) -> {
                     try {
                         Class<?> klass = (Class<?>)captures.get(0);

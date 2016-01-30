@@ -19,4 +19,16 @@ public class PatternFactory {
     public static List<Object> subsumesList(List<Object>... items) {
         return Arrays.asList("subsumes-list", Arrays.asList(items));
     }
+
+    public static List<Object> is(Class<?> type) {
+        return Arrays.asList("is", type);
+    }
+
+    public static List<Object> slotDefinition(String name, List<Object> pattern) {
+        return Arrays.asList(name, pattern);
+    }
+
+    public static List<Object> subsumesMap(List<Object>... slotDefinitions) {
+        return Arrays.asList("subsumes-map", Arrays.asList(slotDefinitions));
+    }
 }
