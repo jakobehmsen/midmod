@@ -196,6 +196,19 @@ public class Main {
         );
         actionMappers.define(
             Patterns.subsumesList(
+                Patterns.equalsObject("block"),
+                Patterns.subsumesList(
+                    Patterns.captureMany(0, Patterns.repeat(Patterns.anything))
+                )
+            ),
+            (ruleMap, local, captures) -> {
+                List<Object> actionValues = (List<Object>)captures.get(0);
+                List<Action> actions = actionValues.stream().map(x -> (Action)Match.on(actionMappers, actionMappers, x)).collect(Collectors.toList());
+                return new Block(actions);
+            }
+        );
+        actionMappers.define(
+            Patterns.subsumesList(
                 Patterns.equalsObject("define"),
                 Patterns.captureSingle(0, Patterns.anything),
                 Patterns.captureSingle(1, Patterns.anything),
@@ -290,26 +303,32 @@ public class Main {
                 ActionFactory.constant("x"))
             )
         );*/
-        Action action = (Action) Match.on(actionMappers, actionMappers, ActionFactory.define(
-            ActionFactory.globalRules(),
-            ActionFactory.constant(PatternFactory.subsumesList(
-                PatternFactory.equalsObject("str1"),
-                PatternFactory.is(String.class),
-                PatternFactory.subsumesMap(
-                    PatternFactory.slotDefinition("x", PatternFactory.equalsObject("y"))
-                ),
-                PatternFactory.captureSingle(0, PatternFactory.is(String.class)),
-                PatternFactory.subsumesRuleMap(
+
+
+        Action action = (Action) Match.on(actionMappers, actionMappers, ActionFactory.block(
+            ActionFactory.define(
+                ActionFactory.globalRules(),
+                ActionFactory.constant(PatternFactory.subsumesList(
                     PatternFactory.equalsObject("str1"),
-                    PatternFactory.equalsObject("str2"),
-                    PatternFactory.anything()
-                ),
-                PatternFactory.repeat(PatternFactory.not(PatternFactory.equalsObject("end"))),
-                PatternFactory.or(PatternFactory.equalsObject("end"), PatternFactory.equalsObject("EOF"))
-            )),
-            ActionFactory.constant(ActionFactory.constant("x"))
+                    PatternFactory.is(String.class),
+                    PatternFactory.subsumesMap(
+                        PatternFactory.slotDefinition("x", PatternFactory.equalsObject("y"))
+                    ),
+                    PatternFactory.captureSingle(0, PatternFactory.is(String.class)),
+                    PatternFactory.subsumesRuleMap(
+                        PatternFactory.equalsObject("str1"),
+                        PatternFactory.equalsObject("str2"),
+                        PatternFactory.anything()
+                    ),
+                    PatternFactory.repeat(PatternFactory.not(PatternFactory.equalsObject("end"))),
+                    PatternFactory.or(PatternFactory.equalsObject("end"), PatternFactory.equalsObject("EOF"))
+                )),
+                ActionFactory.constant(ActionFactory.constant("x"))
+            ),
+            ActionFactory.constant("x")
         ));
-        action.perform(actionMappers, actionMappers, new Environment());
+        Object res = action.perform(actionMappers, actionMappers, new Environment());
+        System.out.println(res);
 
         boolean addBuiltins = true;
 

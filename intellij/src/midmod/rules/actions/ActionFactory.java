@@ -15,4 +15,8 @@ public class ActionFactory {
     public static List<Object> define(List<Object> target, List<Object> patternExpression, List<Object> actionExpression) {
         return Arrays.asList("define", target, patternExpression, actionExpression);
     }
+
+    public static List<Object> block(List<Object>... actions) {
+        return Arrays.asList("block", Arrays.asList(actions));
+    }
 }
