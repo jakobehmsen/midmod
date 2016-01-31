@@ -17,7 +17,7 @@ public class Block implements Action {
 
     @Override
     public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
-8        Object res = null;
+        Object res = null;
 
         for (Action action : actions)
             res = action.perform(ruleMap, local, captures);

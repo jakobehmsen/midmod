@@ -196,6 +196,17 @@ public class Main {
         );
         actionMappers.define(
             Patterns.subsumesList(
+                Patterns.equalsObject("local-rules")
+            ),
+            (ruleMap, local, captures) -> new Action() {
+                @Override
+                public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
+                    return local;
+                }
+            }
+        );
+        actionMappers.define(
+            Patterns.subsumesList(
                 Patterns.equalsObject("block"),
                 Patterns.subsumesList(
                     Patterns.captureMany(0, Patterns.repeat(Patterns.anything))
@@ -205,6 +216,34 @@ public class Main {
                 List<Object> actionValues = (List<Object>)captures.get(0);
                 List<Action> actions = actionValues.stream().map(x -> (Action)Match.on(actionMappers, actionMappers, x)).collect(Collectors.toList());
                 return new Block(actions);
+            }
+        );
+        actionMappers.define(
+            Patterns.subsumesList(
+                Patterns.equalsObject("match"),
+                Patterns.captureSingle(0, Patterns.anything),
+                Patterns.captureSingle(1, Patterns.anything),
+                Patterns.captureSingle(2, Patterns.anything)
+            ),
+            (ruleMap, local, captures) -> {
+                List<Object> ruleMapExpressionValue = (List<Object>)captures.get(0);
+                List<Object> localExpressionValue = (List<Object>)captures.get(1);
+                List<Object> valueExpressionValue = (List<Object>)captures.get(2);
+
+                Action ruleMapExpression = (Action) Match.on(actionMappers, actionMappers, ruleMapExpressionValue);
+                Action localExpression = (Action) Match.on(actionMappers, actionMappers, localExpressionValue);
+                Action valueExpression = (Action) Match.on(actionMappers, actionMappers, valueExpressionValue);
+
+                return new Action() {
+                    @Override
+                    public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {;
+                        RuleMap rm = (RuleMap) ruleMapExpression.perform(ruleMap, local, captures);
+                        RuleMap lcl = (RuleMap) localExpression.perform(ruleMap, local, captures);
+                        Object value = valueExpression.perform(ruleMap, local, captures);
+
+                        return Match.on(rm, lcl, value);
+                    }
+                };
             }
         );
         actionMappers.define(
@@ -238,7 +277,6 @@ public class Main {
                 };
             }
         );
-
         actionMappers.define(
             Patterns.subsumesList(Patterns.equalsObject("constant"), Patterns.captureSingle(0, Patterns.anything)),
             (ruleMap, local, captures) ->
@@ -325,7 +363,13 @@ public class Main {
                 )),
                 ActionFactory.constant(ActionFactory.constant("x"))
             ),
-            ActionFactory.constant("x")
+            ActionFactory.define(
+                ActionFactory.globalRules(),
+                ActionFactory.constant(PatternFactory.equalsObject("x")),
+                ActionFactory.constant(ActionFactory.constant("str1"))
+            ),
+            //ActionFactory.constant("x")
+            ActionFactory.match(ActionFactory.globalRules(), ActionFactory.localRules(), ActionFactory.constant("x"))
         ));
         Object res = action.perform(actionMappers, actionMappers, new Environment());
         System.out.println(res);

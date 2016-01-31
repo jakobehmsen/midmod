@@ -12,11 +12,19 @@ public class ActionFactory {
         return Arrays.asList("global-rules");
     }
 
+    public static List<Object> localRules() {
+        return Arrays.asList("local-rules");
+    }
+
     public static List<Object> define(List<Object> target, List<Object> patternExpression, List<Object> actionExpression) {
         return Arrays.asList("define", target, patternExpression, actionExpression);
     }
 
     public static List<Object> block(List<Object>... actions) {
         return Arrays.asList("block", Arrays.asList(actions));
+    }
+
+    public static List<Object> match(List<Object> ruleMapExpression, List<Object> localExpression, List<Object> valueExpression) {
+        return Arrays.asList("match", ruleMapExpression, localExpression, valueExpression);
     }
 }
