@@ -1,5 +1,6 @@
 package midmod.rules.actions;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -37,6 +38,9 @@ public class ActionFactory {
     }
 
     public static List<Object> list(Object... actionValues) {
-        return Arrays.asList("list", Arrays.asList(actionValues));
+        ArrayList<Object> value = new ArrayList<>();
+        value.add("list");
+        value.addAll(Arrays.asList(actionValues));
+        return value;
     }
 }

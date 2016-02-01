@@ -41,21 +41,21 @@ public class Parser {
         return actionValue;
     }
 
-    private Object parseAction(ParserRuleContext ctx, MetaEnvironment nameToCaptureAddressMap) {
-        return ctx.accept(new PalBaseVisitor<Object>() {
+    private List<Object> parseAction(ParserRuleContext ctx, MetaEnvironment nameToCaptureAddressMap) {
+        return ctx.accept(new PalBaseVisitor<List<Object>>() {
             @Override
-            public Object visitScript(PalParser.ScriptContext ctx) {
+            public List<Object> visitScript(PalParser.ScriptContext ctx) {
                 List<Object> actionValues = ctx.scriptElement().stream().map(x -> parseAction(x, nameToCaptureAddressMap)).collect(Collectors.toList());
 
                 return ActionFactory.block(actionValues);
             }
 
             @Override
-            public Object visitExpression1(PalParser.Expression1Context ctx) {
-                Object lhsActionValue = parseAction(ctx.expression2(), nameToCaptureAddressMap);
+            public List<Object> visitExpression1(PalParser.Expression1Context ctx) {
+                List<Object> lhsActionValue = parseAction(ctx.expression2(), nameToCaptureAddressMap);
 
                 for (PalParser.Expression1TailContext rhsCtx : ctx.expression1Tail()) {
-                    Object rhsActionValue = parseAction(rhsCtx.expression1(), nameToCaptureAddressMap);
+                    List<Object> rhsActionValue = parseAction(rhsCtx.expression1(), nameToCaptureAddressMap);
                     String operator = rhsCtx.BIN_OP1().getText();
                     lhsActionValue = ActionFactory.match(ActionFactory.list(ActionFactory.constant(operator), lhsActionValue, rhsActionValue));
                 }
@@ -64,11 +64,11 @@ public class Parser {
             }
 
             @Override
-            public Object visitExpression2(PalParser.Expression2Context ctx) {
-                Object lhsActionValue = parseAction(ctx.expression3(), nameToCaptureAddressMap);
+            public List<Object> visitExpression2(PalParser.Expression2Context ctx) {
+                List<Object> lhsActionValue = parseAction(ctx.expression3(), nameToCaptureAddressMap);
 
                 for (PalParser.Expression2TailContext rhsCtx : ctx.expression2Tail()) {
-                    Object rhsActionValue = parseAction(rhsCtx.expression1(), nameToCaptureAddressMap);
+                    List<Object> rhsActionValue = parseAction(rhsCtx.expression1(), nameToCaptureAddressMap);
                     String operator = rhsCtx.BIN_OP2().getText();
                     lhsActionValue = ActionFactory.match(ActionFactory.list(ActionFactory.constant(operator), lhsActionValue, rhsActionValue));
                 }
@@ -77,31 +77,32 @@ public class Parser {
             }
 
             @Override
-            public Object visitString(PalParser.StringContext ctx) {
+            public List<Object> visitString(PalParser.StringContext ctx) {
                 String str = parseString(ctx);
                 return ActionFactory.constant(str);
             }
 
-            /*@Override
-            public Action visitExpression3(PalParser.Expression3Context ctx) {
-                Action actionTarget = evaluateAction(ctx.actionTarget(), nameToCaptureAddressMap);
+            @Override
+            public List<Object> visitExpression3(PalParser.Expression3Context ctx) {
+                List<Object> actionTargetValue = parseAction(ctx.actionTarget(), nameToCaptureAddressMap);
 
                 if(ctx.isCall != null)
-                    return new Match(actionTarget);
+                    return ActionFactory.match(actionTargetValue);
 
-                return actionTarget;
-            }*/
+
+                return actionTargetValue;
+            }
 
             @Override
-            public Object visitNumber(PalParser.NumberContext ctx) {
+            public List<Object> visitNumber(PalParser.NumberContext ctx) {
                 Object number = parseNumber(ctx);
                 return ActionFactory.constant(number);
             }
 
-            /*@Override
-            public Action visitList(PalParser.ListContext ctx) {
-                return listActionFromContexts(ctx.action(), nameToCaptureAddressMap);
-            }*/
+            @Override
+            public List<Object> visitList(PalParser.ListContext ctx) {
+                return ActionFactory.list(ctx.action().stream().map(x -> parseAction(x, nameToCaptureAddressMap)).collect(Collectors.toList()));
+            }
 
             /*@Override
             public Action visitMap(PalParser.MapContext ctx) {
