@@ -20,11 +20,23 @@ public class ActionFactory {
         return Arrays.asList("define", target, patternExpression, actionExpression);
     }
 
-    public static List<Object> block(List<Object>... actions) {
-        return Arrays.asList("block", Arrays.asList(actions));
+    public static List<Object> block(List<Object>... actionValues) {
+        return block(Arrays.asList(actionValues));
+    }
+
+    public static List<Object> block(List<Object> actionValues) {
+        return Arrays.asList("block", actionValues);
+    }
+
+    public static List<Object> match(List<Object> valueExpression) {
+        return match(globalRules(), localRules(), valueExpression);
     }
 
     public static List<Object> match(List<Object> ruleMapExpression, List<Object> localExpression, List<Object> valueExpression) {
         return Arrays.asList("match", ruleMapExpression, localExpression, valueExpression);
+    }
+
+    public static List<Object> list(Object... actionValues) {
+        return Arrays.asList("list", Arrays.asList(actionValues));
     }
 }

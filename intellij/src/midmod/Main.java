@@ -1,7 +1,7 @@
 package midmod;
 
-import midmod.json.Parser;
 import midmod.pal.Evaluator;
+import midmod.pal.Parser;
 import midmod.rules.Environment;
 import midmod.rules.RuleMap;
 import midmod.rules.actions.*;
@@ -220,6 +220,30 @@ public class Main {
         );
         actionMappers.define(
             Patterns.subsumesList(
+                Patterns.equalsObject("list"),
+                Patterns.subsumesList(
+                    Patterns.captureMany(0, Patterns.repeat(Patterns.anything))
+                )
+            ),
+            (ruleMap, local, captures) -> {
+                List<Object> actionValues = (List<Object>)captures.get(0);
+                List<Action> actions = actionValues.stream().map(x -> (Action)Match.on(actionMappers, actionMappers, x)).collect(Collectors.toList());
+
+                return new Action() {
+                    @Override
+                    public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
+                        return actions.stream().map(x -> {
+                            Object y = x.perform(ruleMap, local, captures);
+                            if(y == null)
+                                return x.perform(ruleMap, local, captures);
+                            return y;
+                        }).collect(Collectors.toList());
+                    }
+                };
+            }
+        );
+        actionMappers.define(
+            Patterns.subsumesList(
                 Patterns.equalsObject("match"),
                 Patterns.captureSingle(0, Patterns.anything),
                 Patterns.captureSingle(1, Patterns.anything),
@@ -371,8 +395,8 @@ public class Main {
             //ActionFactory.constant("x")
             ActionFactory.match(ActionFactory.globalRules(), ActionFactory.localRules(), ActionFactory.constant("x"))
         ));
-        Object res = action.perform(actionMappers, actionMappers, new Environment());
-        System.out.println(res);
+        //Object res = action.perform(actionMappers, actionMappers, new Environment());
+        //System.out.println(res);
 
         boolean addBuiltins = true;
 
@@ -506,7 +530,8 @@ public class Main {
                 e.printStackTrace();
             }
         }).run();
-        Evaluator evaluator = new Evaluator(rules);
+        //Evaluator evaluator = new Evaluator(rules);
+        Parser parser = new Parser();
 
         JFrame frame = new JFrame();
 
@@ -533,7 +558,11 @@ public class Main {
 
                     try {
                         //Object result = evaluator.evaluate(new ByteArrayInputStream(sourceCode.getBytes()));
-                        Object result = evaluator.evaluateAsValue(new ByteArrayInputStream(sourceCode.getBytes()));
+                        //Object result = evaluator.evaluateAsValue(new ByteArrayInputStream(sourceCode.getBytes()));
+                        //Object result = evaluator.evaluateAsValue(new ByteArrayInputStream(sourceCode.getBytes()));
+                        Object actionValue = parser.parse(new ByteArrayInputStream(sourceCode.getBytes()));
+                        Action action = (Action) Match.on(actionMappers, actionMappers, actionValue);
+                        Object result = action.perform(rules, rules, new Environment());
 
                         String outputText = " " + result;
                         console.getDocument().insertString(end, outputText, null);
@@ -636,7 +665,7 @@ public class Main {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setVisible(true);*/
 
-        new Parser(
+        /*new Parser(
             "Composite = {}\n" +
             "Composite.X = \"someValue\"\n" +
             "Name =  \"MyClass\"\n" +
@@ -711,6 +740,6 @@ public class Main {
         System.out.println("dict2:");
         System.out.println(dict2);
         System.out.println("environment:");
-        System.out.println(environment);
+        System.out.println(environment);*/
     }
 }
