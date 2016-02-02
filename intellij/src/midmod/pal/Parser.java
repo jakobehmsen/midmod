@@ -38,7 +38,8 @@ public class Parser {
 
     private Object parse(ParserRuleContext context) {
         Object actionValue = parseAction(context, new MetaEnvironment(null));
-        return actionValue;
+        //return actionValue;
+        return ActionFactory.perform(actionValue, ActionFactory.globalRules(), ActionFactory.localRules(), ActionFactory.list());
     }
 
     private List<Object> parseAction(ParserRuleContext ctx, MetaEnvironment nameToCaptureAddressMap) {

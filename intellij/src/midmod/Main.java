@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Main {
     private static int nativeActions;
@@ -305,6 +306,40 @@ public class Main {
             Patterns.subsumesList(Patterns.equalsObject("constant"), Patterns.captureSingle(0, Patterns.anything)),
             (ruleMap, local, captures) ->
                 new Constant(captures.get(0)));
+        actionMappers.define(
+            Patterns.subsumesList(
+                Patterns.equalsObject("perform"),
+                Patterns.captureSingle(0, Patterns.anything),
+                Patterns.captureSingle(1, Patterns.anything),
+                Patterns.captureSingle(2, Patterns.anything),
+                Patterns.captureSingle(3, Patterns.anything)
+            ),
+            (ruleMap, local, captures) -> {
+                List<Object> actionExpressionValue = (List<Object>)captures.get(0);
+                List<Object> ruleMapExpressionValue = (List<Object>)captures.get(1);
+                List<Object> localExpressionValue = (List<Object>)captures.get(2);
+                List<Object> valueExpressionValue = (List<Object>)captures.get(3);
+
+                Action actionExpression = (Action) Match.on(actionMappers, actionMappers, actionExpressionValue);
+                Action ruleMapExpression = (Action) Match.on(actionMappers, actionMappers, ruleMapExpressionValue);
+                Action localExpression = (Action) Match.on(actionMappers, actionMappers, localExpressionValue);
+                Action valueExpression = (Action) Match.on(actionMappers, actionMappers, valueExpressionValue);
+
+                return new Action() {
+                    @Override
+                    public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {;
+                        Action a = (Action) actionExpression.perform(ruleMap, local, captures);
+                        RuleMap rm = (RuleMap) ruleMapExpression.perform(ruleMap, local, captures);
+                        RuleMap lcl = (RuleMap) localExpression.perform(ruleMap, local, captures);
+                        List<Object> capturesAsList = (List<Object>)valueExpression.perform(ruleMap, local, captures);
+                        Environment c = new Environment();
+                        IntStream.range(0, capturesAsList.size()).forEach(i -> c.capture(i, capturesAsList.get(i)));
+
+                        return a.perform(rm, lcl, c);
+                    }
+                };
+            }
+        );
 
         builtins.define(
             Patterns.subsumesList(

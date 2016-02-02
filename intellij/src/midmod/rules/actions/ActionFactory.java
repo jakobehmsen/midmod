@@ -43,4 +43,8 @@ public class ActionFactory {
         value.addAll(Arrays.asList(actionValues));
         return value;
     }
+
+    public static List<Object> perform(Object actionValue, List<Object> globalRulesValue, List<Object> localRulesValue, List<Object> capturesValue) {
+        return Arrays.asList("perform", actionValue, globalRulesValue, localRulesValue, capturesValue);
+    }
 }
