@@ -2,9 +2,7 @@ package midmod;
 
 import midmod.pal.Evaluator;
 import midmod.pal.Parser;
-import midmod.pal.nodes.EqualsGuard;
-import midmod.pal.nodes.Node;
-import midmod.pal.nodes.SubsumesListGuard;
+import midmod.pal.nodes.*;
 import midmod.rules.Environment;
 import midmod.rules.RuleMap;
 import midmod.rules.actions.*;
@@ -83,16 +81,23 @@ public class Main {
     }
 
     public static void main(String[] args) throws IOException {
+
         midmod.pal.nodes.Node n0 = new Node();
 
-        midmod.pal.nodes.Node listN0 = new Node();
+        /*midmod.pal.nodes.Node listN0 = new Node();
         listN0.addEdge(new EqualsGuard("a"), listN0);
         midmod.pal.nodes.Node listn1 = new Node();
         listN0.addEdge(new EqualsGuard("b"), listn1);
 
         midmod.pal.nodes.Node n1 = new Node();
         n1.setExpression(() -> "Hurray");
-        n0.addEdge(new SubsumesListGuard(listN0), n1);
+        n0.addEdge(new SubsumesListGuard(listN0), n1);*/
+
+        NodePopulator nodePopulator = new SubsumesListNodePopulator(Arrays.asList(
+            new RepeatNodePopulator(new EqualsNodePopulator("a")),
+            new EqualsNodePopulator("b")
+        ));
+        nodePopulator.populate(n0, () -> "Hurray");
 
         Object v = Arrays.asList("a", "a", "b");
         Object r = midmod.pal.nodes.Node.evaluate(n0, v);
