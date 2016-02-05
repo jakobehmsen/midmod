@@ -17,8 +17,9 @@ public class EqualsNodePopulator implements NodePopulator {
 
     @Override
     public List<Node> populate(Node source) {
-        Node target = new Node();
-        source.addEdge(new EqualsGuard(value), target);
+        Node target = source.getTargetForEdgeThrough(new EqualsGuard(value));
+        /*Node target = new Node();
+        source.addEdge(new EqualsGuard(value), target);*/
         return Arrays.asList(target);
     }
 }

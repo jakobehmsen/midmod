@@ -93,13 +93,25 @@ public class Main {
         n1.setExpression(() -> "Hurray");
         n0.addEdge(new SubsumesListGuard(listN0), n1);*/
 
-        NodePopulator nodePopulator = new SubsumesListNodePopulator(Arrays.asList(
+        NodePopulator nodePopulator0 = new SubsumesListNodePopulator(Arrays.asList(
+            new EqualsNodePopulator("a")
+        ));
+        nodePopulator0.populate(n0, () -> "Hurray0");
+
+        NodePopulator nodePopulator1 = new SubsumesListNodePopulator(Arrays.asList(
+            new EqualsNodePopulator("a"),
+            new EqualsNodePopulator("b")
+        ));
+        nodePopulator1.populate(n0, () -> "Hurray1");
+
+        /*NodePopulator nodePopulator1 = new SubsumesListNodePopulator(Arrays.asList(
             new RepeatNodePopulator(new EqualsNodePopulator("a")),
             new EqualsNodePopulator("b")
         ));
-        nodePopulator.populate(n0, () -> "Hurray");
+        nodePopulator1.populate(n0, () -> "Hurray1");*/
 
-        Object v = Arrays.asList("a", "a", "b");
+        //Object v = Arrays.asList("a", "a", "b");
+        Object v = Arrays.asList("a", "b");
         Object r = midmod.pal.nodes.Node.evaluate(n0, v);
         System.out.println(v + "\n=>\n" + r);
 

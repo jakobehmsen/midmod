@@ -3,5 +3,5 @@ package midmod.pal.nodes;
 import midmod.pal.Consumable;
 
 public interface Guard {
-    boolean accepts(Consumable consumable);
+    Node nodeAfter(Node target, Consumable consumable);
 }

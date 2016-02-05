@@ -25,10 +25,15 @@ public class SubsumesListNodePopulator implements NodePopulator {
 
     private void populate(List<Node> sources, int i, Node target) {
         sources.forEach(s -> {
+            List<Node> innerTargets = populators.get(i).populate(s);
+
             if(i == populators.size() - 1)
-                populators.get(i).populate(s, target);
+                innerTargets.forEach(x ->
+                    x.addEdge(new EndSubsumesListGuard(), target));
+                //populators.get(i).populate(s, target);
             else {
-                List<Node> innerTargets = populators.get(i).populate(s);
+                /*List<Node> innerTargets = populators.get(i).populate(s);
+                populate(innerTargets, i + 1, target);*/
                 populate(innerTargets, i + 1, target);
             }
         });
@@ -36,15 +41,18 @@ public class SubsumesListNodePopulator implements NodePopulator {
 
     @Override
     public List<Node> populate(Node source) {
-        Node listNode = new Node();
+        //Node listNode = new Node();
         Node target = new Node();
+        //Node target = source.getTargetForEdgeThrough(new SubsumesListGuard(listNode));
+        Node listNodeStart = source.getTargetForEdgeThrough(new StartSubsumesListGuard());
 
         ArrayList<Node> targets = new ArrayList<>();
-        List<Node> sources = Arrays.asList(listNode);
+        List<Node> sources = Arrays.asList(listNodeStart);
 
         if(populators.size() > 0) {
-            populate(sources, targets, 0);
-            source.addEdge(new SubsumesListGuard(listNode), target);
+            //populate(sources, targets, 0);
+            populate(sources, 0, target);
+            //source.addEdge(new SubsumesListGuard(listNode), target);
             targets.add(target);
         } /*else
             targets.add(source);*/
