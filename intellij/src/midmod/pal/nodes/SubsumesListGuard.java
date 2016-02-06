@@ -4,16 +4,17 @@ import midmod.pal.Consumable;
 import midmod.pal.ListConsumable;
 
 import java.util.List;
+import java.util.function.Consumer;
 
-public class StartSubsumesListGuard implements Guard {
-    /*private Node node;
+public class SubsumesListGuard implements Guard {
+    private Node node;
 
     public SubsumesListGuard(Node node) {
         this.node = node;
-    }*/
+    }
 
     @Override
-    public Node nodeAfter(Node target, /*Should be evaluation context instead*/ Consumable consumable) {
+    public boolean matches(/*Should be evaluation context instead*/ Consumer<Expression> expressionConsumer, Consumable consumable) {
         // Should be given a node to proceed from
         // Should return the node to proceed from afterwards, if matches, otherwise null
         if(consumable.peek() instanceof List) {
@@ -26,18 +27,22 @@ public class StartSubsumesListGuard implements Guard {
             */
 
             // Override target
-            target = Node.match(target, new ListConsumable(list));
-            if(target != null) {
+            Node n = Node.match(expressionConsumer, node, new ListConsumable(list));
+            if(n != null) {
                 consumable.consume();
-                return target;
+                return true;
             }
         }
 
-        return null;
+        return false;
     }
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof StartSubsumesListGuard;
+        return obj instanceof SubsumesListGuard;
+    }
+
+    public Node getNode() {
+        return node;
     }
 }
