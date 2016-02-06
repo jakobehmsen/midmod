@@ -1,5 +1,6 @@
 package midmod.pal.nodes;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -17,8 +18,53 @@ public class RepeatNodePopulator implements NodePopulator {
 
     @Override
     public List<Node> populate(Node source) {
-        populator.populate(source, source);
+        boolean atRepeat = false;
+        Node origSource = source;
+        ArrayList<Node> intermediates = new ArrayList<>();
 
-        return Arrays.asList(source);
+        while(true) {
+            // TODO: Support multiple targets
+            // Multiple targets? What about or's?
+            Node target = populator.getTarget(source);
+            if(target == null)
+                break;
+            if(source == target) {
+                atRepeat = true;
+                break;
+            }
+            intermediates.add(target);
+            source = target;
+        }
+        // Test whether is at repeat for guard
+        if(!atRepeat) {
+            // If not, then create repeat
+            if (source != origSource) {
+                // TODO: Support multiple targets
+                source = populator.populate(source).get(0);
+            }
+            populator.populate(source, source);
+        } else {
+            // Otherwise, do nothing since the repeat has already been created
+        }
+
+        ArrayList<Node> targets = new ArrayList<>();
+        targets.addAll(intermediates);
+
+        Node finalTarget = source;
+        /*
+        // Instead of adding intermediates to targets:
+        // For any immediate subsequent populator, connect this populator from each intermediates
+        // to the final target.
+        intermediates.forEach(i -> populator.populate(i, finalTarget));
+        */
+
+        targets.add(finalTarget);
+
+        return targets;
+    }
+
+    @Override
+    public Node getTarget(Node source) {
+        return null;
     }
 }

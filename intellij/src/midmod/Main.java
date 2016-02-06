@@ -93,7 +93,7 @@ public class Main {
         n1.setExpression(() -> "Hurray");
         n0.addEdge(new SubsumesListGuard(listN0), n1);*/
 
-        NodePopulator nodePopulator0 = new SubsumesListNodePopulator(Arrays.asList(
+        /*NodePopulator nodePopulator0 = new SubsumesListNodePopulator(Arrays.asList(
             new EqualsNodePopulator("a")
         ));
         nodePopulator0.populate(n0, () -> "Hurray0");
@@ -102,7 +102,29 @@ public class Main {
             new EqualsNodePopulator("a"),
             new EqualsNodePopulator("b")
         ));
-        nodePopulator1.populate(n0, () -> "Hurray1");
+        nodePopulator1.populate(n0, () -> "Hurray1");*/
+
+        NodePopulator nodePopulator0 = new SubsumesListNodePopulator(Arrays.asList(
+            new EqualsNodePopulator("a")
+        ));
+        nodePopulator0.populate(n0, () -> "SingleA");
+
+        NodePopulator nodePopulator1 = new SubsumesListNodePopulator(Arrays.asList(
+            new EqualsNodePopulator("a"),
+            new EqualsNodePopulator("a")
+        ));
+        nodePopulator1.populate(n0, () -> "DoubleA");
+
+        NodePopulator nodePopulator2 = new SubsumesListNodePopulator(Arrays.asList(
+            new RepeatNodePopulator(new EqualsNodePopulator("a"))
+        ));
+        nodePopulator2.populate(n0, () -> "MultiA");
+
+        NodePopulator nodePopulator3 = new SubsumesListNodePopulator(Arrays.asList(
+            new RepeatNodePopulator(new EqualsNodePopulator("a")),
+            new EqualsNodePopulator("b")
+        ));
+        nodePopulator3.populate(n0, () -> "MultiAThenSingleB");
 
         /*NodePopulator nodePopulator1 = new SubsumesListNodePopulator(Arrays.asList(
             new RepeatNodePopulator(new EqualsNodePopulator("a")),

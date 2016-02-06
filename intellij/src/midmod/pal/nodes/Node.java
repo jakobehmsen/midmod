@@ -20,7 +20,7 @@ public class Node {
         Optional<Node> target =
             edges.entrySet().stream().filter(x -> x.getKey().matches(expressionConsumer, consumable)) .map(x -> x.getValue()).findFirst();
         if(target.isPresent()) {
-            if(target.get().getExpression() != null)
+            if(consumable.atEnd() && target.get().getExpression() != null)
                 expressionConsumer.accept(target.get().getExpression());
             return target.get();
         }
@@ -53,14 +53,18 @@ public class Node {
         return node;
     }
 
-    public Node getTargetForEdgeThrough(Guard guard) {
+    public Node getTargetForEdgeThrough(Guard guard, boolean createEdgeIfNotFound) {
         Optional<Node> foundNode = edges.entrySet().stream().filter(x ->
             x.getKey().equals(guard)).map(x -> x.getValue()).findFirst();
         if(foundNode.isPresent())
             return foundNode.get();
-        Node node = new Node();
-        edges.put(guard, node);
-        return node;
+        if(createEdgeIfNotFound) {
+            Node node = new Node();
+            edges.put(guard, node);
+            return node;
+        }
+
+        return null;
     }
 
     public <T extends Guard> T getGuard(Class<T> guardType) {

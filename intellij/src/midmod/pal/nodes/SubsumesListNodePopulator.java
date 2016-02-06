@@ -67,6 +67,11 @@ public class SubsumesListNodePopulator implements NodePopulator {
         return targets;
     }
 
+    @Override
+    public Node getTarget(Node source) {
+        return null;
+    }
+
     private void populate(List<Node> sources, List<Node> targets, int i) {
         sources.forEach(s -> {
             List<Node> innerTargets = populators.get(i).populate(s);
