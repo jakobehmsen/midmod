@@ -3,6 +3,7 @@ package midmod.pal.nodes;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class RepeatNodePopulator implements NodePopulator {
     private NodePopulator populator;
@@ -51,12 +52,6 @@ public class RepeatNodePopulator implements NodePopulator {
         targets.addAll(intermediates);
 
         Node finalTarget = source;
-        /*
-        // Instead of adding intermediates to targets:
-        // For any immediate subsequent populator, connect this populator from each intermediates
-        // to the final target.
-        intermediates.forEach(i -> populator.populate(i, finalTarget));
-        */
 
         targets.add(finalTarget);
 
