@@ -11,12 +11,12 @@ public class EqualsNodePopulator implements NodePopulator {
     }
 
     @Override
-    public void populate(Node source, Node target) {
+    public void populate(Node source, Node target, PopulationContext populationContext) {
         source.addEdge(new EqualsGuard(value), target);
     }
 
     @Override
-    public List<Node> populate(Node source) {
+    public List<Node> populate(Node source, PopulationContext populationContext) {
         Node target = source.getTargetForEdgeThrough(new EqualsGuard(value), true);
         /*Node target = new Node();
         source.addEdge(new EqualsGuard(value), target);*/
