@@ -148,14 +148,42 @@ public class Patterns {
                             listConsumable = new ObservedConsumable(listConsumable, v ->
                                 consumable.propogate(v));
 
-                            for(Map.Entry<EdgePattern, RuleMap.Node> e: target.edges()) {
+                            RuleMap.Node deepestNode = matchesAlternative(captures, listConsumable, local, target);
+                            if(deepestNode != null/* && listConsumable.atEnd()*/)
+                                return deepestNode;
+
+                            /*for(Map.Entry<EdgePattern, RuleMap.Node> e: target.edges()) {
                                 RuleMap.Node an = matchesAlternative(captures, listConsumable, e, local);
-                                if(an != null && listConsumable.atEnd()) {
+                                if(an != null) { //&& listConsumable.atEnd()
                                     consumable.consume();
                                     return an;
                                 }
-                            }
+                            }*/
                         }
+
+                        return null;
+                    }
+
+                    private RuleMap.Node matchesAlternative(Environment innerCaptures, Consumable consumable, RuleMap local, RuleMap.Node node) {
+                        for (Map.Entry<EdgePattern, RuleMap.Node> e : node.edges()) {
+                            consumable.mark();
+                            innerCaptures.mark();
+                            RuleMap.Node n = e.getKey().matches(e.getValue(), consumable, innerCaptures, local);
+                            if(n != null) {
+                                RuleMap.Node an = matchesAlternative(innerCaptures, consumable, local, n);
+                                if (an != null) {
+                                    innerCaptures.commit();
+                                    consumable.commit();
+                                    return an;
+                                }
+                            }
+                            consumable.rollback();
+                            innerCaptures.rollback();
+                        }
+
+                        // Found node at or after consumed everything
+                        if(consumable.atEnd())
+                            return node;
 
                         return null;
                     }
@@ -222,6 +250,9 @@ public class Patterns {
 
                     @Override
                     public RuleMap.Node matches(RuleMap.Node target, Consumable consumable, Environment captures, RuleMap local) {
+                        if(consumable.atEnd())
+                            return null;
+
                         Object theValue = consumable.peek();
                         Consumable theValueAsConsumable = new ListConsumable(Arrays.asList(theValue));
 

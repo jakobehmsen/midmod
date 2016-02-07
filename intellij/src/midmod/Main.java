@@ -29,7 +29,6 @@ import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -80,7 +79,7 @@ public class Main {
         }
     }
 
-    public static void main(String[] args) throws IOException {
+    private static void nodeStuff() {
 
         midmod.pal.nodes.Node n0 = new Node();
 
@@ -133,13 +132,12 @@ public class Main {
         nodePopulator1.populate(n0, () -> "Hurray1");*/
 
         //Object v = Arrays.asList("a", "a", "b");
-        Object v = Arrays.asList("a", "b");
+        Object v = Arrays.asList("b");
         Object r = midmod.pal.nodes.Node.evaluate(n0, v);
         System.out.println(v + "\n=>\n" + r);
+    }
 
-        if(1 != 2)
-            return;
-
+    public static void main(String[] args) throws IOException {
         RuleMap rules = new RuleMap();
 
         RuleMap builtins = new RuleMap();
@@ -282,13 +280,12 @@ public class Main {
         actionMappers.define(
             Patterns.subsumesList(
                 Patterns.equalsObject("list"),
-                Patterns.subsumesList(
-                    Patterns.captureMany(0, Patterns.repeat(Patterns.anything))
-                )
+                Patterns.captureMany(0, Patterns.repeat(Patterns.anything))
             ),
             (ruleMap, local, captures) -> {
                 List<Object> actionValues = (List<Object>)captures.get(0);
-                List<Action> actions = actionValues.stream().map(x -> (Action)Match.on(actionMappers, actionMappers, x)).collect(Collectors.toList());
+                List<Action> actions = actionValues.stream().map(x ->
+                    (Action)Match.on(actionMappers, actionMappers, x)).collect(Collectors.toList());
 
                 return new Action() {
                     @Override
@@ -401,6 +398,16 @@ public class Main {
             }
         );
 
+        /*RuleMap testRM = new RuleMap();
+        testRM.define(Patterns.subsumesList(
+                Patterns.equalsObject("a"),
+                Patterns.repeat(Patterns.equalsObject("b"))
+            ),
+            (ruleMap, local, captures) -> {
+                return "Yay";
+            });
+        Match.on(testRM, testRM, Arrays.asList("a"));*/
+
         builtins.define(
             Patterns.subsumesList(
                 Patterns.equalsObject("new-rule-map"),
@@ -462,7 +469,7 @@ public class Main {
         );*/
 
 
-        Action action = (Action) Match.on(actionMappers, actionMappers, ActionFactory.block(
+        /*Action action = (Action) Match.on(actionMappers, actionMappers, ActionFactory.block(
             ActionFactory.define(
                 ActionFactory.globalRules(),
                 ActionFactory.constant(PatternFactory.subsumesList(
@@ -489,11 +496,12 @@ public class Main {
             ),
             //ActionFactory.constant("x")
             ActionFactory.match(ActionFactory.globalRules(), ActionFactory.localRules(), ActionFactory.constant("x"))
-        ));
+        ));*/
+
         //Object res = action.perform(actionMappers, actionMappers, new Environment());
         //System.out.println(res);
 
-        boolean addBuiltins = true;
+        boolean addBuiltins = false;
 
         if(addBuiltins) {
             rules.define(

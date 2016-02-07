@@ -37,11 +37,15 @@ public class ActionFactory {
         return Arrays.asList("match", ruleMapExpression, localExpression, valueExpression);
     }
 
-    public static List<Object> list(Object... actionValues) {
+    public static List<Object> list(List<Object> actionValues) {
         ArrayList<Object> value = new ArrayList<>();
         value.add("list");
-        value.addAll(Arrays.asList(actionValues));
+        value.addAll(actionValues);
         return value;
+    }
+
+    public static List<Object> list(Object... actionValues) {
+        return list(Arrays.asList(actionValues));
     }
 
     public static List<Object> perform(Object actionValue, List<Object> globalRulesValue, List<Object> localRulesValue, List<Object> capturesValue) {
