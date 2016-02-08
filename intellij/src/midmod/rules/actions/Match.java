@@ -24,6 +24,9 @@ public class Match implements Action {
         Environment resolvedCaptures = new Environment();
         Action resolvedAction = ruleMap.resolve(value, resolvedCaptures, local);
 
+        if(resolvedAction == null)
+            new String();
+
         return resolvedAction.perform(ruleMap, local, resolvedCaptures);
     }
 

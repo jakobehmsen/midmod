@@ -640,15 +640,25 @@ public class Main {
 
         JTextArea console = new JTextArea();
 
+        rules.define(
+            Patterns.subsumesList(Patterns.equalsObject("expand"), Patterns.captureSingle(0, Patterns.anything)),
+            new Action() {
+                @Override
+                public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
+                    return captures.get(0);
+                }
+            }
+        );
+
         console.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if(e.isControlDown() && e.getKeyCode() == KeyEvent.VK_ENTER) {
+                if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_ENTER) {
                     String sourceCode = console.getText();
                     int start = console.getSelectionStart();
                     int end = console.getSelectionEnd();
 
-                    if(start == end) {
+                    if (start == end) {
                         start = 0;
                         end = console.getDocument().getLength();
                     }
@@ -663,9 +673,15 @@ public class Main {
                         //Object result = evaluator.evaluate(new ByteArrayInputStream(sourceCode.getBytes()));
                         //Object result = evaluator.evaluateAsValue(new ByteArrayInputStream(sourceCode.getBytes()));
                         //Object result = evaluator.evaluateAsValue(new ByteArrayInputStream(sourceCode.getBytes()));
+
                         Object actionValue = parser.parse(new ByteArrayInputStream(sourceCode.getBytes()));
-                        Action action = (Action) Match.on(actionMappers, actionMappers, actionValue);
+                        Object expandedActionValue = Match.on(rules, rules, Arrays.asList("expand", actionValue));
+                        Action action = (Action) Match.on(actionMappers, actionMappers, expandedActionValue);
                         Object result = action.perform(rules, rules, new Environment());
+
+                        //Object actionValue = parser.parse(new ByteArrayInputStream(sourceCode.getBytes()));
+                        //Action action = (Action) Match.on(actionMappers, actionMappers, actionValue);
+                        //Object result = action.perform(rules, rules, new Environment());
 
                         String outputText = " " + result;
                         console.getDocument().insertString(end, outputText, null);
