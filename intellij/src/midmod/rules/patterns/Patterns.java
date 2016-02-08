@@ -31,6 +31,9 @@ public class Patterns {
             }
 
             public boolean matchesList(Consumable value, Environment captures) {
+                if(value.atEnd())
+                    return false;
+
                 boolean result = matchesSingle(value.peek(), captures);
                 if(result) {
                     value.consume();
