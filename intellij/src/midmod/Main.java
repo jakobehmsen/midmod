@@ -633,6 +633,14 @@ public class Main {
                 e.printStackTrace();
             }
         }).run();
+
+        Object result = new midmod.pal.evaluation.Evaluator().evaluate(
+            rules, rules, new midmod.pal.evaluation.Instruction[] {
+                midmod.pal.evaluation.Instructions.constant("Hello world"),
+                midmod.pal.evaluation.Instructions.stop
+            }
+        );
+
         //Evaluator evaluator = new Evaluator(rules);
         Parser parser = new Parser();
 
