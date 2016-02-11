@@ -2,6 +2,8 @@ package midmod;
 
 import midmod.pal.Evaluator;
 import midmod.pal.Parser;
+import midmod.pal.evaluation.Instruction;
+import midmod.pal.evaluation.Instructions;
 import midmod.pal.nodes.*;
 import midmod.rules.Environment;
 import midmod.rules.RuleMap;
@@ -25,10 +27,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.AbstractMap;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -273,8 +272,11 @@ public class Main {
             ),
             (ruleMap, local, captures) -> {
                 List<Object> actionValues = (List<Object>)captures.get(0);
-                List<Action> actions = actionValues.stream().map(x -> (Action)Match.on(actionMappers, actionMappers, x)).collect(Collectors.toList());
-                return new Block(actions);
+                //List<Action> actions = actionValues.stream().map(x -> (Action)Match.on(actionMappers, actionMappers, x)).collect(Collectors.toList());
+                List<Instruction> instructions = actionValues.stream()
+                    .map(x -> (List<Instruction>)Match.on(actionMappers, actionMappers, x))
+                    .flatMap(x -> x.stream()).collect(Collectors.toList());
+                return instructions;
             }
         );
         actionMappers.define(
@@ -362,7 +364,8 @@ public class Main {
         actionMappers.define(
             Patterns.subsumesList(Patterns.equalsObject("constant"), Patterns.captureSingle(0, Patterns.anything)),
             (ruleMap, local, captures) ->
-                new Constant(captures.get(0)));
+                Arrays.asList(Instructions.constant(captures.get(0))));
+                //new Constant(captures.get(0)));
         actionMappers.define(
             Patterns.subsumesList(
                 Patterns.equalsObject("perform"),
@@ -658,6 +661,8 @@ public class Main {
             }
         );
 
+        midmod.pal.evaluation.Evaluator evaluator = new midmod.pal.evaluation.Evaluator();
+
         console.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -684,8 +689,12 @@ public class Main {
 
                         Object actionValue = parser.parse(new ByteArrayInputStream(sourceCode.getBytes()));
                         Object expandedActionValue = Match.on(rules, rules, Arrays.asList("expand", actionValue));
-                        Action action = (Action) Match.on(actionMappers, actionMappers, expandedActionValue);
-                        Object result = action.perform(rules, rules, new Environment());
+                        //Action action = (Action) Match.on(actionMappers, actionMappers, expandedActionValue);
+                        List<Instruction> instructions = (List<Instruction>) Match.on(actionMappers, actionMappers, expandedActionValue);
+                        instructions.add(Instructions.stop);
+
+                        Object result = evaluator.evaluate(rules, rules, instructions.toArray(new Instruction[instructions.size()]));
+                        //Object result = action.perform(rules, rules, new Environment());
 
                         //Object actionValue = parser.parse(new ByteArrayInputStream(sourceCode.getBytes()));
                         //Action action = (Action) Match.on(actionMappers, actionMappers, actionValue);
