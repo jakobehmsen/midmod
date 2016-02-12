@@ -3,11 +3,17 @@ package midmod.pal.evaluation;
 import java.util.Stack;
 
 public class Frame {
+    private Frame outer;
     private Instruction[] instructions;
     private int ip;
     private Stack<Object> locals = new Stack<>();
 
     public Frame(Instruction[] instructions) {
+        this.instructions = instructions;
+    }
+
+    public Frame(Frame outer, Instruction[] instructions) {
+        this.outer = outer;
         this.instructions = instructions;
     }
 
@@ -29,5 +35,13 @@ public class Frame {
 
     public void incIP() {
         ip++;
+    }
+
+    public void load(int index) {
+        locals.push(locals.get(index));
+    }
+
+    public Frame getOuter() {
+        return outer;
     }
 }

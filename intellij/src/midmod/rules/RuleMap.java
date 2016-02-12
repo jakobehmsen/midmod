@@ -2,6 +2,7 @@ package midmod.rules;
 
 import midmod.pal.Consumable;
 import midmod.pal.ListConsumable;
+import midmod.pal.evaluation.Instruction;
 import midmod.rules.actions.Action;
 import midmod.rules.actions.Actions;
 import midmod.rules.patterns.Pattern;
@@ -13,7 +14,7 @@ import java.util.function.BiFunction;
 public class RuleMap {
     public static class Node {
         private ArrayList<Map.Entry<EdgePattern, Node>> edges = new ArrayList<>();
-        private Action action;
+        private Object action;
 
         public Node match(Consumable consumable, Environment captures, RuleMap local) {
             return edges.stream().map(x -> x.getKey().matches(x.getValue(), consumable, captures, local)).filter(x -> x != null).findFirst().orElse(null);
@@ -43,7 +44,7 @@ public class RuleMap {
     }
 
     private Node root = new Node();
-    private LinkedHashMap<Pattern, Action> rules = new LinkedHashMap<>();
+    private LinkedHashMap<Pattern, Object> rules = new LinkedHashMap<>();
 
     public boolean defines(Pattern pattern) {
         //return rules.containsKey(pattern);
@@ -51,6 +52,10 @@ public class RuleMap {
     }
 
     public void define(Pattern pattern, Action action) {
+        define(pattern, (Object)action);
+    }
+
+    public void define(Pattern pattern, Object action) {
         Node node = pattern.findNode(root);
         if(node == null)
             node = pattern.findNode(root);
@@ -68,7 +73,18 @@ public class RuleMap {
         Node node = root.match(consumable, captures, local);
 
         if(node != null)
-            return node.action;
+            return (Action)node.action;
+
+        return null;
+    }
+
+    public List<Instruction> resolveInstructions(Object value, Environment captures, RuleMap local) {
+        // Wrap into Consumable
+        Consumable consumable = new ListConsumable(Arrays.asList(value));
+        Node node = root.match(consumable, captures, local);
+
+        if(node != null)
+            return (List<Instruction>) node.action;
 
         return null;
     }

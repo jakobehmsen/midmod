@@ -243,25 +243,44 @@ public class Main {
 
         actionMappers.define(
             Patterns.subsumesList(
-                Patterns.equalsObject("global-rules")
+                Patterns.equalsObject("addi"),
+                Patterns.captureSingle(0, Patterns.anything),
+                Patterns.captureSingle(1, Patterns.anything)
             ),
             (ruleMap, local, captures) -> new Action() {
                 @Override
                 public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
-                    return ruleMap;
+                    return Arrays.asList(
+                        (List<Instruction>)Match.on(actionMappers, actionMappers, captures.get(0)),
+                        (List<Instruction>)Match.on(actionMappers, actionMappers, captures.get(1)),
+                        Arrays.asList(Instructions.addi)
+                    ).stream().flatMap(x -> x.stream()).collect(Collectors.toList());
                 }
             }
         );
         actionMappers.define(
             Patterns.subsumesList(
+                Patterns.equalsObject("global-rules")
+            ),
+            (ruleMap, local, captures) -> Arrays.asList(Instructions.globalRules)
+            /*(ruleMap, local, captures) -> new Action() {
+                @Override
+                public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
+                    return ruleMap;
+                }
+            }*/
+        );
+        actionMappers.define(
+            Patterns.subsumesList(
                 Patterns.equalsObject("local-rules")
             ),
-            (ruleMap, local, captures) -> new Action() {
+            (ruleMap, local, captures) -> Arrays.asList(Instructions.localRules)
+            /*(ruleMap, local, captures) -> new Action() {
                 @Override
                 public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
                     return local;
                 }
-            }
+            }*/
         );
         actionMappers.define(
             Patterns.subsumesList(
@@ -286,10 +305,19 @@ public class Main {
             ),
             (ruleMap, local, captures) -> {
                 List<Object> actionValues = (List<Object>)captures.get(0);
-                List<Action> actions = actionValues.stream().map(x ->
-                    (Action)Match.on(actionMappers, actionMappers, x)).collect(Collectors.toList());
+                /*List<Action> actions = actionValues.stream().map(x ->
+                    (Action)Match.on(actionMappers, actionMappers, x)).collect(Collectors.toList());*/
+                List<Instruction> actions = actionValues.stream().map(x ->
+                    (List<Instruction>)Match.on(actionMappers, actionMappers, x))
+                    .flatMap(x -> x.stream()).collect(Collectors.toList());
 
-                return new Action() {
+                // Create a list primitive that construct a list of n elements
+                return Arrays.asList(
+                    actions,
+                    Arrays.asList(Instructions.cons(actions.size()))
+                ).stream().flatMap(x -> x.stream()).collect(Collectors.toList());
+
+                /*return new Action() {
                     @Override
                     public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
                         return actions.stream().map(x -> {
@@ -299,7 +327,7 @@ public class Main {
                             return y;
                         }).collect(Collectors.toList());
                     }
-                };
+                };*/
             }
         );
         actionMappers.define(
@@ -314,11 +342,20 @@ public class Main {
                 List<Object> localExpressionValue = (List<Object>)captures.get(1);
                 List<Object> valueExpressionValue = (List<Object>)captures.get(2);
 
-                Action ruleMapExpression = (Action) Match.on(actionMappers, actionMappers, ruleMapExpressionValue);
-                Action localExpression = (Action) Match.on(actionMappers, actionMappers, localExpressionValue);
-                Action valueExpression = (Action) Match.on(actionMappers, actionMappers, valueExpressionValue);
+                List<Instruction> ruleMapExpression = (List<Instruction>) Match.on(actionMappers, actionMappers, ruleMapExpressionValue);
+                List<Instruction> localExpression = (List<Instruction>) Match.on(actionMappers, actionMappers, localExpressionValue);
+                List<Instruction> valueExpression = (List<Instruction>) Match.on(actionMappers, actionMappers, valueExpressionValue);
 
-                return new Action() {
+                // TODO: Should create a match instructions instead of the below:
+
+                return Arrays.asList(
+                    ruleMapExpression,
+                    localExpression,
+                    valueExpression,
+                    Arrays.asList(Instructions.match)
+                ).stream().flatMap(x -> x.stream()).collect(Collectors.toList());
+
+                /*return new Action() {
                     @Override
                     public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {;
                         RuleMap rm = (RuleMap) ruleMapExpression.perform(ruleMap, local, captures);
@@ -327,7 +364,7 @@ public class Main {
 
                         return Match.on(rm, lcl, value);
                     }
-                };
+                };*/
             }
         );
         actionMappers.define(
@@ -650,6 +687,21 @@ public class Main {
         JFrame frame = new JFrame();
 
         JTextArea console = new JTextArea();
+
+        rules.define(
+            Patterns.subsumesList(
+                Patterns.equalsObject("+"),
+                Patterns.captureSingle(0, Patterns.is(Integer.class)),
+                Patterns.captureSingle(1, Patterns.is(Integer.class))
+            ),
+            //Arrays.<Object>asList("addi", Arrays.<Object>asList("load", 0), Arrays.<Object>asList("load", 1))
+            Arrays.asList(
+                Instructions.load(0),
+                Instructions.load(1),
+                Instructions.addi,
+                Instructions.ret
+            )
+        );
 
         rules.define(
             Patterns.subsumesList(Patterns.equalsObject("expand"), Patterns.captureSingle(0, Patterns.anything)),

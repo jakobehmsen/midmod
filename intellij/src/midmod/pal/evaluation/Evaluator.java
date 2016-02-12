@@ -16,8 +16,8 @@ public class Evaluator {
         EvaluationContext ctx = new EvaluationContext(frame);
 
         while(ctx.isRunning())
-            frame.evaluateInstruction(ctx);
+            ctx.getFrame().evaluateInstruction(ctx);
 
-        return frame.pop();
+        return ctx.getFrame().pop();
     }
 }

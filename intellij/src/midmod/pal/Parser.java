@@ -57,8 +57,9 @@ public class Parser {
                 for (PalParser.Expression1TailContext rhsCtx : ctx.expression1Tail()) {
                     List<Object> rhsActionValue = parseAction(rhsCtx.expression1(), nameToCaptureAddressMap);
                     String operator = rhsCtx.BIN_OP1().getText();
-                    //lhsActionValue = ActionFactory.match(ActionFactory.list(ActionFactory.constant(operator), lhsActionValue, rhsActionValue));
-                    lhsActionValue = ActionFactory.list(ActionFactory.constant(operator), lhsActionValue, rhsActionValue);
+                    lhsActionValue = ActionFactory.match(ActionFactory.list(ActionFactory.constant(operator), lhsActionValue, rhsActionValue));
+                    //lhsActionValue = ActionFactory.list(ActionFactory.constant(operator), lhsActionValue, rhsActionValue);
+                    //lhsActionValue = ActionFactory.match(Arrays.asList(operator, lhsActionValue, rhsActionValue));
                 }
 
                 return lhsActionValue;
