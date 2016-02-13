@@ -353,8 +353,11 @@ public class Main {
                 return Arrays.asList(
                     ruleMapExpression,
                     localExpression,
+                    ruleMapExpression,
                     valueExpression,
-                    Arrays.asList(Instructions.match)
+                    Arrays.asList(
+                        Instructions.match(2)
+                    ) // Forward
                 ).stream().flatMap(x -> x.stream()).collect(Collectors.toList());
 
                 /*return new Action() {
@@ -690,6 +693,8 @@ public class Main {
 
         JTextArea console = new JTextArea();
 
+        int localOffset = 2; // global rules + local rules
+
         rules.define(
             Patterns.subsumesList(
                 Patterns.equalsObject("+"),
@@ -698,8 +703,8 @@ public class Main {
             ),
             //Arrays.<Object>asList("addi", Arrays.<Object>asList("load", 0), Arrays.<Object>asList("load", 1))
             Arrays.asList(
-                Instructions.load(0),
-                Instructions.load(1),
+                Instructions.load(localOffset + 0),
+                Instructions.load(localOffset + 1),
                 Instructions.addi,
                 Instructions.ret
             )

@@ -44,4 +44,11 @@ public class Frame {
     public Frame getOuter() {
         return outer;
     }
+
+    public void forwardTo(Frame frame, int count) {
+        for(int i = locals.size() - count; i < locals.size(); i++)
+            frame.push(locals.get(i));
+        for(int i = 0; i < count; i++)
+            this.pop();
+    }
 }

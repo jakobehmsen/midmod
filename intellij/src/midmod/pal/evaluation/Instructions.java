@@ -29,21 +29,30 @@ public class Instructions {
         ctx.getFrame().incIP();
     };
 
-    public static Instruction match = ctx -> {
-        Object valueIn = ctx.getFrame().pop();
-        RuleMap localRules = (RuleMap)ctx.getFrame().pop();
-        RuleMap globalRules = (RuleMap)ctx.getFrame().pop();
+    public static Instruction match(int count) {
+        return ctx -> {
+            // Stack expectations: [0..count, valueIn, rules] => [valueOut]
+            Object valueIn = ctx.getFrame().pop();
+            RuleMap rules = (RuleMap) ctx.getFrame().pop();
 
-        Environment resolvedCaptures = new Environment();
-        List<Instruction> instructions = globalRules.resolveInstructions(valueIn, resolvedCaptures, localRules);
+            Environment resolvedCaptures = new Environment();
+            // localRules is passed as null because localRules is only used in Patterns.reference, which is obsolete
+            // due to macros
+            List<Instruction> instructions = rules.resolveInstructions(valueIn, resolvedCaptures, null);
 
-        if(instructions == null)
-            new String(); // Signal error
+            if (instructions == null)
+                new String(); // Signal error
 
-        ctx.setFrame(new Frame(ctx.getFrame(), instructions.toArray(new Instruction[instructions.size()])));
-        resolvedCaptures.getCaptured().forEach(x ->
-            ctx.getFrame().push(x));
-    };
+            Frame frame = new Frame(ctx.getFrame(), instructions.toArray(new Instruction[instructions.size()]));
+
+            ctx.getFrame().forwardTo(frame, count);
+
+            resolvedCaptures.getCaptured().forEach(x ->
+                frame.push(x));
+
+            ctx.setFrame(frame);
+        };
+    }
 
     public static Instruction stop = ctx -> ctx.stop();
 
