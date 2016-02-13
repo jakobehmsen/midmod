@@ -29,16 +29,6 @@ public class Instructions {
         ctx.getFrame().incIP();
     };
 
-    public static Instruction globalRules = ctx -> {
-        ctx.getFrame().push(ctx.getFrame().get(0));
-        ctx.getFrame().incIP();
-    };
-
-    public static Instruction localRules = ctx -> {
-        ctx.getFrame().push(ctx.getFrame().get(1));
-        ctx.getFrame().incIP();
-    };
-
     public static Instruction match = ctx -> {
         Object valueIn = ctx.getFrame().pop();
         RuleMap localRules = (RuleMap)ctx.getFrame().pop();

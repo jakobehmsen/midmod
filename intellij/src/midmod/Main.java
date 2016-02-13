@@ -262,7 +262,8 @@ public class Main {
             Patterns.subsumesList(
                 Patterns.equalsObject("global-rules")
             ),
-            (ruleMap, local, captures) -> Arrays.asList(Instructions.globalRules)
+            (ruleMap, local, captures) -> Arrays.asList(Instructions.load(0))
+            //(ruleMap, local, captures) -> Arrays.asList(Instructions.globalRules)
             /*(ruleMap, local, captures) -> new Action() {
                 @Override
                 public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
@@ -274,7 +275,8 @@ public class Main {
             Patterns.subsumesList(
                 Patterns.equalsObject("local-rules")
             ),
-            (ruleMap, local, captures) -> Arrays.asList(Instructions.localRules)
+            (ruleMap, local, captures) -> Arrays.asList(Instructions.load(1))
+            //((ruleMap, local, captures) -> Arrays.asList(Instructions.localRules)
             /*(ruleMap, local, captures) -> new Action() {
                 @Override
                 public Object perform(RuleMap ruleMap, RuleMap local, Environment captures) {
