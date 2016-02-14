@@ -2,8 +2,6 @@ package midmod.pal.evaluation;
 
 import midmod.rules.Environment;
 import midmod.rules.RuleMap;
-import midmod.rules.actions.Action;
-import midmod.rules.actions.Match;
 
 import java.util.Arrays;
 import java.util.List;
@@ -29,7 +27,7 @@ public class Instructions {
         ctx.getFrame().incIP();
     };
 
-    public static Instruction match(int count) {
+    public static Instruction match(int count /*Explicit argument count; implicit arguments are part of captured*/) {
         return ctx -> {
             // Stack expectations: [0..count, valueIn, rules] => [valueOut]
             Object valueIn = ctx.getFrame().pop();
@@ -40,12 +38,15 @@ public class Instructions {
             // due to macros
             List<Instruction> instructions = rules.resolveInstructions(valueIn, resolvedCaptures, null);
 
-            if (instructions == null)
-                new String(); // Signal error
+            if (instructions == null) {
+                //new String(); // Signal error
+                ctx.getFrame().signal(ctx, count, Arrays.asList("CouldNotResolve", valueIn));
+                return;
+            }
 
             Frame frame = new Frame(ctx.getFrame(), instructions.toArray(new Instruction[instructions.size()]));
 
-            ctx.getFrame().forwardTo(frame, count);
+            ctx.getFrame().popForwardTo(frame, count);
 
             resolvedCaptures.getCaptured().forEach(x ->
                 frame.push(x));

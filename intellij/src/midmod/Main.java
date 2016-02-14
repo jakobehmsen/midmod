@@ -2,6 +2,7 @@ package midmod;
 
 import midmod.pal.Evaluator;
 import midmod.pal.Parser;
+import midmod.pal.evaluation.CouldNotResolveSignalHandlerException;
 import midmod.pal.evaluation.Instruction;
 import midmod.pal.evaluation.Instructions;
 import midmod.pal.nodes.*;
@@ -752,15 +753,21 @@ public class Main {
                         List<Instruction> instructions = (List<Instruction>) Match.on(actionMappers, actionMappers, expandedActionValue);
                         instructions.add(Instructions.stop);
 
-                        Object result = evaluator.evaluate(rules, rules, instructions.toArray(new Instruction[instructions.size()]));
+                        String outputText;
+                        try {
+                            Object result = evaluator.evaluate(rules, rules, instructions.toArray(new Instruction[instructions.size()]));
+                            outputText = "" + result;
+                        } catch(CouldNotResolveSignalHandlerException e1) {
+                            // "Root native signal handler"
+                            outputText = e1.getMessage();
+                        }
                         //Object result = action.perform(rules, rules, new Environment());
 
                         //Object actionValue = parser.parse(new ByteArrayInputStream(sourceCode.getBytes()));
                         //Action action = (Action) Match.on(actionMappers, actionMappers, actionValue);
                         //Object result = action.perform(rules, rules, new Environment());
 
-                        String outputText = " " + result;
-                        console.getDocument().insertString(end, outputText, null);
+                        console.getDocument().insertString(end, " " + outputText, null);
                         console.select(end + 1, end + outputText.length());
                     } catch (IOException e1) {
                         e1.printStackTrace();

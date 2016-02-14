@@ -1,5 +1,7 @@
 package midmod.pal.evaluation;
 
+import midmod.rules.Environment;
+
 import java.util.List;
 
 public class EvaluationContext {

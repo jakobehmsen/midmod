@@ -5,6 +5,11 @@ import midmod.rules.RuleMap;
 public class Evaluator {
     private Frame frame;
 
+    public Object evaluate(Frame frame) {
+        frame = frame;
+        return evaluate();
+    }
+
     public Object evaluate(RuleMap globalRules, RuleMap localRules, Instruction[] instructions) {
         frame = new Frame(instructions);
         frame.push(globalRules);
