@@ -5,6 +5,8 @@ import jdk.nashorn.api.scripting.ScriptObjectMirror;
 
 import javax.script.*;
 import javax.swing.*;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
@@ -20,7 +22,7 @@ public class Main {
 
         @Override
         public void paint(Graphics g) {
-            bindings.callMember("paint", g);
+                bindings.callMember("paint", g);
             //ScriptObjectMirror paintFunction = (ScriptObjectMirror) bindings.get("paint");
 
             //g.setColor(Color.RED);
@@ -94,6 +96,9 @@ public class Main {
         contextMenu.add(new AbstractAction("New") {
             @Override
             public void actionPerformed(ActionEvent e) {
+                Point clickPoint = MouseInfo.getPointerInfo().getLocation();
+                SwingUtilities.convertPointFromScreen(clickPoint, desktop);
+
                 SimpleBindings bindings = new SimpleBindings();
 
                 //bindings.put("base", base);
@@ -110,7 +115,9 @@ public class Main {
 
                 //ScriptObjectMirror cellObject = (ScriptObjectMirror)bindings.get("nashorn.global");
                 //cellObject.setProto(base);
-                JSComponent cell = new JSComponent(cellObject);
+
+                //JSComponent cell = new JSComponent(cellObject);
+                JComponent cell = createCell(engine, desktop, cellObject);
                 cell.setLocation(mouseClickPoint);
                 cell.setSize(20, 20);
                 cell.setBackground(Color.BLUE);
@@ -125,5 +132,41 @@ public class Main {
         frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setVisible(true);
+    }
+
+    private static JComponent createCell(NashornScriptEngine engine, JPanel desktop, ScriptObjectMirror cellObject) {
+        JSComponent cell = new JSComponent(cellObject);
+
+        JPopupMenu cellContextMenu = new JPopupMenu();
+
+        cellContextMenu.add(new AbstractAction("clone") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                SimpleBindings bindings = new SimpleBindings();
+
+                bindings.put("base", cellObject);
+                ScriptObjectMirror newCellObject = null;
+
+                try {
+                    //engine.eval("function paint(g) { g.setColor(background); g.fillRect(0, 0, width, height); }", bindings);
+                    engine.put("tmp", newCellObject);
+                    newCellObject = (ScriptObjectMirror)engine.eval("var n = {}; Object.setPrototypeOf(n, base);  n;");
+                    //obj.toString();
+                } catch (ScriptException e1) {
+                    e1.printStackTrace();
+                }
+
+                JComponent clone = createCell(engine, desktop, newCellObject);
+                clone.setLocation(new Point(cell.getX() + cell.getWidth() + 5, cell.getY()));
+                clone.setSize(20, 20);
+                clone.setBackground(Color.RED);
+                desktop.add(clone);
+                desktop.revalidate();
+                desktop.repaint();
+            }
+        });
+
+        cell.setComponentPopupMenu(cellContextMenu);
+        return cell;
     }
 }
