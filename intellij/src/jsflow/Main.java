@@ -16,6 +16,8 @@ import java.io.Reader;
 import java.io.Writer;
 import java.util.*;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class Main {
     private static class JSComponent extends JComponent {
@@ -38,7 +40,42 @@ public class Main {
             //g.fillRect(0, 0, getWidth(), getHeight());
         }
 
+        /*@Override
+        public Color getBackground() {
+            return (Color)object.getMember("background");
+        }*/
+
+        /*@Override
+        public Point getLocation() {
+            return new Point(getX(), getY());
+        }
+
         @Override
+        public Dimension getSize(Dimension rv) {
+            return new Dimension(getWidth(), getHeight());
+        }
+
+        @Override
+        public int getX() {
+            return (int)object.getMember("x");
+        }
+
+        @Override
+        public int getY() {
+            return (int)object.getMember("y");
+        }
+
+        @Override
+        public int getWidth() {
+            return (int)object.getMember("width");
+        }
+
+        @Override
+        public int getHeight() {
+            return (int)object.getMember("height");
+        }*/
+
+        /*@Override
         public void setBackground(Color bg) {
             super.setBackground(bg);
             object.setMember("background", bg);
@@ -56,7 +93,7 @@ public class Main {
             super.setSize(width, height);
             object.setMember("width", width);
             object.setMember("height", height);
-        }
+        }*/
     }
 
     private static Point mouseClickPoint;
@@ -135,9 +172,14 @@ public class Main {
 
                 //JSComponent cell = new JSComponent(cellObject);
                 JComponent cell = createCell(engine, desktop, cellObject);
-                cell.setLocation(mouseClickPoint);
-                cell.setSize(20, 20);
-                cell.setBackground(Color.BLUE);
+                cellObject.setMember("x", mouseClickPoint.x);
+                cellObject.setMember("y", mouseClickPoint.y);
+                cellObject.setMember("width", 20);
+                cellObject.setMember("height", 20);
+                cellObject.setMember("background", Color.BLUE);
+                //cell.setLocation(mouseClickPoint);
+                //cell.setSize(20, 20);
+                //cell.setBackground(Color.BLUE);
                 desktop.add(cell);
                 /*desktop.repaint();
                 desktop.revalidate();*/
@@ -154,6 +196,15 @@ public class Main {
     private static class ObservableJSObject extends AbstractJSObject implements Bindings {
         private JSObject proto;
         private Hashtable<String, Object> members = new Hashtable<>();
+        private ArrayList<Consumer<Map<String, Object>>> observers = new ArrayList<>();
+
+        public void addObserver(Consumer<Map<String, Object>> observer) {
+            observers.add(observer);
+        }
+
+        public void removeObserver(Consumer<Map<String, Object>> observer) {
+            observers.remove(observer);
+        }
 
         private ObservableJSObject(JSObject proto) {
             this.proto = proto;
@@ -171,27 +222,65 @@ public class Main {
 
         @Override
         public void setMember(String name, Object value) {
-            members.put(name, value);
+            put(name, value);
         }
 
         @Override
         public Object put(String name, Object value) {
-            return members.put(name, value);
+            Object prevValue = members.put(name, value);
+
+            sendChange(newMap(change -> {
+                change.put("type", "put");
+                change.put("name", name);
+                change.put("value", value);
+            }));
+
+            return prevValue;
+        }
+
+        private Map<String, Object> newMap(Consumer<Map<String, Object>> mapPopulator) {
+            Map<String, Object> map = new Hashtable<>();
+            mapPopulator.accept(map);
+            return map;
+        }
+
+        private void sendChange(Map<String, Object> change) {
+            // Perhaps, a set of the objects that have handled the change, should be part of a change
+            observers.forEach(o -> o.accept(change));
         }
 
         @Override
         public void putAll(Map<? extends String, ? extends Object> toMerge) {
-            members.putAll(toMerge);
+            toMerge.entrySet().forEach(e ->
+                setMember(e.getKey(), e.getValue()));
+
+            sendChange(newMap(change -> {
+                change.put("type", "putAll");
+                change.put("toMerge", toMerge);
+            }));
         }
 
         @Override
         public void clear() {
-            members.clear();;
+            members.keySet().forEach(name -> remove(name));
+
+            sendChange(newMap(change -> {
+                change.put("type", "clear");
+            }));
+        }
+
+        @Override
+        public Set<String> keySet() {
+            Set<String> keySet = new HashSet<>();
+            if(proto != null)
+                keySet.addAll(proto.keySet());
+            keySet.addAll(members.keySet());
+            return keySet;
         }
 
         @Override
         public Set<Entry<String, Object>> entrySet() {
-            return members.entrySet();
+            return keySet().stream().map(x -> new AbstractMap.SimpleImmutableEntry<>(x, getMember(x))).collect(Collectors.toSet());
         }
 
         @Override
@@ -221,12 +310,65 @@ public class Main {
 
         @Override
         public Object remove(Object key) {
-            return members.remove(key);
+            Object value = members.remove(key);
+
+            sendChange(newMap(change -> {
+                change.put("type", "remove");
+                change.put("name", key);
+                change.put("value", value);
+            }));
+
+            return value;
+        }
+
+        public void sendState() {
+            entrySet().forEach(e -> sendChange(newMap(change -> {
+                change.put("type", "put");
+                change.put("name", e.getKey());
+                change.put("value", e.getValue());
+            })));
         }
     }
 
-    private static JComponent createCell(NashornScriptEngine engine, JPanel desktop, JSObject cellObject) {
+    private static JComponent createCell(NashornScriptEngine engine, JPanel desktop, ObservableJSObject cellObject) {
         JSComponent cell = new JSComponent(cellObject);
+
+        cell.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                e.toString();
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                e.toString();
+            }
+        });
+
+        cellObject.addObserver(change -> {
+            System.out.println("Received change: " + change);
+
+            if(change.get("type").equals("put")) {
+                Object value = change.get("value");
+                switch((String)change.get("name")) {
+                    case "x":
+                        cell.setLocation(((Number) value).intValue(), cell.getY());
+                        break;
+                    case "y":
+                        cell.setLocation(cell.getX(), ((Number)value).intValue());
+                        break;
+                    case "width":
+                        cell.setSize(((Number)value).intValue(), cell.getHeight());
+                        break;
+                    case "height":
+                        cell.setSize(cell.getWidth(), ((Number)value).intValue());
+                        break;
+                    case "background":
+                        cell.setBackground((Color)value);
+                        break;
+                }
+            }
+        });
 
         JPopupMenu cellContextMenu = new JPopupMenu();
 
@@ -252,9 +394,19 @@ public class Main {
                 }*/
 
                 JComponent clone = createCell(engine, desktop, newCellObject);
-                clone.setLocation(new Point(cell.getX() + cell.getWidth() + 5, cell.getY()));
+
+
+
+                newCellObject.setMember("x", cell.getX() + cell.getWidth() + 5);
+                newCellObject.setMember("y", cell.getY());
+                newCellObject.sendState();
+                /*cellObject.setMember("width", 20);
+                cellObject.setMember("height", 20);
+                cellObject.setMember("background", Color.RED);*/
+
+                /*clone.setLocation(new Point(cell.getX() + cell.getWidth() + 5, cell.getY()));
                 clone.setSize(20, 20);
-                clone.setBackground(Color.RED);
+                clone.setBackground(Color.RED);*/
                 desktop.add(clone);
                 desktop.revalidate();
                 desktop.repaint();
@@ -284,6 +436,14 @@ public class Main {
                 JToolBar toolBar = new JToolBar();
                 JTextPane script = new JTextPane();
                 evalPanel.setLayout(new BorderLayout());
+                toolBar.add(new AbstractAction("close") {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        desktop.remove(evalPanel);
+                        desktop.revalidate();
+                        desktop.repaint();
+                    }
+                });
                 toolBar.add(new AbstractAction("run") {
                     @Override
                     public void actionPerformed(ActionEvent e) {
