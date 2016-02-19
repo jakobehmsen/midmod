@@ -385,32 +385,35 @@ public class Main {
 
             if(change.get("type").equals("put")) {
                 Object value = change.get("value");
-                boolean didUpdate = false;
+                boolean requiresUpdate = false;
 
                 switch((String)change.get("name")) {
                     case "x":
                         cell.setLocation(((Number) value).intValue(), cell.getY());
-                        didUpdate = true;
+                        requiresUpdate = true;
                         break;
                     case "y":
                         cell.setLocation(cell.getX(), ((Number)value).intValue());
-                        didUpdate = true;
+                        requiresUpdate = true;
                         break;
                     case "width":
                         cell.setSize(((Number)value).intValue(), cell.getHeight());
-                        didUpdate = true;
+                        requiresUpdate = true;
                         break;
                     case "height":
                         cell.setSize(cell.getWidth(), ((Number)value).intValue());
-                        didUpdate = true;
+                        requiresUpdate = true;
                         break;
                     case "background":
                         cell.setBackground((Color)value);
-                        didUpdate = true;
+                        requiresUpdate = true;
+                        break;
+                    case "paint":
+                        requiresUpdate = true;
                         break;
                 }
 
-                if(didUpdate) {
+                if(requiresUpdate) {
                     desktop.revalidate();
                     desktop.repaint();
                 }
