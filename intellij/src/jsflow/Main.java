@@ -1,9 +1,6 @@
 package jsflow;
 
-import jdk.nashorn.api.scripting.AbstractJSObject;
-import jdk.nashorn.api.scripting.JSObject;
-import jdk.nashorn.api.scripting.NashornScriptEngine;
-import jdk.nashorn.api.scripting.ScriptObjectMirror;
+import jdk.nashorn.api.scripting.*;
 
 import javax.script.*;
 import javax.swing.*;
@@ -12,18 +9,15 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.Reader;
-import java.io.Writer;
 import java.util.*;
-import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class Main {
     private static class JSComponent extends JComponent {
-        private JSObject object;
+        private ObservableJSObject object;
 
-        private JSComponent(JSObject object) {
+        private JSComponent(ObservableJSObject object) {
             this.object = object;
         }
 
@@ -97,6 +91,32 @@ public class Main {
     }
 
     private static Point mouseClickPoint;
+    public static class Facade {
+        private NashornScriptEngine engine;
+        private JPanel desktop;
+
+        private Facade(NashornScriptEngine engine, JPanel desktop) {
+            this.engine = engine;
+            this.desktop = desktop;
+        }
+
+        public Object clone(Object obj) {
+            JSComponent cellComponent = createCell(engine, desktop, new ObservableJSObject((ObservableJSObject) obj));
+
+            cellComponent.object.sendState();
+
+            desktop.add(cellComponent);
+            desktop.repaint();
+            desktop.revalidate();
+
+            return cellComponent.object;
+        }
+
+        @Override
+        public String toString() {
+            return "blad";
+        }
+    }
 
     public static void main(String[] args) {
         ScriptEngineManager engineManager = new ScriptEngineManager();
@@ -105,6 +125,8 @@ public class Main {
         JFrame frame = new JFrame("jsflow");
         JPanel desktop = (JPanel) frame.getContentPane();
         desktop.setLayout(null);
+
+        engine.getBindings(ScriptContext.ENGINE_SCOPE).put("core", new Facade(engine, desktop));
 
         JPopupMenu contextMenu = new JPopupMenu();
 
@@ -135,14 +157,17 @@ public class Main {
             //engine.setBindings(base, ScriptContext.ENGINE_SCOPE);
             //engine.eval("foo", base);
             //engine.compile("foo").eval(base);
-            ScriptObjectMirror function = (ScriptObjectMirror) engine.eval("function() {this.paint = function(g) { g.setColor(this.background); g.fillRect(0, 0, this.width, this.height); } }");
+            ScriptObjectMirror function = (ScriptObjectMirror) engine.eval("function() {\n" +
+                "   this.paint = function(g) { g.setColor(this.background); g.fillRect(0, 0, this.width, this.height); }\n" +
+                "   this.clone = function() { return core.clone(this); }\n" +
+                "}");
             function.call(base);
         } catch (ScriptException e) {
             e.printStackTrace();
         }
         //base.eval("this.paint = function(g) { g.setColor(this.background); g.fillRect(0, 0, this.width, this.height); }");
 
-        SimpleBindings baseBindings = new SimpleBindings();
+        //SimpleBindings baseBindings = new SimpleBindings();
         //engine.eval("function paint(g) { g.setColor(background); g.fillRect(0, 0, width, height); }");
         //ScriptObjectMirror base = (ScriptObjectMirror)baseBindings.get("nashorn.global");
 
@@ -363,9 +388,14 @@ public class Main {
                 change.put("value", e.getValue());
             })));
         }
+
+        @Override
+        public Object eval(String s) {
+            return super.eval(s);
+        }
     }
 
-    private static JComponent createCell(NashornScriptEngine engine, JPanel desktop, ObservableJSObject cellObject) {
+    private static JSComponent createCell(NashornScriptEngine engine, JPanel desktop, ObservableJSObject cellObject) {
         JSComponent cell = new JSComponent(cellObject);
 
         cell.addMouseListener(new MouseAdapter() {
