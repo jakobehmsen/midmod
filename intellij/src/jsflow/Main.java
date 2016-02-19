@@ -187,14 +187,15 @@ public class Main {
         });
         //desktop.setComponentPopupMenu(contextMenu);
 
-        frame.setSize(800, 600);
+        frame.setSize(1024, 768);
         frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setVisible(true);
     }
 
     private static class ObservableJSObject extends AbstractJSObject implements Bindings {
-        private JSObject proto;
+        private ObservableJSObject proto;
+        private Consumer<Map<String, Object>> protoObserver;
         private Hashtable<String, Object> members = new Hashtable<>();
         private ArrayList<Consumer<Map<String, Object>>> observers = new ArrayList<>();
 
@@ -206,8 +207,27 @@ public class Main {
             observers.remove(observer);
         }
 
-        private ObservableJSObject(JSObject proto) {
+        private ObservableJSObject(ObservableJSObject proto) {
             this.proto = proto;
+
+            if(proto != null) {
+                protoObserver = change -> {
+                    switch ((String) change.get("type")) {
+                        case "put":
+                        case "remove": {
+                            String name = (String) change.get("name");
+                            if (!containsKey(name))
+                                sendChange(change);
+                        }
+                    }
+                };
+                proto.addObserver(protoObserver);
+            }
+        }
+
+        public void cleanup() {
+            proto.removeObserver(protoObserver);
+            proto = null;
         }
 
         @Override
@@ -309,14 +329,29 @@ public class Main {
         }
 
         @Override
+        public void removeMember(String name) {
+            remove(name);
+        }
+
+        @Override
         public Object remove(Object key) {
             Object value = members.remove(key);
 
-            sendChange(newMap(change -> {
-                change.put("type", "remove");
-                change.put("name", key);
-                change.put("value", value);
-            }));
+            Object resolvedValue = get(key);
+
+            if(resolvedValue == null) {
+                sendChange(newMap(change -> {
+                    change.put("type", "remove");
+                    change.put("name", key);
+                    change.put("value", value);
+                }));
+            } else {
+                sendChange(newMap(change -> {
+                    change.put("type", "put");
+                    change.put("name", key);
+                    change.put("value", value);
+                }));
+            }
 
             return value;
         }
@@ -350,22 +385,34 @@ public class Main {
 
             if(change.get("type").equals("put")) {
                 Object value = change.get("value");
+                boolean didUpdate = false;
+
                 switch((String)change.get("name")) {
                     case "x":
                         cell.setLocation(((Number) value).intValue(), cell.getY());
+                        didUpdate = true;
                         break;
                     case "y":
                         cell.setLocation(cell.getX(), ((Number)value).intValue());
+                        didUpdate = true;
                         break;
                     case "width":
                         cell.setSize(((Number)value).intValue(), cell.getHeight());
+                        didUpdate = true;
                         break;
                     case "height":
                         cell.setSize(cell.getWidth(), ((Number)value).intValue());
+                        didUpdate = true;
                         break;
                     case "background":
                         cell.setBackground((Color)value);
+                        didUpdate = true;
                         break;
+                }
+
+                if(didUpdate) {
+                    desktop.revalidate();
+                    desktop.repaint();
                 }
             }
         });
