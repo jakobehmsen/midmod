@@ -1,15 +1,16 @@
 package jsflow;
 
+import com.sun.glass.events.KeyEvent;
 import jdk.nashorn.api.scripting.*;
 import jdk.nashorn.internal.runtime.Undefined;
+import sun.swing.SwingUtilities2;
 
 import javax.script.*;
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.JTextComponent;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -151,14 +152,18 @@ public class Main {
         private ArrayList<Binding> bindings = new ArrayList<>();
         private ArrayList<ObservableJSObject> allObjects = new ArrayList<>();
         private Hashtable<String, ObservableJSObject> indexedObjects = new Hashtable<>();
+        private ObservableJSObject base;
 
-        private Facade(NashornScriptEngine engine, JPanel desktop) {
+        private Facade(NashornScriptEngine engine, JPanel desktop, ObservableJSObject base) {
             this.engine = engine;
             this.desktop = desktop;
+            this.base = base;
         }
 
         public ObservableJSObject clone(Object obj) {
-            JSComponent cellComponent = createCell(engine, desktop, new ObservableJSObject((ObservableJSObject) obj), indexedObjects);
+            return new ObservableJSObject((ObservableJSObject) obj);
+
+            /*JSComponent cellComponent = createCell(engine, desktop, new ObservableJSObject((ObservableJSObject) obj), indexedObjects, base);
 
             cellComponent.object.sendState();
 
@@ -166,7 +171,7 @@ public class Main {
             desktop.repaint();
             desktop.revalidate();
 
-            return cellComponent.object;
+            return cellComponent.object;*/
         }
 
         public ObservableJSObject getByName(String name) {
@@ -242,26 +247,11 @@ public class Main {
             };
         }
 
-        public Observable reducer(Observable[] observables, Observable reduceFuncObservable) {
+        public Observable reducer(Observable[] observables, Object reduceFunc) {
             return new AbstractObservable() {
                 private Object[] arguments = new Object[observables.length];
-                private Object reduceFunc;
 
                 {
-                    reduceFuncObservable.addObserver(new Observer() {
-                        @Override
-                        public void next(Object value) {
-                            reduceFunc = value;
-                            sendState();
-                        }
-
-                        @Override
-                        public void remove() {
-                            sendRemove();
-                        }
-                    });
-                    reduceFuncObservable.sendState();
-
                     IntStream.range(0, observables.length).forEach(i -> {
                         observables[i].addObserver(new Observer() {
                             @Override
@@ -282,7 +272,7 @@ public class Main {
 
                 @Override
                 public void sendState() {
-                    if(reduceFunc != null && Arrays.asList(arguments).stream().allMatch(x -> x != null)) {
+                    if(Arrays.asList(arguments).stream().allMatch(x -> x != null)) {
                         Object value = ((ScriptObjectMirror)reduceFunc).call(null, arguments);
                         sendNext(value);
                     }
@@ -290,7 +280,7 @@ public class Main {
 
                 @Override
                 public String toString() {
-                    return reduceFuncObservable.toString() +
+                    return reduceFunc.toString() +
                         "(" + Arrays.asList(observables).stream().map(x -> x.toString()).collect(Collectors.joining(", ")) + ")";
                 }
             };
@@ -342,6 +332,88 @@ public class Main {
         }
     }
 
+    private static void makeInteractive(NashornScriptEngine engine, JPanel desktop, JComponent component, ObservableJSObject base, Map<String, ObservableJSObject> indexedObjects ) {
+        component.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                JComponent clickComponent = (JComponent) component.findComponentAt(e.getPoint());
+                ObservableJSObject cellObject = clickComponent != component
+                    ? ((JSComponent)clickComponent).object : base;
+
+                switch(e.getButton()) {
+                    case MouseEvent.BUTTON1:
+                        JTextField singleInteractive = new JTextField();
+                        singleInteractive.setFont(new Font(Font.MONOSPACED, Font.BOLD, 14));
+                        singleInteractive.setLocation(e.getPoint());
+                        singleInteractive.setSize(200, 30);
+                        singleInteractive.setForeground(Color.WHITE);
+                        singleInteractive.setBackground(Color.DARK_GRAY);
+                        singleInteractive.setCaretColor(singleInteractive.getForeground());
+                        singleInteractive.registerKeyboardAction(e1 -> {
+                            desktop.remove(singleInteractive);
+
+                            Object result = eval(engine, singleInteractive, cellObject);
+
+                            if(result instanceof ObservableJSObject) {
+                                // If already shown, navigate to that component
+
+                                JSComponent cellComponent = createCell(engine, desktop, (ObservableJSObject) result, indexedObjects, base);
+
+                                ((ObservableJSObject) result).setMember("x", e.getPoint().x);
+                                ((ObservableJSObject) result).setMember("y", e.getPoint().y);
+
+                                cellComponent.object.sendState();
+
+                                desktop.add(cellComponent);
+
+                                //return cellComponent.object;
+
+                            } else {
+                                // Wrap into const something
+                                // Or?...
+                            }
+
+                            desktop.repaint();
+                            desktop.revalidate();
+                        }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0, false), JComponent.WHEN_FOCUSED);
+                        singleInteractive.registerKeyboardAction(e1 -> {
+                            desktop.remove(singleInteractive);
+                            desktop.repaint();
+                            desktop.revalidate();
+                        }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0, false), JComponent.WHEN_FOCUSED);
+                        singleInteractive.addFocusListener(new FocusAdapter() {
+                            @Override
+                            public void focusLost(FocusEvent e) {
+                                desktop.remove(singleInteractive);
+                                desktop.repaint();
+                                desktop.revalidate();
+                            }
+                        });
+
+                        desktop.add(singleInteractive);
+                        desktop.setComponentZOrder(singleInteractive, 0);
+                        desktop.revalidate();
+                        desktop.repaint();
+                        singleInteractive.requestFocusInWindow();
+
+                        break;
+                    case MouseEvent.BUTTON3:
+                        JComponent evalPanel = newInteraction(engine, desktop, cellObject);
+
+                        //evalPanel.setLocation((cell.getX() + cell.getWidth() / 2) - evalPanel.getWidth() / 2, cell.getY() + cell.getHeight());
+                        evalPanel.setLocation(e.getPoint());
+                        desktop.add(evalPanel);
+                        desktop.setComponentZOrder(evalPanel, 0);
+                        evalPanel.requestFocusInWindow();
+
+                        desktop.revalidate();
+                        desktop.repaint();
+                        break;
+                }
+            }
+        });
+    }
+
     public static void main(String[] args) {
         ScriptEngineManager engineManager = new ScriptEngineManager();
         NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
@@ -350,30 +422,39 @@ public class Main {
         JPanel desktop = (JPanel) frame.getContentPane();
         desktop.setLayout(null);
 
-        Facade core = new Facade(engine, desktop);
+        ObservableJSObject base = new ObservableJSObject(null);
+
+        Facade core = new Facade(engine, desktop, base);
         engine.getBindings(ScriptContext.ENGINE_SCOPE).put("core", core);
 
         JPopupMenu contextMenu = new JPopupMenu();
 
-        desktop.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent e) {
-                mouseClickPoint = e.getPoint();
 
-                if(contextMenu.isPopupTrigger(e)) {
-                    contextMenu.show(e.getComponent(), e.getX(), e.getY());
+        makeInteractive(engine, desktop, desktop, base, core.indexedObjects);
+
+        /*desktop.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                switch(e.getClickCount()) {
+                    case 1:
+                        break;
+                    case 2:
+                        JComponent clickComponent = (JComponent) desktop.findComponentAt(e.getPoint());
+                        ObservableJSObject cellObject = clickComponent != desktop
+                            ? ((JSComponent)clickComponent).object : base;
+                        JComponent evalPanel = newInteraction(engine, desktop, cellObject);
+
+                        //evalPanel.setLocation((cell.getX() + cell.getWidth() / 2) - evalPanel.getWidth() / 2, cell.getY() + cell.getHeight());
+                        evalPanel.setLocation(e.getPoint());
+                        desktop.add(evalPanel);
+                        evalPanel.requestFocusInWindow();
+
+                        desktop.revalidate();
+                        desktop.repaint();
+                        break;
                 }
             }
-
-            @Override
-            public void mouseReleased(MouseEvent e) {
-                if(contextMenu.isPopupTrigger(e)) {
-                    contextMenu.show(e.getComponent(), e.getX(), e.getY());
-                }
-            }
-        });
-
-        ObservableJSObject base = new ObservableJSObject(null);
+        });*/
 
         try {
             //engine.eval("base = {}");
@@ -383,6 +464,8 @@ public class Main {
             //engine.eval("foo", base);
             //engine.compile("foo").eval(base);
             ScriptObjectMirror function = (ScriptObjectMirror) engine.eval("function() {\n" +
+                "   this.width = 20;\n" +
+                "   this.height = 20;\n" +
                 "   this.paint = function(g) { g.setColor(this.background); g.fillRect(0, 0, this.width, this.height); }\n" +
                 "   this.clone = function() { return core.clone(this); }\n" +
                 "}");
@@ -623,10 +706,11 @@ public class Main {
         }
     }
 
-    private static JSComponent createCell(NashornScriptEngine engine, JPanel desktop, ObservableJSObject cellObject, Map<String, ObservableJSObject> indexedObjects) {
+    private static JSComponent createCell(NashornScriptEngine engine, JPanel desktop, ObservableJSObject cellObject, Map<String, ObservableJSObject> indexedObjects, ObservableJSObject base) {
         JSComponent cell = new JSComponent(cellObject);
+        //makeInteractive(engine, desktop, cell, base, indexedObjects);
 
-        cell.addMouseListener(new MouseAdapter() {
+        /*cell.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
                 e.toString();
@@ -636,7 +720,7 @@ public class Main {
             public void mouseReleased(MouseEvent e) {
                 e.toString();
             }
-        });
+        });*/
 
         cellObject.addObserver(new Consumer<Map<String, Object>>() {
             String currentName;
@@ -719,32 +803,14 @@ public class Main {
                 ObservableJSObject newCellObject = null;
                 newCellObject = new ObservableJSObject(cellObject);
 
-                /*try {
-                    //engine.eval("function paint(g) { g.setColor(background); g.fillRect(0, 0, width, height); }", object);
-                    engine.put("tmp", newCellObject);
-
-                    newCellObject = new ObservableJSObject(cellObject);
-
-                    //newCellObject = (ScriptObjectMirror)engine.eval("var n = {}; Object.setPrototypeOf(n, base);  n;");
-                    //obj.toString();
-                } catch (ScriptException e1) {
-                    e1.printStackTrace();
-                }*/
-
-                JComponent clone = createCell(engine, desktop, newCellObject, indexedObjects);
+                JComponent clone = createCell(engine, desktop, newCellObject, indexedObjects, base);
 
 
 
                 newCellObject.setMember("x", cell.getX() + cell.getWidth() + 5);
                 newCellObject.setMember("y", cell.getY());
                 newCellObject.sendState();
-                /*cellObject.setMember("width", 20);
-                cellObject.setMember("height", 20);
-                cellObject.setMember("background", Color.RED);*/
 
-                /*clone.setLocation(new Point(cell.getX() + cell.getWidth() + 5, cell.getY()));
-                clone.setSize(20, 20);
-                clone.setBackground(Color.RED);*/
                 desktop.add(clone);
                 desktop.revalidate();
                 desktop.repaint();
@@ -819,7 +885,76 @@ public class Main {
             }
         });
 
-        cell.setComponentPopupMenu(cellContextMenu);
+        //cell.setComponentPopupMenu(cellContextMenu);
         return cell;
+    }
+
+    private static Object eval(NashornScriptEngine engine, JTextComponent script, ObservableJSObject cellObject) {
+        String text = script.getSelectedText();
+        if (text == null)
+            text = script.getText();
+
+        ScriptObjectMirror function = null;
+        try {
+            function = (ScriptObjectMirror) engine.eval("function(text) { return eval(text); }");
+        } catch (ScriptException e) {
+            e.printStackTrace();
+        }
+        return function.call(cellObject, text);
+
+        //return cellObject.eval(text);
+    }
+
+    private static JComponent newInteraction(NashornScriptEngine engine, JPanel desktop, ObservableJSObject cellObject) {
+        JPanel evalPanel = new JPanel();
+
+        JToolBar toolBar = new JToolBar();
+        JTextPane script = new JTextPane();
+        script.setFont(new Font(Font.MONOSPACED, Font.BOLD, 14));
+        evalPanel.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                script.requestFocusInWindow();
+            }
+        });
+        evalPanel.setLayout(new BorderLayout());
+        toolBar.add(new AbstractAction("close") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                desktop.remove(evalPanel);
+                desktop.revalidate();
+                desktop.repaint();
+            }
+        });
+        toolBar.add(new AbstractAction("run") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                eval(engine, script, cellObject);
+            }
+        });
+        toolBar.add(new AbstractAction("print") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Object obj = eval(engine, script, cellObject);
+                int insertIndex;
+                if (script.getSelectionStart() == script.getSelectionEnd())
+                    insertIndex = script.getDocument().getLength();
+                else
+                    insertIndex = script.getSelectionEnd();
+                try {
+                    String output = obj.toString();
+                    script.getStyledDocument().insertString(insertIndex, output, null);
+                    script.select(insertIndex, insertIndex + output.length());
+                } catch (BadLocationException e1) {
+                    e1.printStackTrace();
+                }
+                Object uw = jdk.nashorn.api.scripting.ScriptUtils.unwrap(cellObject);
+            }
+        });
+        evalPanel.add(toolBar, BorderLayout.NORTH);
+        evalPanel.add(new JScrollPane(script), BorderLayout.CENTER);
+        evalPanel.setSize(320, 200);
+
+        return evalPanel;
     }
 }
