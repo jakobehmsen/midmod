@@ -1,6 +1,7 @@
 package jsflow;
 
 import jdk.nashorn.api.scripting.*;
+import jdk.nashorn.internal.runtime.Undefined;
 
 import javax.script.*;
 import javax.swing.*;
@@ -12,6 +13,7 @@ import java.awt.event.MouseEvent;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Main {
     private static class JSComponent extends JComponent {
@@ -90,18 +92,73 @@ public class Main {
         }*/
     }
 
+    public interface Removable {
+        void remove();
+    }
+
+    public interface Binding extends Removable {
+        Object getSource();
+        Object getTarget();
+    }
+
+    public interface Observable {
+        void addObserver(Object observer);
+        void removeObserver(Object observer);
+        void sendState();
+    }
+
+    public interface Observer extends Removable {
+        void next(Object value);
+    }
+
+    public abstract static class AbstractObservable implements Observable, Removable {
+        private ArrayList<Object> observers = new ArrayList<>();
+
+        @Override
+        public void addObserver(Object observer) {
+            observers.add(observer);
+        }
+
+        @Override
+        public void removeObserver(Object observer) {
+            observers.remove(observer);
+        }
+
+        protected void sendNext(Object value) {
+            observers.forEach(x -> ((Observer) x).next(value));
+            //observers.forEach(x -> x.call("next", value));
+        }
+
+        protected void sendRemove() {
+            observers.forEach(x -> ((Observer) x).remove());
+            //observers.forEach(x -> x.call("remove"));
+        }
+
+        @Override
+        public void remove() {
+            sendRemove();
+        }
+    }
+
+    public abstract static class AbstractObservableObserver extends AbstractObservable implements Observer {
+
+    }
+
     private static Point mouseClickPoint;
     public static class Facade {
         private NashornScriptEngine engine;
         private JPanel desktop;
+        private ArrayList<Binding> bindings = new ArrayList<>();
+        private ArrayList<ObservableJSObject> allObjects = new ArrayList<>();
+        private Hashtable<String, ObservableJSObject> indexedObjects = new Hashtable<>();
 
         private Facade(NashornScriptEngine engine, JPanel desktop) {
             this.engine = engine;
             this.desktop = desktop;
         }
 
-        public Object clone(Object obj) {
-            JSComponent cellComponent = createCell(engine, desktop, new ObservableJSObject((ObservableJSObject) obj));
+        public ObservableJSObject clone(Object obj) {
+            JSComponent cellComponent = createCell(engine, desktop, new ObservableJSObject((ObservableJSObject) obj), indexedObjects);
 
             cellComponent.object.sendState();
 
@@ -112,9 +169,176 @@ public class Main {
             return cellComponent.object;
         }
 
-        @Override
-        public String toString() {
-            return "blad";
+        public ObservableJSObject getByName(String name) {
+            return indexedObjects.get(name);
+        }
+
+        public Observable memberSource(JSObject obj, String member) {
+            return new AbstractObservable() {
+                @Override
+                public void sendState() {
+                    sendNext(obj.getMember(member));
+                }
+
+                {
+                    ((ObservableJSObject) obj).addObserver(change -> {
+                        switch ((String)change.get("type")) {
+                            case "put": {
+                                String name = (String) change.get("name");
+                                if(name.equals(member)) {
+                                    Object value = change.get("value");
+                                    sendNext(value);
+                                }
+                                break;
+                            } case "remove": {
+                                String name = (String) change.get("name");
+                                if(name.equals(member)) {
+                                    Object value = Undefined.getUndefined();
+                                    sendNext(value);
+                                }
+                                break;
+                            }
+                        }
+                    });
+                }
+
+                @Override
+                public String toString() {
+                    return obj + "." + member;
+                }
+            };
+        }
+
+        public Observer memberTarget(JSObject obj, String member) {
+            return new AbstractObservableObserver() {
+                @Override
+                public void sendState() {
+                    sendNext(obj.getMember(member));
+                }
+
+                @Override
+                public void next(Object value) {
+                    obj.setMember(member, value);
+                }
+
+                @Override
+                public String toString() {
+                    return obj + "." + member;
+                }
+            };
+        }
+
+        public Observable constSource(Object obj) {
+            return new AbstractObservable() {
+                @Override
+                public void sendState() {
+                    sendNext(obj);
+                }
+
+                @Override
+                public String toString() {
+                    return obj.toString();
+                }
+            };
+        }
+
+        public Observable reducer(Observable[] observables, Observable reduceFuncObservable) {
+            return new AbstractObservable() {
+                private Object[] arguments = new Object[observables.length];
+                private Object reduceFunc;
+
+                {
+                    reduceFuncObservable.addObserver(new Observer() {
+                        @Override
+                        public void next(Object value) {
+                            reduceFunc = value;
+                            sendState();
+                        }
+
+                        @Override
+                        public void remove() {
+                            sendRemove();
+                        }
+                    });
+                    reduceFuncObservable.sendState();
+
+                    IntStream.range(0, observables.length).forEach(i -> {
+                        observables[i].addObserver(new Observer() {
+                            @Override
+                            public void next(Object value) {
+                                arguments[i] = value;
+
+                                sendState();
+                            }
+
+                            @Override
+                            public void remove() {
+                                sendRemove();
+                            }
+                        });
+                        observables[i].sendState();
+                    });
+                }
+
+                @Override
+                public void sendState() {
+                    if(reduceFunc != null && Arrays.asList(arguments).stream().allMatch(x -> x != null)) {
+                        Object value = ((ScriptObjectMirror)reduceFunc).call(null, arguments);
+                        sendNext(value);
+                    }
+                }
+
+                @Override
+                public String toString() {
+                    return reduceFuncObservable.toString() +
+                        "(" + Arrays.asList(observables).stream().map(x -> x.toString()).collect(Collectors.joining(", ")) + ")";
+                }
+            };
+        }
+
+        public Binding bind(Object source, Object target) {
+            Binding binding = new Binding() {
+                @Override
+                public Object getSource() {
+                    return source;
+                }
+
+                @Override
+                public Object getTarget() {
+                    return target;
+                }
+
+                @Override
+                public void remove() {
+                    ((Removable)source).remove();
+                    ((Removable)target).remove();
+                    //source.call("remove");
+                    //target.call("remove");
+
+                    bindings.remove(this);
+                }
+
+                @Override
+                public String toString() {
+                    return getTarget() + " = " + getSource();
+                }
+            };
+
+            // Remove any existing binding for the target; at most 1 binding exist for a target
+            // TODO: Implement equals for source- and target types
+            bindings.stream()
+                .filter(x -> x.getTarget().equals(target)).findFirst()
+                .ifPresent(b -> b.remove());
+
+            // The binding should be removed if source or target is removed
+
+            bindings.add(binding);
+
+            ((Observable)source).addObserver(target);
+            ((Observable)source).sendState();
+            //source.call("addObserver", target);
+
+            return binding;
         }
     }
 
@@ -126,7 +350,8 @@ public class Main {
         JPanel desktop = (JPanel) frame.getContentPane();
         desktop.setLayout(null);
 
-        engine.getBindings(ScriptContext.ENGINE_SCOPE).put("core", new Facade(engine, desktop));
+        Facade core = new Facade(engine, desktop);
+        engine.getBindings(ScriptContext.ENGINE_SCOPE).put("core", core);
 
         JPopupMenu contextMenu = new JPopupMenu();
 
@@ -181,7 +406,7 @@ public class Main {
 
                 //object.put("base", base);
 
-                ObservableJSObject cellObject = new ObservableJSObject(base);
+                //ObservableJSObject cellObject = new ObservableJSObject(base);
                 /*ScriptObjectMirror cellObject = null;
 
                 try {
@@ -196,7 +421,10 @@ public class Main {
                 //cellObject.setProto(base);
 
                 //JSComponent cell = new JSComponent(cellObject);
-                JComponent cell = createCell(engine, desktop, cellObject);
+                //JComponent cell = createCell(engine, desktop, cellObject, core.indexedObjects);
+                //JComponent cell = core.clone(base);
+                ObservableJSObject cellObject = core.clone(base);
+
                 cellObject.setMember("x", mouseClickPoint.x);
                 cellObject.setMember("y", mouseClickPoint.y);
                 cellObject.setMember("width", 20);
@@ -205,7 +433,7 @@ public class Main {
                 //cell.setLocation(mouseClickPoint);
                 //cell.setSize(20, 20);
                 //cell.setBackground(Color.BLUE);
-                desktop.add(cell);
+                //desktop.add(cell);
                 /*desktop.repaint();
                 desktop.revalidate();*/
             }
@@ -395,7 +623,7 @@ public class Main {
         }
     }
 
-    private static JSComponent createCell(NashornScriptEngine engine, JPanel desktop, ObservableJSObject cellObject) {
+    private static JSComponent createCell(NashornScriptEngine engine, JPanel desktop, ObservableJSObject cellObject, Map<String, ObservableJSObject> indexedObjects) {
         JSComponent cell = new JSComponent(cellObject);
 
         cell.addMouseListener(new MouseAdapter() {
@@ -407,6 +635,36 @@ public class Main {
             @Override
             public void mouseReleased(MouseEvent e) {
                 e.toString();
+            }
+        });
+
+        cellObject.addObserver(new Consumer<Map<String, Object>>() {
+            String currentName;
+
+            @Override
+            public void accept(Map<String, Object> change) {
+                switch ((String)change.get("type")) {
+                    case "put": {
+                        String name = (String) change.get("name");
+                        if(name.equals("name")) {
+                            if(currentName != null)
+                                change.remove(currentName);
+
+                            Object value = change.get("value");
+                            indexedObjects.put((String)value, cellObject);
+
+                            currentName = name;
+                        }
+                        break;
+                    } case "remove": {
+                        String name = (String) change.get("name");
+                        if(name.equals("name")) {
+                            indexedObjects.remove(name);
+                            currentName = null;
+                        }
+                        break;
+                    }
+                }
             }
         });
 
@@ -473,7 +731,7 @@ public class Main {
                     e1.printStackTrace();
                 }*/
 
-                JComponent clone = createCell(engine, desktop, newCellObject);
+                JComponent clone = createCell(engine, desktop, newCellObject, indexedObjects);
 
 
 
