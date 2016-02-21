@@ -7,6 +7,8 @@ import sun.swing.SwingUtilities2;
 
 import javax.script.*;
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
@@ -342,37 +344,48 @@ public class Main {
 
                 switch(e.getButton()) {
                     case MouseEvent.BUTTON1:
-                        JTextField singleInteractive = new JTextField();
+                        //JTextField singleInteractive = new JTextField();
+                        JTextArea singleInteractive = new JTextArea("");
+
+                        singleInteractive.getDocument().addDocumentListener(new DocumentListener() {
+                            @Override
+                            public void insertUpdate(DocumentEvent e) {
+                                singleInteractive.setSize(singleInteractive.getPreferredSize());
+                                singleInteractive.repaint();
+                            }
+
+                            @Override
+                            public void removeUpdate(DocumentEvent e) {
+                                singleInteractive.setSize(singleInteractive.getPreferredSize());
+                                singleInteractive.repaint();
+                            }
+
+                            @Override
+                            public void changedUpdate(DocumentEvent e) {
+                                singleInteractive.setSize(singleInteractive.getPreferredSize());
+                                singleInteractive.repaint();
+                            }
+                        });
+
                         singleInteractive.setFont(new Font(Font.MONOSPACED, Font.BOLD, 14));
                         singleInteractive.setLocation(e.getPoint());
-                        singleInteractive.setSize(200, 30);
+                        singleInteractive.setSize(10, 20);
                         singleInteractive.setForeground(Color.WHITE);
                         singleInteractive.setBackground(Color.DARK_GRAY);
                         singleInteractive.setCaretColor(singleInteractive.getForeground());
                         singleInteractive.registerKeyboardAction(e1 -> {
-                            desktop.remove(singleInteractive);
-
+                            try {
+                                singleInteractive.getDocument().insertString(singleInteractive.getCaretPosition(), "\n", null);
+                            } catch (BadLocationException e2) {
+                                e2.printStackTrace();
+                            }
+                        }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.MODIFIER_ALT, false), JComponent.WHEN_FOCUSED);
+                        singleInteractive.registerKeyboardAction(e1 -> {
                             Object result = eval(engine, singleInteractive, cellObject);
 
-                            if(result instanceof ObservableJSObject) {
-                                // If already shown, navigate to that component
+                            put(result, base, engine, desktop, indexedObjects, e.getPoint());
 
-                                JSComponent cellComponent = createCell(engine, desktop, (ObservableJSObject) result, indexedObjects, base);
-
-                                ((ObservableJSObject) result).setMember("x", e.getPoint().x);
-                                ((ObservableJSObject) result).setMember("y", e.getPoint().y);
-
-                                cellComponent.object.sendState();
-
-                                desktop.add(cellComponent);
-
-                                //return cellComponent.object;
-
-                            } else {
-                                // Wrap into const something
-                                // Or?...
-                            }
-
+                            desktop.remove(singleInteractive);
                             desktop.repaint();
                             desktop.revalidate();
                         }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0, false), JComponent.WHEN_FOCUSED);
@@ -412,6 +425,36 @@ public class Main {
                 }
             }
         });
+    }
+
+    private static void put(Object result, ObservableJSObject base, NashornScriptEngine engine, JPanel desktop, Map<String, ObservableJSObject> indexedObjects, Point location) {
+        if(result instanceof JSObject) {
+            // Use object to create cell
+            JSObject jsResult = (JSObject) result;
+            ObservableJSObject newResult = new ObservableJSObject(base);
+            jsResult.keySet().forEach(name ->
+                newResult.put(name, jsResult.getMember(name)));
+            result = newResult;
+        }
+
+        if(result instanceof ObservableJSObject) {
+            // If already shown, navigate to that component
+
+            JSComponent cellComponent = createCell(engine, desktop, (ObservableJSObject) result, indexedObjects, base);
+
+            ((ObservableJSObject) result).setMember("x", location.x);
+            ((ObservableJSObject) result).setMember("y", location.y);
+
+            cellComponent.object.sendState();
+
+            desktop.add(cellComponent);
+
+            //return cellComponent.object;
+
+        } else {
+            // Wrap into const something
+            // Or?...
+        }
     }
 
     public static void main(String[] args) {
@@ -896,7 +939,7 @@ public class Main {
 
         ScriptObjectMirror function = null;
         try {
-            function = (ScriptObjectMirror) engine.eval("function(text) { return eval(text); }");
+            function = (ScriptObjectMirror) engine.eval("function(text) { print(text); return eval(text); }");
         } catch (ScriptException e) {
             e.printStackTrace();
         }
@@ -910,6 +953,9 @@ public class Main {
 
         JToolBar toolBar = new JToolBar();
         JTextPane script = new JTextPane();
+        /*
+        Drag and drop text from script to desktop means "eval and put into cell on desktop"
+        */
         script.setFont(new Font(Font.MONOSPACED, Font.BOLD, 14));
         evalPanel.addFocusListener(new FocusAdapter() {
             @Override
@@ -932,6 +978,14 @@ public class Main {
                 eval(engine, script, cellObject);
             }
         });
+        /*toolBar.add(new AbstractAction("put") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Object result = eval(engine, script, cellObject);
+
+                put(result, base, engine, desktop, indexedObjects, e.getPoint());
+            }
+        });*/
         toolBar.add(new AbstractAction("print") {
             @Override
             public void actionPerformed(ActionEvent e) {
