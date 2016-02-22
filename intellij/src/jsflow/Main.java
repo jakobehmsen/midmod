@@ -3,6 +3,7 @@ package jsflow;
 import com.sun.glass.events.KeyEvent;
 import jdk.nashorn.api.scripting.*;
 import jdk.nashorn.internal.runtime.Undefined;
+import jsflow.bindlang.Parser;
 import sun.swing.SwingUtilities2;
 
 import javax.script.*;
@@ -15,6 +16,8 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -937,9 +940,26 @@ public class Main {
         if (text == null)
             text = script.getText();
 
+        Pattern pattern = Pattern.compile("#\\{.*\\}");
+        Matcher matcher = pattern.matcher(text);
+
+        StringBuffer newText = new StringBuffer();
+        while(matcher.find()) {
+            String part = matcher.group();
+            //part = "//<found part>";
+            part = Parser.replace(part);
+            matcher.appendReplacement(newText, part);
+
+            //newText.append(part);
+        }
+        matcher.appendTail(newText);
+        text = newText.toString();
+
+        System.out.println("Expanded text:\n" + text + "...");
+
         ScriptObjectMirror function = null;
         try {
-            function = (ScriptObjectMirror) engine.eval("function(text) { print(text); return eval(text); }");
+            function = (ScriptObjectMirror) engine.eval("function(text) { return eval(text); }");
         } catch (ScriptException e) {
             e.printStackTrace();
         }
