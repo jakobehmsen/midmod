@@ -183,8 +183,28 @@ public class Main {
             return indexedObjects.get(name);
         }
 
-        public Observable memberSource(JSObject obj, String member) {
+        //public Observable memberSource(JSObject obj, String member)
+        public Observable memberSource(Observable observable, String member) {
             return new AbstractObservable() {
+                JSObject obj;
+
+                {
+                    observable.addObserver(new Observer() {
+                        @Override
+                        public void next(Object value) {
+                            obj = (JSObject) value;
+                            sendState();
+                        }
+
+                        @Override
+                        public void remove() {
+                            sendRemove();
+                        }
+                    });
+
+                    observable.sendState();
+                }
+
                 @Override
                 public void sendState() {
                     sendNext(obj.getMember(member));
@@ -214,7 +234,7 @@ public class Main {
 
                 @Override
                 public String toString() {
-                    return obj + "." + member;
+                    return observable + "." + member;
                 }
             };
         }

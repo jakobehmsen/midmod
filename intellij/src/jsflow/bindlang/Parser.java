@@ -8,7 +8,9 @@ import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 
+import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Parser {
     public static String replace(String text) {
@@ -74,7 +76,7 @@ public class Parser {
 
             @Override
             public String visitExpression3(BindParser.Expression3Context ctx) {
-                String str = parseSource((ParserRuleContext) ctx.getChild(0));
+                String str = parseSource(ctx.atom());
 
                 for (BindParser.ExpressionTailPartContext partCtx : ctx.expressionTail().expressionTailPart()) {
                     String strSource = str;
@@ -86,12 +88,24 @@ public class Parser {
 
                         @Override
                         public String visitCall(BindParser.CallContext ctx) {
-                            return super.visitCall(ctx);
+                            String memberSourceStr = "core.memberSource(" + strSource + ", \"" + ctx.ID().getText() + "\")";
+                            String argumentsStr = ctx.expression().stream().map(x -> parseSource(x)).collect(Collectors.joining(", "));
+                            String parametersStr = IntStream.range(0, ctx.expression().size()).mapToObj(x -> "arg0").collect(Collectors.joining(", "));
+                            return
+                                "core.reducer([" + memberSourceStr + ", " + argumentsStr + "], " +
+                                "function(func, " + parametersStr + ") {" +
+                                "return func(" + parametersStr + ")" +
+                                "})";
                         }
                     });
                 }
 
                 return str;
+            }
+
+            @Override
+            public String visitAtom(BindParser.AtomContext ctx) {
+                return parseSource((ParserRuleContext) ctx.getChild(0));
             }
 
             @Override
@@ -106,7 +120,7 @@ public class Parser {
 
             @Override
             public String visitAccess(BindParser.AccessContext ctx) {
-                return ctx.getText();
+                return "core.constSource(" + ctx.getText() + ")";
             }
         });
     }
