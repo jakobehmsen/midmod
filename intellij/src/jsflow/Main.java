@@ -111,6 +111,7 @@ public class Main {
         void addObserver(Object observer);
         void removeObserver(Object observer);
         void sendState();
+        void getState(Consumer<Object> valueHandler);
     }
 
     public interface Observer extends Removable {
@@ -143,6 +144,11 @@ public class Main {
         @Override
         public void remove() {
             sendRemove();
+        }
+
+        @Override
+        public void sendState() {
+            getState(value -> sendNext(value));
         }
     }
 
@@ -206,8 +212,8 @@ public class Main {
                 }
 
                 @Override
-                public void sendState() {
-                    sendNext(obj.getMember(member));
+                public void getState(Consumer<Object> valueHandler) {
+                    valueHandler.accept(obj.getMember(member));
                 }
 
                 {
@@ -242,8 +248,8 @@ public class Main {
         public Observer memberTarget(JSObject obj, String member) {
             return new AbstractObservableObserver() {
                 @Override
-                public void sendState() {
-                    sendNext(obj.getMember(member));
+                public void getState(Consumer<Object> valueHandler) {
+                    valueHandler.accept(obj.getMember(member));
                 }
 
                 @Override
@@ -258,11 +264,43 @@ public class Main {
             };
         }
 
+        public Observable dependent(Observable[] dependencies, Observable dependent) {
+            return new AbstractObservable() {
+                {
+                    Arrays.asList(dependencies).forEach(x -> {
+                        x.addObserver(new Observer() {
+                            @Override
+                            public void next(Object value) {
+                                sendState();
+                            }
+
+                            @Override
+                            public void remove() {
+                                sendRemove();
+                                // Remove from dependent
+                            }
+                        });
+                    });
+                }
+
+                @Override
+                public void getState(Consumer<Object> valueHandler) {
+                    //valueHandler.accept();
+                    dependent.getState(valueHandler);
+                }
+
+                @Override
+                public String toString() {
+                    return dependent + ": " + dependencies;
+                }
+            };
+        }
+
         public Observable constSource(Object obj) {
             return new AbstractObservable() {
                 @Override
-                public void sendState() {
-                    sendNext(obj);
+                public void getState(Consumer<Object> valueHandler) {
+                    valueHandler.accept(obj);
                 }
 
                 @Override
@@ -295,11 +333,19 @@ public class Main {
                     });
                 }
 
-                @Override
+                /*@Override
                 public void sendState() {
                     if(Arrays.asList(arguments).stream().allMatch(x -> x != null)) {
                         Object value = ((ScriptObjectMirror)reduceFunc).call(null, arguments);
                         sendNext(value);
+                    }
+                }*/
+
+                @Override
+                public void getState(Consumer<Object> valueHandler) {
+                    if(Arrays.asList(arguments).stream().allMatch(x -> x != null)) {
+                        Object value = ((ScriptObjectMirror)reduceFunc).call(null, arguments);
+                        valueHandler.accept(value);
                     }
                 }
 
@@ -454,10 +500,12 @@ public class Main {
         if(result instanceof JSObject) {
             // Use object to create cell
             JSObject jsResult = (JSObject) result;
-            ObservableJSObject newResult = new ObservableJSObject(base);
-            jsResult.keySet().forEach(name ->
-                newResult.put(name, jsResult.getMember(name)));
-            result = newResult;
+            if(jsResult.keySet().contains("paint")) {
+                ObservableJSObject newResult = new ObservableJSObject(base);
+                jsResult.keySet().forEach(name ->
+                    newResult.put(name, jsResult.getMember(name)));
+                result = newResult;
+            }
         }
 
         if(result instanceof ObservableJSObject) {
