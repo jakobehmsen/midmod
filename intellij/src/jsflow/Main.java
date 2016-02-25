@@ -14,6 +14,8 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -109,6 +111,10 @@ public class Main {
 
     public interface Observable {
         void addObserver(Object observer);
+        default <T> T addAndReturnObserver(T observer) {
+            addObserver(observer);
+            return (T)observer;
+        }
         void removeObserver(Object observer);
         void sendState();
         void getState(Consumer<Object> valueHandler);
@@ -129,6 +135,7 @@ public class Main {
         @Override
         public void removeObserver(Object observer) {
             observers.remove(observer);
+            ((Observer) observer).remove();
         }
 
         protected void sendNext(Object value) {
@@ -310,6 +317,101 @@ public class Main {
             };
         }
 
+        public Observable changed(Object value, Observable observable) {
+            return new AbstractObservable() {
+                private Object otherValue;
+                private Observer observer;
+
+                {
+                    observer = observable.addAndReturnObserver(new Observer() {
+                        @Override
+                        public void next(Object value) {
+                            otherValue = value;
+                            sendState();
+                        }
+
+                        @Override
+                        public void remove() {
+                            sendRemove();
+                        }
+                    });
+                    observable.sendState();
+                }
+
+                @Override
+                public void getState(Consumer<Object> valueHandler) {
+                    try {
+                        Method m = ScriptObjectMirror.class.getDeclaredMethod("getScriptObject");
+                        m.setAccessible(true);
+                        valueHandler.accept(m.invoke(value) != m.invoke(otherValue));
+                    } catch (NoSuchMethodException e) {
+                        e.printStackTrace();
+                    } catch (InvocationTargetException e) {
+                        e.printStackTrace();
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
+                    //valueHandler.accept(value != otherValue);
+                    //valueHandler.accept(((ScriptObjectMirror)value). != otherValue);
+                }
+
+                @Override
+                public String toString() {
+                    return value + " != " + observable;
+                }
+            };
+        }
+
+        public Observable until(Observable observable, Observable observableCondition) {
+            return new AbstractObservable() {
+                Observer observer;
+                Observer conditionObserver;
+
+                {
+                    observer = observable.addAndReturnObserver(new Observer() {
+                        @Override
+                        public void next(Object value) {
+                            sendNext(value);
+                        }
+
+                        @Override
+                        public void remove() {
+                            if(conditionObserver != null) {
+                                observableCondition.removeObserver(conditionObserver);
+                                sendRemove();
+                            }
+                        }
+                    });
+
+                    conditionObserver = observableCondition.addAndReturnObserver(new Observer() {
+                        @Override
+                        public void next(Object value) {
+                            if ((boolean) value) {
+                                observableCondition.removeObserver(conditionObserver);
+                            }
+                        }
+
+                        @Override
+                        public void remove() {
+                            conditionObserver = null;
+                            observable.removeObserver(observer);
+                            sendRemove();
+                        }
+                    });
+                }
+
+                @Override
+                public void getState(Consumer<Object> valueHandler) {
+                    observable.getState(valueHandler);
+                }
+
+                @Override
+                public String toString() {
+                    return observable + " until " + observableCondition;
+                }
+            };
+        }
+
         public Observable reducer(Observable[] observables, Object reduceFunc) {
             return new AbstractObservable() {
                 private Object[] arguments = new Object[observables.length];
@@ -359,6 +461,12 @@ public class Main {
 
         public Binding bind(Object source, Object target) {
             Binding binding = new Binding() {
+                {
+                    // Add observers to source and target that observes removal
+                    // and ensures this binding only exists until either of
+                    // these observers receives a remove message.
+                }
+
                 @Override
                 public Object getSource() {
                     return source;
