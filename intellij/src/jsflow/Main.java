@@ -226,7 +226,8 @@ public class Main {
                 {
                     ((ObservableJSObject) obj).addObserver(change -> {
                         switch ((String)change.get("type")) {
-                            case "put": {
+                            case "put":
+                            case "update":{
                                 String name = (String) change.get("name");
                                 if(name.equals(member)) {
                                     Object value = change.get("value");
@@ -252,6 +253,61 @@ public class Main {
             };
         }
 
+        public Observable memberSourceReplace(Observable observable, String member) {
+            return new AbstractObservable() {
+                JSObject obj;
+
+                {
+                    observable.addObserver(new Observer() {
+                        @Override
+                        public void next(Object value) {
+                            obj = (JSObject) value;
+                            sendState();
+                        }
+
+                        @Override
+                        public void remove() {
+                            sendRemove();
+                        }
+                    });
+
+                    observable.sendState();
+                }
+
+                @Override
+                public void getState(Consumer<Object> valueHandler) {
+                    valueHandler.accept(obj.getMember(member));
+                }
+
+                {
+                    ((ObservableJSObject) obj).addObserver(change -> {
+                        switch ((String)change.get("type")) {
+                            case "put": {
+                                String name = (String) change.get("name");
+                                if(name.equals(member)) {
+                                    Object value = change.get("value");
+                                    sendNext(value);
+                                }
+                                break;
+                            } case "remove": {
+                                String name = (String) change.get("name");
+                                if(name.equals(member)) {
+                                    Object value = Undefined.getUndefined();
+                                    sendNext(value);
+                                }
+                                break;
+                            }
+                        }
+                    });
+                }
+
+                @Override
+                public String toString() {
+                    return observable + "." + member + " replace";
+                }
+            };
+        }
+
         public Observer memberTarget(JSObject obj, String member) {
             return new AbstractObservableObserver() {
                 @Override
@@ -271,20 +327,41 @@ public class Main {
             };
         }
 
-        public Observable dependent(Observable[] dependencies, Observable dependent) {
+        public Observer memberTargetUpdate(JSObject obj, String member) {
+            return new AbstractObservableObserver() {
+                @Override
+                public void getState(Consumer<Object> valueHandler) {
+                    valueHandler.accept(obj.getMember(member));
+                }
+
+                @Override
+                public void next(Object value) {
+                    ((ObservableJSObject)obj).update(member);
+                }
+
+                @Override
+                public String toString() {
+                    return obj + "." + member + "!";
+                }
+            };
+        }
+
+        public Observable either(Observable[] observables) {
             return new AbstractObservable() {
+                private Object currentValue;
+
                 {
-                    Arrays.asList(dependencies).forEach(x -> {
+                    Arrays.asList(observables).forEach(x -> {
                         x.addObserver(new Observer() {
                             @Override
                             public void next(Object value) {
+                                currentValue = value;
                                 sendState();
                             }
 
                             @Override
                             public void remove() {
                                 sendRemove();
-                                // Remove from dependent
                             }
                         });
                     });
@@ -292,13 +369,40 @@ public class Main {
 
                 @Override
                 public void getState(Consumer<Object> valueHandler) {
-                    //valueHandler.accept();
+                    valueHandler.accept(currentValue);
+                }
+
+                @Override
+                public String toString() {
+                    return "either(" + Arrays.asList(observables) + ")";
+                }
+            };
+        }
+
+        public Observable dependent(Observable dependency, Observable dependent) {
+            return new AbstractObservable() {
+                {
+                    dependency.addAndReturnObserver(new Observer() {
+                        @Override
+                        public void next(Object value) {
+                            sendState();
+                        }
+
+                        @Override
+                        public void remove() {
+                            sendRemove();
+                        }
+                    });
+                }
+
+                @Override
+                public void getState(Consumer<Object> valueHandler) {
                     dependent.getState(valueHandler);
                 }
 
                 @Override
                 public String toString() {
-                    return dependent + ": " + dependencies;
+                    return dependent + ": " + dependency;
                 }
             };
         }
@@ -317,7 +421,7 @@ public class Main {
             };
         }
 
-        public Observable changed(Object value, Observable observable) {
+        /*public Observable changed(Object value, Observable observable) {
             return new AbstractObservable() {
                 private Object otherValue;
                 private Observer observer;
@@ -360,7 +464,7 @@ public class Main {
                     return value + " != " + observable;
                 }
             };
-        }
+        }*/
 
         public Observable until(Observable observable, Observable observableCondition) {
             return new AbstractObservable() {
@@ -386,9 +490,7 @@ public class Main {
                     conditionObserver = observableCondition.addAndReturnObserver(new Observer() {
                         @Override
                         public void next(Object value) {
-                            if ((boolean) value) {
-                                observableCondition.removeObserver(conditionObserver);
-                            }
+                            observableCondition.removeObserver(conditionObserver);
                         }
 
                         @Override
@@ -461,10 +563,40 @@ public class Main {
 
         public Binding bind(Object source, Object target) {
             Binding binding = new Binding() {
+                Observer sourceObserver;
+                Observer targetObserver;
+
                 {
                     // Add observers to source and target that observes removal
                     // and ensures this binding only exists until either of
                     // these observers receives a remove message.
+
+                    sourceObserver = ((Observable)source).addAndReturnObserver(new Observer() {
+                        @Override
+                        public void next(Object value) {
+
+                        }
+
+                        @Override
+                        public void remove() {
+                            sourceObserver = null;
+                            if(targetObserver != null)
+                                ((Observable)target).removeObserver(targetObserver);
+                        }
+                    });
+                    targetObserver = ((Observable)target).addAndReturnObserver(new Observer() {
+                        @Override
+                        public void next(Object value) {
+
+                        }
+
+                        @Override
+                        public void remove() {
+                            targetObserver = null;
+                            if(sourceObserver != null)
+                                ((Observable)source).removeObserver(sourceObserver);
+                        }
+                    });
                 }
 
                 @Override
@@ -481,8 +613,6 @@ public class Main {
                 public void remove() {
                     ((Removable)source).remove();
                     ((Removable)target).remove();
-                    //source.call("remove");
-                    //target.call("remove");
 
                     bindings.remove(this);
                 }
@@ -772,6 +902,7 @@ public class Main {
                 protoObserver = change -> {
                     switch ((String) change.get("type")) {
                         case "put":
+                        case "update":
                         case "remove": {
                             String name = (String) change.get("name");
                             if (!containsKey(name))
@@ -801,6 +932,14 @@ public class Main {
         @Override
         public void setMember(String name, Object value) {
             put(name, value);
+        }
+
+        public void update(String name) {
+            sendChange(newMap(change -> {
+                change.put("type", "update");
+                change.put("name", name);
+                change.put("value", get(name));
+            }));
         }
 
         @Override
@@ -977,7 +1116,7 @@ public class Main {
         cellObject.addObserver(change -> {
             System.out.println("Received change: " + change);
 
-            if(change.get("type").equals("put")) {
+            if(change.get("type").equals("put") || change.get("type").equals("update")) {
                 Object value = change.get("value");
                 boolean requiresUpdate = false;
 
