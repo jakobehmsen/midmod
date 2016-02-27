@@ -644,6 +644,86 @@ public class Main {
     private static void makeInteractive(NashornScriptEngine engine, JPanel desktop, JComponent component, ObservableJSObject base, Map<String, ObservableJSObject> indexedObjects ) {
         component.addMouseListener(new MouseAdapter() {
             @Override
+            public void mousePressed(MouseEvent e) {
+
+
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                JComponent clickComponent = (JComponent) component.findComponentAt(e.getPoint());
+                ObservableJSObject cellObject = clickComponent != component
+                    ? ((JSComponent)clickComponent).object : base;
+
+                if(e.getButton() == MouseEvent.BUTTON1) {
+                    //JTextField singleInteractive = new JTextField();
+                    JTextArea singleInteractive = new JTextArea("");
+
+                    singleInteractive.getDocument().addDocumentListener(new DocumentListener() {
+                        @Override
+                        public void insertUpdate(DocumentEvent e) {
+                            singleInteractive.setSize(singleInteractive.getPreferredSize());
+                            singleInteractive.repaint();
+                        }
+
+                        @Override
+                        public void removeUpdate(DocumentEvent e) {
+                            singleInteractive.setSize(singleInteractive.getPreferredSize());
+                            singleInteractive.repaint();
+                        }
+
+                        @Override
+                        public void changedUpdate(DocumentEvent e) {
+                            singleInteractive.setSize(singleInteractive.getPreferredSize());
+                            singleInteractive.repaint();
+                        }
+                    });
+
+                    singleInteractive.setFont(new Font(Font.MONOSPACED, Font.BOLD, 14));
+                    singleInteractive.setLocation(e.getPoint());
+                    singleInteractive.setSize(10, 20);
+                    singleInteractive.setForeground(Color.WHITE);
+                    singleInteractive.setBackground(Color.DARK_GRAY);
+                    singleInteractive.setCaretColor(singleInteractive.getForeground());
+                    singleInteractive.registerKeyboardAction(e1 -> {
+                        try {
+                            singleInteractive.getDocument().insertString(singleInteractive.getCaretPosition(), "\n", null);
+                        } catch (BadLocationException e2) {
+                            e2.printStackTrace();
+                        }
+                    }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.MODIFIER_ALT, false), JComponent.WHEN_FOCUSED);
+                    singleInteractive.registerKeyboardAction(e1 -> {
+                        Object result = eval(engine, singleInteractive, cellObject);
+
+                        put(result, base, engine, desktop, indexedObjects, e.getPoint());
+
+                        desktop.remove(singleInteractive);
+                        desktop.repaint();
+                        desktop.revalidate();
+                    }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0, false), JComponent.WHEN_FOCUSED);
+                    singleInteractive.registerKeyboardAction(e1 -> {
+                        desktop.remove(singleInteractive);
+                        desktop.repaint();
+                        desktop.revalidate();
+                    }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0, false), JComponent.WHEN_FOCUSED);
+                    singleInteractive.addFocusListener(new FocusAdapter() {
+                        @Override
+                        public void focusLost(FocusEvent e) {
+                            desktop.remove(singleInteractive);
+                            desktop.repaint();
+                            desktop.revalidate();
+                        }
+                    });
+
+                    desktop.add(singleInteractive);
+                    desktop.setComponentZOrder(singleInteractive, 0);
+                    desktop.revalidate();
+                    desktop.repaint();
+                    singleInteractive.requestFocusInWindow();
+                }
+            }
+
+            @Override
             public void mouseClicked(MouseEvent e) {
                 JComponent clickComponent = (JComponent) component.findComponentAt(e.getPoint());
                 ObservableJSObject cellObject = clickComponent != component
@@ -744,6 +824,20 @@ public class Main {
                     newResult.put(name, jsResult.getMember(name)));
                 result = newResult;
             }
+        }
+
+        if(!(result instanceof ObservableJSObject)) {
+            ObservableJSObject newResult = new ObservableJSObject(base);
+            newResult.put("value", result);
+            String init =
+                "this.paint = function(g) {\n" +
+                "    g.drawString(this.value.toString(), 0, this.height);\n" +
+                "}\n" +
+                "this.width = 100;\n" +
+                "this.height = 20;\n" +
+                "";
+            eval(engine, init, newResult);
+            result = newResult;
         }
 
         if(result instanceof ObservableJSObject) {
@@ -1255,7 +1349,38 @@ public class Main {
         if (text == null)
             text = script.getText();
 
-        Pattern pattern = Pattern.compile("#\\{.*\\}");
+        return eval(engine, text, cellObject);
+
+        /*Pattern pattern = Pattern.compile("#\\{.*\\}");
+        Matcher matcher = pattern.matcher(text);
+
+        StringBuffer newText = new StringBuffer();
+        while(matcher.find()) {
+            String part = matcher.group();
+            //part = "//<found part>";
+            part = Parser.replace(part);
+            matcher.appendReplacement(newText, part);
+
+            //newText.append(part);
+        }
+        matcher.appendTail(newText);
+        text = newText.toString();
+
+        System.out.println("Expanded text:\n" + text + "...");
+
+        ScriptObjectMirror function = null;
+        try {
+            function = (ScriptObjectMirror) engine.eval("function(text) { return eval(text); }");
+        } catch (ScriptException e) {
+            e.printStackTrace();
+        }
+        return function.call(cellObject, text);*/
+
+        //return cellObject.eval(text);
+    }
+
+    private static Object eval(NashornScriptEngine engine, String text, ObservableJSObject cellObject) {
+        Pattern pattern = Pattern.compile("#\\{.*#\\}");
         Matcher matcher = pattern.matcher(text);
 
         StringBuffer newText = new StringBuffer();
