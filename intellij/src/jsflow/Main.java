@@ -4,7 +4,6 @@ import com.sun.glass.events.KeyEvent;
 import jdk.nashorn.api.scripting.*;
 import jdk.nashorn.internal.runtime.Undefined;
 import jsflow.bindlang.Parser;
-import sun.swing.SwingUtilities2;
 
 import javax.script.*;
 import javax.swing.*;
@@ -14,8 +13,6 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.*;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -641,19 +638,23 @@ public class Main {
         }
     }
 
-    private static void makeInteractive(NashornScriptEngine engine, JPanel desktop, JComponent component, ObservableJSObject base, Map<String, ObservableJSObject> indexedObjects ) {
+    private static void makeInteractive(NashornScriptEngine engine, JPanel desktop, JComponent component, ObservableJSObject base, Map<String, ObservableJSObject> indexedObjects, Facade core) {
         component.addMouseListener(new MouseAdapter() {
+            private JComponent pressComponent;
+            private ObservableJSObject cellObject;
+
             @Override
             public void mousePressed(MouseEvent e) {
-
-
+                pressComponent = (JComponent) component.findComponentAt(e.getPoint());
+                cellObject = pressComponent != component
+                    ? ((JSComponent)pressComponent).object : base;
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                JComponent clickComponent = (JComponent) component.findComponentAt(e.getPoint());
-                ObservableJSObject cellObject = clickComponent != component
-                    ? ((JSComponent)clickComponent).object : base;
+                JComponent releaseComponent = (JComponent) component.findComponentAt(e.getPoint());
+                /*ObservableJSObject cellObject = releaseComponent != component
+                    ? ((JSComponent)releaseComponent).object : base;*/
 
                 if(e.getButton() == MouseEvent.BUTTON1) {
                     //JTextField singleInteractive = new JTextField();
@@ -695,7 +696,8 @@ public class Main {
                     singleInteractive.registerKeyboardAction(e1 -> {
                         Object result = eval(engine, singleInteractive, cellObject);
 
-                        put(result, base, engine, desktop, indexedObjects, e.getPoint());
+                        if(releaseComponent == desktop)
+                            put(result, base, engine, desktop, indexedObjects, e.getPoint(), core);
 
                         desktop.remove(singleInteractive);
                         desktop.repaint();
@@ -770,7 +772,7 @@ public class Main {
                         singleInteractive.registerKeyboardAction(e1 -> {
                             Object result = eval(engine, singleInteractive, cellObject);
 
-                            put(result, base, engine, desktop, indexedObjects, e.getPoint());
+                            put(result, base, engine, desktop, indexedObjects, e.getPoint(), core);
 
                             desktop.remove(singleInteractive);
                             desktop.repaint();
@@ -814,7 +816,7 @@ public class Main {
         });
     }
 
-    private static void put(Object result, ObservableJSObject base, NashornScriptEngine engine, JPanel desktop, Map<String, ObservableJSObject> indexedObjects, Point location) {
+    private static void put(Object result, ObservableJSObject base, NashornScriptEngine engine, JPanel desktop, Map<String, ObservableJSObject> indexedObjects, Point location, Facade core) {
         if(result instanceof JSObject) {
             // Use object to create cell
             JSObject jsResult = (JSObject) result;
@@ -827,8 +829,14 @@ public class Main {
         }
 
         if(!(result instanceof ObservableJSObject)) {
+            if(!(result instanceof Observable)) {
+                result = core.constSource(result);
+            }
+
             ObservableJSObject newResult = new ObservableJSObject(base);
-            newResult.put("value", result);
+            core.bind(result, core.memberTarget(newResult, "value"));
+            // Should bind until value is changed not sourced from result
+            //newResult.put("value", result);
             String init =
                 "this.paint = function(g) {\n" +
                 "    g.drawString(this.value.toString(), 0, this.height);\n" +
@@ -837,6 +845,16 @@ public class Main {
                 "this.height = 20;\n" +
                 "";
             eval(engine, init, newResult);
+            core.bind(
+                core.until(
+                    core.dependent(
+                        core.memberSource(core.constSource(newResult), "value"),
+                        core.memberSource(core.constSource(newResult), "paint")
+                    ),
+                    core.memberSourceReplace(core.constSource(newResult), "paint")
+                ),
+                core.memberTargetUpdate(newResult, "paint")
+            );
             result = newResult;
         }
 
@@ -876,7 +894,7 @@ public class Main {
         JPopupMenu contextMenu = new JPopupMenu();
 
 
-        makeInteractive(engine, desktop, desktop, base, core.indexedObjects);
+        makeInteractive(engine, desktop, desktop, base, core.indexedObjects, core);
 
         /*desktop.addMouseListener(new MouseAdapter() {
             @Override
@@ -1149,7 +1167,7 @@ public class Main {
 
         public void sendState() {
             entrySet().forEach(e -> sendChange(newMap(change -> {
-                change.put("type", "put");
+                change.put("type", "update");
                 change.put("name", e.getKey());
                 change.put("value", e.getValue());
             })));
@@ -1187,7 +1205,7 @@ public class Main {
                         String name = (String) change.get("name");
                         if(name.equals("name")) {
                             if(currentName != null)
-                                change.remove(currentName);
+                                indexedObjects.remove(currentName);
 
                             Object value = change.get("value");
                             indexedObjects.put((String)value, cellObject);
@@ -1380,7 +1398,7 @@ public class Main {
     }
 
     private static Object eval(NashornScriptEngine engine, String text, ObservableJSObject cellObject) {
-        Pattern pattern = Pattern.compile("#\\{.*#\\}");
+        Pattern pattern = Pattern.compile("#\\{.*\\}#");
         Matcher matcher = pattern.matcher(text);
 
         StringBuffer newText = new StringBuffer();

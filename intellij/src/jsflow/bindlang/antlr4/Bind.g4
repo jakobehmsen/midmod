@@ -1,7 +1,8 @@
 grammar Bind;
 
-script: HASH OPEN_BRA binding* CLOSE_BRA;
-binding: targetExpression=expression '.' ID '=' sourceExpression=expression;
+script: HASH OPEN_BRA binding* CLOSE_BRA HASH;
+binding: statement | expression;
+statement: targetExpression=expression '.' ID '=' sourceExpression=expression;
 expression: expression1;
 expression1: lhs=expression2 ((op='+'|op='-') expression1)*;
 expression2: lhs=expression3 ((op='*'|op='/') expression2)*;

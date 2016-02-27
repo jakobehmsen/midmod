@@ -32,11 +32,27 @@ public class Parser {
 
             @Override
             public String visitBinding(BindParser.BindingContext ctx) {
-                String targetExpressionStr =
+                return ctx.getChild(0).accept(new BindBaseVisitor<String>() {
+                    @Override
+                    public String visitStatement(BindParser.StatementContext ctx) {
+                        String targetExpressionStr =
+                            "core.memberTarget(" + ctx.targetExpression.getText() + ", \"" + ctx.ID().getText() + "\")";
+                        String sourceExpressionStr = parseSource(ctx.sourceExpression);
+
+                        return "core.bind(" + sourceExpressionStr + ", " + targetExpressionStr + ")";
+                    }
+
+                    @Override
+                    public String visitExpression(BindParser.ExpressionContext ctx) {
+                        return parseSource(ctx);
+                    }
+                });
+
+                /*String targetExpressionStr =
                     "core.memberTarget(" + ctx.targetExpression.getText() + ", \"" + ctx.ID().getText() + "\")";
                 String sourceExpressionStr = parseSource(ctx.sourceExpression);
 
-                return "core.bind(" + sourceExpressionStr + ", " + targetExpressionStr + ")";
+                return "core.bind(" + sourceExpressionStr + ", " + targetExpressionStr + ")";*/
             }
         });
     }
