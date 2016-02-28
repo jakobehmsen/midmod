@@ -307,6 +307,10 @@ public class Main {
 
         public Observer memberTarget(JSObject obj, String member) {
             return new AbstractObservableObserver() {
+                {
+                    ((ObservableJSObject)obj).put(member, this);
+                }
+
                 @Override
                 public void getState(Consumer<Object> valueHandler) {
                     valueHandler.accept(obj.getMember(member));
@@ -314,7 +318,8 @@ public class Main {
 
                 @Override
                 public void next(Object value) {
-                    obj.setMember(member, value);
+                    //obj.setMember(member, value);
+                    sendNext(value);
                 }
 
                 @Override
@@ -405,6 +410,22 @@ public class Main {
         }
 
         public Observable constSource(Object obj) {
+            /*return new AbstractObservable() {
+                @Override
+                public void getState(Consumer<Object> valueHandler) {
+                    valueHandler.accept(obj);
+                }
+
+                @Override
+                public String toString() {
+                    return obj.toString();
+                }
+            };*/
+
+            return statConstSource(obj);
+        }
+
+        public static Observable statConstSource(Object obj) {
             return new AbstractObservable() {
                 @Override
                 public void getState(Consumer<Object> valueHandler) {
@@ -641,18 +662,21 @@ public class Main {
     private static void makeInteractive(NashornScriptEngine engine, JPanel desktop, JComponent component, ObservableJSObject base, Map<String, ObservableJSObject> indexedObjects, Facade core) {
         component.addMouseListener(new MouseAdapter() {
             private JComponent pressComponent;
-            private ObservableJSObject cellObject;
+            private ObservableJSObject thisObject;
+            private ObservableJSObject thatObject;
 
             @Override
             public void mousePressed(MouseEvent e) {
                 pressComponent = (JComponent) component.findComponentAt(e.getPoint());
-                cellObject = pressComponent != component
+                thisObject = pressComponent != component
                     ? ((JSComponent)pressComponent).object : base;
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
                 JComponent releaseComponent = (JComponent) component.findComponentAt(e.getPoint());
+                thatObject = releaseComponent != component
+                    ? ((JSComponent)releaseComponent).object : base;
                 /*ObservableJSObject cellObject = releaseComponent != component
                     ? ((JSComponent)releaseComponent).object : base;*/
 
@@ -694,7 +718,8 @@ public class Main {
                         }
                     }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.MODIFIER_ALT, false), JComponent.WHEN_FOCUSED);
                     singleInteractive.registerKeyboardAction(e1 -> {
-                        Object result = eval(engine, singleInteractive, cellObject);
+                        engine.put("that", thatObject);
+                        Object result = eval(engine, singleInteractive, thisObject);
 
                         if(releaseComponent == desktop)
                             put(result, base, engine, desktop, indexedObjects, e.getPoint(), core);
@@ -836,16 +861,35 @@ public class Main {
             ObservableJSObject newResult = new ObservableJSObject(base);
             core.bind(result, core.memberTarget(newResult, "value"));
             // Should bind until value is changed not sourced from result
+            // Perhaps, when new bindings are created then the existing bindings should be examined
+            // and overridden/removed if necessary
+            // Just one member target pr member?
+            // Should OJSO's be cognizant about member targets?
+            // Should members be lockable? Only one writer pr member?
+            // Should each member value be an observable?
+            // Then, when member value changes, update changes are sent out?
             //newResult.put("value", result);
+
+            /*
+            // Should replace the below, because then the dependencies are automatically added
             String init =
-                "this.paint = function(g) {\n" +
+                "#{ this.paint = function(g) {\n" +
                 "    g.drawString(this.value.toString(), 0, this.height);\n" +
-                "}\n" +
+                "} }#\n" +
+                "this.width = 100;\n" +
+                "this.height = 20;\n" +
+                "";
+            */
+
+            String init =
+                /*"this.paint = function(g) {\n" +
+                "    g.drawString(this.value.toString(), 0, this.height);\n" +
+                "}\n" +*/
                 "this.width = 100;\n" +
                 "this.height = 20;\n" +
                 "";
             eval(engine, init, newResult);
-            core.bind(
+            /*core.bind(
                 core.until(
                     core.dependent(
                         core.memberSource(core.constSource(newResult), "value"),
@@ -854,6 +898,18 @@ public class Main {
                     core.memberSourceReplace(core.constSource(newResult), "paint")
                 ),
                 core.memberTargetUpdate(newResult, "paint")
+            );*/
+            String paintFunctionScript =
+                "function(g) {\n" +
+                "    g.drawString(this.value.toString(), 0, this.height);\n" +
+                "}";
+            Object paintFunction = eval(engine, paintFunctionScript, newResult);
+            core.bind(
+                core.dependent(
+                    core.memberSource(core.constSource(newResult), "value"),
+                    core.constSource(paintFunction)
+                ),
+                core.memberTarget(newResult, "paint")
             );
             result = newResult;
         }
@@ -996,7 +1052,8 @@ public class Main {
     private static class ObservableJSObject extends AbstractJSObject implements Bindings {
         private ObservableJSObject proto;
         private Consumer<Map<String, Object>> protoObserver;
-        private Hashtable<String, Object> members = new Hashtable<>();
+        //private Hashtable<String, Object> members = new Hashtable<>();
+        private Hashtable<String, Member> members = new Hashtable<>();
         private ArrayList<Consumer<Map<String, Object>>> observers = new ArrayList<>();
 
         public void addObserver(Consumer<Map<String, Object>> observer) {
@@ -1033,12 +1090,12 @@ public class Main {
 
         @Override
         public Object getMember(String name) {
-            Object value = members.get(name);
+            Member value = members.get(name);
             if(value != null)
-                return value;
+                return value.value;
             if(proto != null)
                 return proto.getMember(name);
-            return null;
+            return Undefined.getUndefined();
         }
 
         @Override
@@ -1054,15 +1111,63 @@ public class Main {
             }));
         }
 
+        private class Member implements Observer {
+            private String name;
+            private Observable observable;
+            private Object value;
+
+            private Member(String name, Observable observable) {
+                this.name = name;
+                this.observable = observable;
+
+                observable.addObserver(this);
+                observable.sendState();
+            }
+
+            @Override
+            public void next(Object value) {
+                boolean firstValue = this.value == null;
+
+                this.value = value;
+
+                String type = firstValue ? "put" : "update";
+                sendChange(newMap(change -> {
+                    change.put("type", type);
+                    change.put("name", name);
+                    change.put("value", value);
+                }));
+            }
+
+            @Override
+            public void remove() {
+                if(observable != null) {
+                    Observable tmpObs = observable;
+                    observable = null;
+                    tmpObs.removeObserver(this);
+                }
+            }
+        }
+
         @Override
         public Object put(String name, Object value) {
-            Object prevValue = members.put(name, value);
+            Member currentMember = members.get(name);
+            if(currentMember != null)
+                currentMember.remove();
 
-            sendChange(newMap(change -> {
+            Observable observableValue;
+            if(value instanceof Observable)
+                observableValue = (Observable)value;
+            else
+                observableValue = Facade.statConstSource(value);
+
+            //Object prevValue = members.put(name, value);
+            Object prevValue = members.put(name, new Member(name, observableValue));
+
+            /*sendChange(newMap(change -> {
                 change.put("type", "put");
                 change.put("name", name);
                 change.put("value", value);
-            }));
+            }));*/
 
             return prevValue;
         }
