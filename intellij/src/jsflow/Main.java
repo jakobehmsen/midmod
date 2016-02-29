@@ -1503,7 +1503,7 @@ public class Main {
     }
 
     private static Object eval(NashornScriptEngine engine, String text, ObservableJSObject cellObject) {
-        Pattern pattern = Pattern.compile("#\\{.*\\}#");
+        Pattern pattern = Pattern.compile("#\\{.*\\}#", Pattern.DOTALL);
         Matcher matcher = pattern.matcher(text);
 
         StringBuffer newText = new StringBuffer();
