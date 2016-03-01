@@ -148,7 +148,7 @@ public class Parser {
                 List<String> dependencies = ctx.blockElement().stream().map(x -> parseDependency(x, dependents, functionParameters)).collect(Collectors.toList());
 
                 return "core.dependent(core.either([" +
-                    dependencies.stream().collect(Collectors.joining(", ")) + "]), " +
+                    dependents.stream().collect(Collectors.joining(", ")) + "]), " +
                     "core.constSource(" + ctx.getText() + "))";
             }
         });
@@ -186,52 +186,56 @@ public class Parser {
 
             @Override
             public String visitExpression1(BindParser.Expression1Context ctx) {
-                String str = parseDependency(ctx.expression2(), dependencies, parameters);
-
-                for (BindParser.Expression1Context rhsCtx : ctx.expression1()) {
-                    String lhsStr = str;
-                    String rhsStr = parseDependency(rhsCtx, dependencies, parameters);
-                    str = "core.either(" + lhsStr + ", " + rhsStr + ")";
-                }
-
-                return str;
+                return parseDependency(ctx.expression2(), dependencies, parameters);
             }
 
             @Override
             public String visitExpression2(BindParser.Expression2Context ctx) {
-                String str = parseDependency(ctx.expression3(), dependencies, parameters);
-
-                for (BindParser.Expression2Context rhsCtx : ctx.expression2()) {
-                    String lhsStr = str;
-                    String rhsStr = parseDependency(rhsCtx, dependencies, parameters);
-                    str = "core.either(" + lhsStr + ", " + rhsStr + ")";
-                }
-
-                return str;
+                return parseDependency(ctx.expression3(), dependencies, parameters);
             }
 
             @Override
             public String visitExpression3(BindParser.Expression3Context ctx) {
                 String str = parseDependency(ctx.atom(), dependencies, parameters);
 
-                for (BindParser.ExpressionTailPartContext partCtx : ctx.expressionTail().expressionTailPart()) {
-                    String strSource = str;
-                    str = partCtx.accept(new BindBaseVisitor<String>() {
-                        @Override
-                        public String visitAccess(BindParser.AccessContext ctx) {
-                            return "core.memberSource(" + strSource + ", \"" + ctx.ID().getText() + "\")";
-                        }
+                if(str != null) {
+                    for (BindParser.ExpressionTailPartContext partCtx : ctx.expressionTail().expressionTailPart()) {
+                        String strSource = str;
+                        str = partCtx.accept(new BindBaseVisitor<String>() {
+                            @Override
+                            public String visitAccess(BindParser.AccessContext ctx) {
+                                return "core.memberSource(" + strSource + ", \"" + ctx.ID().getText() + "\")";
+                            }
 
+                            @Override
+                            public String visitCall(BindParser.CallContext ctx) {
+                                return "core.memberSource(" + strSource + ", \"" + ctx.ID().getText() + "\")";
+                                /*return "core.either([" +
+                                    ctx.expression().stream().map(x -> parseDependency(x, dependencies, parameters)).collect(Collectors.joining(", ")) +
+                                    ", core.memberSource(" + strSource + ", \"" + ctx.ID().getText() + "\")])";*/
+                            }
+                        });
+                    }
+
+                    dependencies.add(str);
+                }
+
+                for (BindParser.ExpressionTailPartContext partCtx : ctx.expressionTail().expressionTailPart()) {
+                     partCtx.accept(new BindBaseVisitor<Void>() {
                         @Override
-                        public String visitCall(BindParser.CallContext ctx) {
-                            return "core.either([" +
+                        public Void visitCall(BindParser.CallContext ctx) {
+                            ctx.expression().stream().forEach(x -> parseDependency(x, dependencies, parameters));
+
+                            return null;
+
+                            /*return "core.either([" +
                                 ctx.expression().stream().map(x -> parseDependency(x, dependencies, parameters)).collect(Collectors.joining(", ")) +
-                                ", core.memberSource(" + strSource + ", \"" + ctx.ID().getText() + "\")])";
+                                ", core.memberSource(" + strSource + ", \"" + ctx.ID().getText() + "\")])";*/
                         }
                     });
                 }
 
-                return str;
+                return null;
             }
 
             @Override
@@ -241,19 +245,19 @@ public class Parser {
 
             @Override
             public String visitString(BindParser.StringContext ctx) {
-                return "core.constSource(" + ctx.getText() + ")";
+                return null;
             }
 
             @Override
             public String visitNumber(BindParser.NumberContext ctx) {
-                return "core.constSource(" + ctx.getText() + ")";
+                return null;
             }
 
             @Override
             public String visitAccess(BindParser.AccessContext ctx) {
                 if(!parameters.contains(ctx.getText()))
                     return "core.constSource(" + ctx.getText() + ")";
-                return "core.constSource(\"DUMMY DOESN'T CHANGE\")";
+                return null;
             }
 
             @Override
@@ -263,14 +267,7 @@ public class Parser {
 
             @Override
             public String visitFunction(BindParser.FunctionContext ctx) {
-                ArrayList<String> dependents = new ArrayList<>();
-                List<String> functionParameters = ctx.functionParameters().ID().stream().map(x -> x.getText()).collect(Collectors.toList());
-
-                ctx.blockElement().stream().forEach(x -> parse(x, dependents, functionParameters));
-
-                return "core.dependent(core.either([" +
-                    dependents.stream().collect(Collectors.joining(", ")) + "]), " +
-                    "core.constSource(" + ctx.getText() + ")";
+                return null;
             }
         });
     }

@@ -13,6 +13,7 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.font.FontRenderContext;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -202,6 +203,16 @@ public class Main {
                     observable.addObserver(new Observer() {
                         @Override
                         public void next(Object value) {
+                            // From:
+                            // #{ function(g) {
+                            //     g.drawString(this.text, 0, this.height);
+                            // } }#
+                            // for:
+                            // core.dependent(core.either([core.either([core.memberSource(core.constSource(this), "text"), core.constSource(0), core.memberSource(core.constSource(this), "height"), core.memberSource(core.constSource("DUMMY DOESN'T CHANGE"), "drawString")])]), core.constSource(function(g){g.drawString(this.text,0,this.height)}))...
+                            // this fails due to:
+                            // core.memberSource(core.constSource("DUMMY DOESN'T CHANGE"), "drawString")
+                            // because value is a String and cannot be cast to a JSObject
+                            // "DUMMY DOESN'T CHANGE" is inserted because of the access to g where g is a parameter
                             obj = (JSObject) value;
                             sendState();
                         }
@@ -880,6 +891,10 @@ public class Main {
                 "this.height = 20;\n" +
                 "";
             */
+
+            String message = "Hello, StackOverflow!";
+            Font defaultFont = new Font("Helvetica", Font.PLAIN, 12);
+            double width = defaultFont.getStringBounds(message, new FontRenderContext(defaultFont.getTransform(), false, false)).getWidth();
 
             String init =
                 /*"this.paint = function(g) {\n" +
