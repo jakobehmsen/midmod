@@ -90,7 +90,9 @@ public class Parser {
             public String visitExpression3(BindParser.Expression3Context ctx) {
                 String str = parseSource(ctx.atom(), dependencies, parameters);
 
-                for (BindParser.ExpressionTailPartContext partCtx : ctx.expressionTail().expressionTailPart()) {
+                for(int i = 0; i < ctx.expressionTail().expressionTailPart().size(); i++) {
+                    boolean isLast = i == ctx.expressionTail().expressionTailPart().size() - 1;
+                    BindParser.ExpressionTailPartContext partCtx = ctx.expressionTail().expressionTailPart(i);
                     String strSource = str;
                     str = partCtx.accept(new BindBaseVisitor<String>() {
                         @Override
@@ -103,11 +105,16 @@ public class Parser {
                             String memberSourceStr = "core.memberSource(" + strSource + ", \"" + ctx.ID().getText() + "\")";
                             String argumentsStr = ctx.expression().stream().map(x -> parseSource(x, dependencies, parameters)).collect(Collectors.joining(", "));
                             String parametersStr = IntStream.range(0, ctx.expression().size()).mapToObj(x -> "arg0").collect(Collectors.joining(", "));
-                            return
-                                "core.reducer([" + memberSourceStr + ", " + argumentsStr + "], " +
-                                "function(func, " + parametersStr + ") {" +
-                                "return func(" + parametersStr + ")" +
-                                "})";
+
+                            if(!isLast) {
+                                return
+                                    "core.reducer([" + memberSourceStr + ", " + argumentsStr + "], " +
+                                        "function(func, " + parametersStr + ") {" +
+                                        "return func(" + parametersStr + ")" +
+                                        "})";
+                            } else {
+                                return "core.memberSource(" + strSource + ", \"" + ctx.ID().getText() + "\")";
+                            }
                         }
                     });
                 }

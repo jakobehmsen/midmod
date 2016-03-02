@@ -14,6 +14,8 @@ import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.font.FontRenderContext;
+import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -197,7 +199,8 @@ public class Main {
         //public Observable memberSource(JSObject obj, String member)
         public Observable memberSource(Observable observable, String member) {
             return new AbstractObservable() {
-                JSObject obj;
+                Consumer<Map<String, Object>> observer;
+                Object obj;
 
                 {
                     observable.addObserver(new Observer() {
@@ -213,7 +216,38 @@ public class Main {
                             // core.memberSource(core.constSource("DUMMY DOESN'T CHANGE"), "drawString")
                             // because value is a String and cannot be cast to a JSObject
                             // "DUMMY DOESN'T CHANGE" is inserted because of the access to g where g is a parameter
-                            obj = (JSObject) value;
+                            if(obj instanceof ObservableJSObject) {
+                                ((ObservableJSObject) obj).removeObserver(observer);
+                            }
+
+                            obj = value;
+
+                            if(obj instanceof ObservableJSObject) {
+                                observer = change -> {
+                                    switch ((String) change.get("type")) {
+                                        case "put":
+                                        case "update": {
+                                            String name = (String) change.get("name");
+                                            if (name.equals(member)) {
+                                                Object v = change.get("value");
+                                                sendNext(v);
+                                            }
+                                            break;
+                                        }
+                                        case "remove": {
+                                            String name = (String) change.get("name");
+                                            if (name.equals(member)) {
+                                                Object v = Undefined.getUndefined();
+                                                sendNext(v);
+                                            }
+                                            break;
+                                        }
+                                    }
+                                };
+
+                                ((ObservableJSObject) obj).addObserver(observer);
+                            }
+
                             sendState();
                         }
 
@@ -228,31 +262,37 @@ public class Main {
 
                 @Override
                 public void getState(Consumer<Object> valueHandler) {
-                    valueHandler.accept(obj.getMember(member));
+                    if(obj instanceof JSObject)
+                        valueHandler.accept(((JSObject)obj).getMember(member));
+                    else
+                        valueHandler.accept(obj);
                 }
 
-                {
-                    ((ObservableJSObject) obj).addObserver(change -> {
-                        switch ((String)change.get("type")) {
-                            case "put":
-                            case "update":{
-                                String name = (String) change.get("name");
-                                if(name.equals(member)) {
-                                    Object value = change.get("value");
-                                    sendNext(value);
+                /*{
+                    if(obj instanceof ObservableJSObject) {
+                        ((ObservableJSObject) obj).addObserver(change -> {
+                            switch ((String) change.get("type")) {
+                                case "put":
+                                case "update": {
+                                    String name = (String) change.get("name");
+                                    if (name.equals(member)) {
+                                        Object value = change.get("value");
+                                        sendNext(value);
+                                    }
+                                    break;
                                 }
-                                break;
-                            } case "remove": {
-                                String name = (String) change.get("name");
-                                if(name.equals(member)) {
-                                    Object value = Undefined.getUndefined();
-                                    sendNext(value);
+                                case "remove": {
+                                    String name = (String) change.get("name");
+                                    if (name.equals(member)) {
+                                        Object value = Undefined.getUndefined();
+                                        sendNext(value);
+                                    }
+                                    break;
                                 }
-                                break;
                             }
-                        }
-                    });
-                }
+                        });
+                    }
+                }*/
 
                 @Override
                 public String toString() {
@@ -892,9 +932,14 @@ public class Main {
                 "";
             */
 
-            String message = "Hello, StackOverflow!";
-            Font defaultFont = new Font("Helvetica", Font.PLAIN, 12);
-            double width = defaultFont.getStringBounds(message, new FontRenderContext(defaultFont.getTransform(), false, false)).getWidth();
+            //String message = "Hello, StackOverflow!";
+
+            /*BufferedImage image = new BufferedImage(640, 480, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2 = (Graphics2D) image.getGraphics();
+            Rectangle2D stringBounds = g2.getFontMetrics().getStringBounds(message, g2);*/
+
+            /*Font defaultFont = new Font("Helvetica", Font.PLAIN, 12);
+            double width = defaultFont.getStringBounds(message, new FontRenderContext(defaultFont.getTransform(), false, false)).getWidth();*/
 
             String init =
                 /*"this.paint = function(g) {\n" +
@@ -904,6 +949,9 @@ public class Main {
                 "this.height = 20;\n" +
                 "";
             eval(engine, init, newResult);
+
+            //newResult.put("width", stringBounds.getWidth());
+            //newResult.put("height", stringBounds.getHeight());
             /*core.bind(
                 core.until(
                     core.dependent(
@@ -914,18 +962,24 @@ public class Main {
                 ),
                 core.memberTargetUpdate(newResult, "paint")
             );*/
-            String paintFunctionScript =
+            /*String paintFunctionScript =
                 "function(g) {\n" +
                 "    g.drawString(this.value.toString(), 0, this.height);\n" +
-                "}";
+                //"    g.drawString(this.value.toString(), 0.0, " + -stringBounds.getY() + ");\n" +
+                "}";*/
+            String paintFunctionScript =
+                "#{ function(g) {\n" +
+                "    g.drawString(this.value.toString(), 0, this.height);\n" +
+                "} }#";
             Object paintFunction = eval(engine, paintFunctionScript, newResult);
-            core.bind(
+            newResult.put("paint", paintFunction);
+            /*core.bind(
                 core.dependent(
                     core.memberSource(core.constSource(newResult), "value"),
                     core.constSource(paintFunction)
                 ),
                 core.memberTarget(newResult, "paint")
-            );
+            );*/
             result = newResult;
         }
 
