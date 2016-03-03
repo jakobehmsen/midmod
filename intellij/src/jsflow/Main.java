@@ -910,7 +910,6 @@ public class Main {
             }
 
             ObservableJSObject newResult = new ObservableJSObject(base);
-            core.bind(result, core.memberTarget(newResult, "value"));
             // Should bind until value is changed not sourced from result
             // Perhaps, when new bindings are created then the existing bindings should be examined
             // and overridden/removed if necessary
@@ -941,14 +940,48 @@ public class Main {
             /*Font defaultFont = new Font("Helvetica", Font.PLAIN, 12);
             double width = defaultFont.getStringBounds(message, new FontRenderContext(defaultFont.getTransform(), false, false)).getWidth();*/
 
+            // When value changes, then width and height should be updated; how should this be expressed?
+            /*
+            this.text = #{ this.value.toString() }#
+            this.stringBounds = #{ function() {
+                var BufferedImage = Java.type("java.awt.BufferedImage");
+                var image = new BufferedImage(640, 480, BufferedImage.TYPE_INT_ARGB);
+                var g = image.getGraphics();
+                return g.getFontMetrics().getStringBounds(this.text, g);
+            } }#;
+            this.width = stringBounds().getWidth();
+            this.height = stringBounds().getHeight();
+            this.paint = #{ function(g) {
+                g.drawString(this.text, 0, this.height);
+            } }#;
+            */
+
+            // It seems like multiple bind expressions #{...}# aren't properly replaced within eval.
+            // It seems to only work with single bind expressions.
             String init =
-                /*"this.paint = function(g) {\n" +
-                "    g.drawString(this.value.toString(), 0, this.height);\n" +
-                "}\n" +*/
+                "this.text = #{ this.value.toString() }#;\n" +
+                "this.stringBounds = #{ function() {\n" +
+                "    var BufferedImage = Java.type(\"java.awt.BufferedImage\");\n" +
+                "    var image = new BufferedImage(640, 480, BufferedImage.TYPE_INT_ARGB);\n" +
+                "    var g = image.getGraphics();\n" +
+                "    return g.getFontMetrics().getStringBounds(this.text, g);\n" +
+                "} }#;\n" +
+                "this.width = stringBounds().getWidth();\n" +
+                "this.height = stringBounds().getHeight();\n" +
+                "this.paint = #{ function(g) {\n" +
+                "    g.drawString(this.text, 0, this.height);\n" +
+                "} }#;" +
+                "";
+            /*String init =
                 "this.width = 100;\n" +
                 "this.height = 20;\n" +
-                "";
+                "this.paint = #{ function(g) {\n" +
+                "    g.drawString(this.value.toString(), 0, this.height);\n" +
+                "} }#;" +
+                "";*/
             eval(engine, init, newResult);
+
+            core.bind(result, core.memberTarget(newResult, "value"));
 
             //newResult.put("width", stringBounds.getWidth());
             //newResult.put("height", stringBounds.getHeight());
@@ -967,12 +1000,12 @@ public class Main {
                 "    g.drawString(this.value.toString(), 0, this.height);\n" +
                 //"    g.drawString(this.value.toString(), 0.0, " + -stringBounds.getY() + ");\n" +
                 "}";*/
-            String paintFunctionScript =
+            /*String paintFunctionScript =
                 "#{ function(g) {\n" +
                 "    g.drawString(this.value.toString(), 0, this.height);\n" +
                 "} }#";
             Object paintFunction = eval(engine, paintFunctionScript, newResult);
-            newResult.put("paint", paintFunction);
+            newResult.put("paint", paintFunction);*/
             /*core.bind(
                 core.dependent(
                     core.memberSource(core.constSource(newResult), "value"),
