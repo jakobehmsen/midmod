@@ -21,18 +21,29 @@ public class Parser {
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
         BindParser parser = new BindParser(tokenStream);
 
-        return parse(parser.script(), new ArrayList<>(), new ArrayList<>());
+        return parse(parser.block(), new ArrayList<>(), new ArrayList<>());
     }
 
     private static String parse(ParserRuleContext parseCtx, List<String> dependencies, List<String> parameters) {
         return parseCtx.accept(new BindBaseVisitor<String>() {
-            @Override
+            /*@Override
             public String visitScript(BindParser.ScriptContext ctx) {
                 return ctx.binding().stream().map(x ->
+                    parse(x, dependencies, parameters)).collect(Collectors.joining("\n"));
+            }*/
+
+            @Override
+            public String visitBlock(BindParser.BlockContext ctx) {
+                return ctx.blockElement().stream().map(x ->
                     parse(x, dependencies, parameters)).collect(Collectors.joining("\n"));
             }
 
             @Override
+            public String visitExpression(BindParser.ExpressionContext ctx) {
+                return parseSource(ctx, dependencies, parameters);
+            }
+
+            /*@Override
             public String visitBinding(BindParser.BindingContext ctx) {
                 return ctx.getChild(0).accept(new BindBaseVisitor<String>() {
                     @Override
@@ -49,7 +60,7 @@ public class Parser {
                         return parseSource(ctx, dependencies, parameters);
                     }
                 });
-            }
+            }*/
         });
     }
 
@@ -152,7 +163,7 @@ public class Parser {
                 ArrayList<String> dependents = new ArrayList<String>();
                 List<String> functionParameters = ctx.functionParameters().ID().stream().map(x -> x.getText()).collect(Collectors.toList());
 
-                List<String> dependencies = ctx.blockElement().stream().map(x -> parseDependency(x, dependents, functionParameters)).collect(Collectors.toList());
+                List<String> dependencies = ctx.block().blockElement().stream().map(x -> parseDependency(x, dependents, functionParameters)).collect(Collectors.toList());
 
                 return "core.dependent(core.either([" +
                     dependents.stream().collect(Collectors.joining(", ")) + "]), " +
@@ -166,14 +177,14 @@ public class Parser {
             @Override
             public String visitBlockElement(BindParser.BlockElementContext ctx) {
                 return ctx.getChild(0).accept(new BindBaseVisitor<String>() {
-                    @Override
+                    /*@Override
                     public String visitStatement(BindParser.StatementContext ctx) {
                         String targetExpressionStr =
                             "core.memberTarget(" + ctx.targetExpression.getText() + ", \"" + ctx.ID().getText() + "\")";
                         String sourceExpressionStr = parseSource(ctx.sourceExpression, dependencies, parameters);
 
                         return "core.bind(" + sourceExpressionStr + ", " + targetExpressionStr + ")";
-                    }
+                    }*/
 
                     @Override
                     public String visitExpression(BindParser.ExpressionContext ctx) {
