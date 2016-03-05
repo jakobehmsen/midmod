@@ -4,6 +4,7 @@ import com.sun.glass.events.KeyEvent;
 import jdk.nashorn.api.scripting.*;
 import jdk.nashorn.internal.runtime.Undefined;
 import jsflow.bindlang.Parser;
+import midmod.parse.*;
 
 import javax.script.*;
 import javax.swing.*;
@@ -13,9 +14,6 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.font.FontRenderContext;
-import java.awt.geom.Rectangle2D;
-import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -959,18 +957,18 @@ public class Main {
             // It seems like multiple bind expressions #{...}# aren't properly replaced within eval.
             // It seems to only work with single bind expressions.
             String init =
-                "this.text = #{ this.value.toString() }#;\n" +
+                "this.text = #this.value.toString();\n" +
                 "this.stringBounds = #{ function() {\n" +
                 "    var BufferedImage = Java.type(\"java.awt.BufferedImage\");\n" +
                 "    var image = new BufferedImage(640, 480, BufferedImage.TYPE_INT_ARGB);\n" +
                 "    var g = image.getGraphics();\n" +
                 "    return g.getFontMetrics().getStringBounds(this.text, g);\n" +
-                "} }#;\n" +
+                "} };\n" +
                 "this.width = stringBounds().getWidth();\n" +
                 "this.height = stringBounds().getHeight();\n" +
                 "this.paint = #{ function(g) {\n" +
                 "    g.drawString(this.text, 0, this.height);\n" +
-                "} }#;" +
+                "} };" +
                 "";
             /*String init =
                 "this.width = 100;\n" +
@@ -1036,7 +1034,73 @@ public class Main {
         }
     }
 
+    private static midmod.parse.Parser<Character, Character> bindExpressionReplacer = new midmod.parse.Parser<Character, Character>() {
+        private midmod.parse.Parser<Character, Character> replaceBindExpressions =
+            Parsers.replace(
+                Parsers.<Character>seq("#{").skip().then(Parsers.ref(() ->
+                    this.replaceBindExpressions).then(Parsers.<Character>seq("}").skip())),
+                (captured, output) -> {
+                    String partSrc = captured.peekChars().toString();
+
+                    String part = Parser.replace(partSrc);
+
+                    output.putChars(part);
+
+                    /*captured.toString();
+                    output.putChar('<');
+                    output.putChar('#');
+                    while(!captured.atEnd()) {
+                        captured.copyTo(output);
+                        captured.consume();
+                    }
+                    output.putChar('>');*/
+                }
+            ).or(
+                Parsers.<Character>seq("}").not()
+            ).repeat();
+
+        @Override
+        public boolean parse(Input<Character> input, Output<Character> output) {
+            return replaceBindExpressions.parse(input, output);
+        }
+    };
+
     public static void main(String[] args) {
+
+        /*midmod.parse.Parser<Character, Character> p = new midmod.parse.Parser<Character, Character>() {
+           private midmod.parse.Parser<Character, Character> replaceBindExpressions =
+                Parsers.replace(
+                    Parsers.<Character>seq("#{").skip().then(Parsers.ref(() ->
+                        this.replaceBindExpressions).then(Parsers.<Character>seq("}").skip())),
+                    (captured, output) -> {
+                        captured.toString();
+                        output.putChar('<');
+                        output.putChar('#');
+                        while(!captured.atEnd()) {
+                            captured.copyTo(output);
+                            captured.consume();
+                        }
+                        output.putChar('>');
+                    }
+                ).or(
+                    Parsers.<Character>seq("}").not()
+                ).repeat();
+
+            @Override
+            public boolean parse(Input<Character> input, Output<Character> output) {
+                return replaceBindExpressions.parse(input, output);
+            }
+        };
+
+        p.parse(new CharSequenceInput("asf#{sdf}fg"), new CharSequenceOutput(new StringBuilder()));
+        StringBuilder sb = new StringBuilder();
+        p.parse(new CharSequenceInput("a#{f #{j} } b  #{fg} ;"), new CharSequenceOutput(sb));
+
+        sb.toString();
+        if(1 != 2)
+            return;
+        */
+
         ScriptEngineManager engineManager = new ScriptEngineManager();
         NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
 
@@ -1605,7 +1669,11 @@ public class Main {
     }
 
     private static Object eval(NashornScriptEngine engine, String text, ObservableJSObject cellObject) {
-        Pattern pattern = Pattern.compile("#\\{.*\\}#", Pattern.DOTALL);
+        String newText = Parser.replace(text);
+        //StringBuilder newText = new StringBuilder();
+        //bindExpressionReplacer.parse(new CharSequenceInput(text), new CharSequenceOutput(newText));
+
+        /*Pattern pattern = Pattern.compile("#\\{.*\\}#", Pattern.DOTALL);
         Matcher matcher = pattern.matcher(text);
 
         StringBuffer newText = new StringBuffer();
@@ -1617,7 +1685,7 @@ public class Main {
 
             //newText.append(part);
         }
-        matcher.appendTail(newText);
+        matcher.appendTail(newText);*/
         text = newText.toString();
 
         System.out.println("Expanded text:\n" + text + "...");

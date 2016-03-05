@@ -3,10 +3,9 @@ package jsflow.bindlang;
 import jsflow.bindlang.antlr4.BindBaseVisitor;
 import jsflow.bindlang.antlr4.BindLexer;
 import jsflow.bindlang.antlr4.BindParser;
-import org.antlr.v4.runtime.ANTLRInputStream;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.misc.Interval;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,7 +20,36 @@ public class Parser {
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
         BindParser parser = new BindParser(tokenStream);
 
-        return parse(parser.block(), new ArrayList<>(), new ArrayList<>());
+        // Traverse through block; replace only bindable expressions; forward others as they are
+
+        //return parse(parser.block(), new ArrayList<>(), new ArrayList<>());
+        int[] indexHolder = new int[]{0};
+        String str = parse(charStream, parser.block(), indexHolder);
+        if(indexHolder[0] < text.length())
+            str += text.substring(indexHolder[0]);
+        return str;
+    }
+
+
+    private static String parse(CharStream charStream, ParserRuleContext ctx, int[] indexHolder) {
+        if(ctx.children == null || ctx instanceof TerminalNode) {
+            return "";
+        } else {
+            return ctx.children.stream().map(x -> {
+                if (((ParserRuleContext) x).getRuleIndex() == BindParser.RULE_bindable) {
+                    return x.accept(new BindBaseVisitor<String>() {
+                        @Override
+                        public String visitBindable(BindParser.BindableContext bindableContext) {
+                            String preText = charStream.getText(new Interval(indexHolder[0], bindableContext.getStart().getStartIndex() - 1));
+                            indexHolder[0] = bindableContext.getStop().getStopIndex() + 1;
+                            return preText + parseSource(bindableContext.atom(), new ArrayList<>(), new ArrayList<>());
+                        }
+                    });
+                }
+
+                return parse(charStream, (ParserRuleContext) x, indexHolder);
+            }).collect(Collectors.joining());
+        }
     }
 
     private static String parse(ParserRuleContext parseCtx, List<String> dependencies, List<String> parameters) {
@@ -31,6 +59,11 @@ public class Parser {
                 return ctx.binding().stream().map(x ->
                     parse(x, dependencies, parameters)).collect(Collectors.joining("\n"));
             }*/
+
+            @Override
+            public String visitAtom(BindParser.AtomContext ctx) {
+                return ctx.getChild(0).accept(this);
+            }
 
             @Override
             public String visitBlock(BindParser.BlockContext ctx) {
