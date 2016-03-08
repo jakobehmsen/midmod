@@ -1,6 +1,6 @@
 package reo.runtime;
 
-public class RArray extends AbstractRObject {
+public class RArray extends PrimitiveRObject {
     private RObject[] items;
 
     public RArray(RObject[] items) {
@@ -8,7 +8,7 @@ public class RArray extends AbstractRObject {
     }
 
     @Override
-    public RObject resolve(Evaluation evaluation, String selector) {
-        return evaluation.getUniverse().getArrayPrototype().resolve(evaluation, selector);
+    protected RObject getPrototype(Universe universe) {
+        return universe.getArrayPrototype();
     }
 }

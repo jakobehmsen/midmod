@@ -2,7 +2,7 @@ package reo.runtime;
 
 import java.util.List;
 
-public class FunctionRObject extends AbstractRObject {
+public class FunctionRObject extends PrimitiveRObject {
     private Statement block;
 
     public FunctionRObject(Statement block) {
@@ -14,5 +14,10 @@ public class FunctionRObject extends AbstractRObject {
         Evaluation applyEvaluation = new Evaluation(evaluation.getUniverse(), receiver, arguments);
         block.perform(applyEvaluation);
         return applyEvaluation.valueReturned();
+    }
+
+    @Override
+    protected RObject getPrototype(Universe universe) {
+        return universe.getFunctionPrototype();
     }
 }

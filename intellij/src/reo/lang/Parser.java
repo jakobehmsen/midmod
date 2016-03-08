@@ -121,6 +121,11 @@ public class Parser {
 
                 return evaluation -> value;
             }
+
+            @Override
+            public Expression visitSelf(ReoParser.SelfContext ctx) {
+                return evaluation -> evaluation.getReceiver();
+            }
         });
     }
 }

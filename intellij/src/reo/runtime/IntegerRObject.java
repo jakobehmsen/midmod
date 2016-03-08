@@ -1,6 +1,6 @@
 package reo.runtime;
 
-public class IntegerRObject extends AbstractRObject {
+public class IntegerRObject extends PrimitiveRObject {
     private long value;
 
     public IntegerRObject(long value) {
@@ -8,8 +8,8 @@ public class IntegerRObject extends AbstractRObject {
     }
 
     @Override
-    public RObject resolve(Evaluation evaluation, String selector) {
-        return evaluation.getUniverse().getIntegerPrototype().resolve(evaluation, selector);
+    protected RObject getPrototype(Universe universe) {
+        return universe.getIntegerPrototype();
     }
 
     public long getValue() {
