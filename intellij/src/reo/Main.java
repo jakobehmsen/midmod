@@ -1,7 +1,6 @@
 package reo;
 
 import reo.lang.Parser;
-import reo.runtime.Evaluation;
 import reo.runtime.RObject;
 import reo.runtime.Statement;
 import reo.runtime.Universe;

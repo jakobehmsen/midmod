@@ -10,8 +10,8 @@ public class FunctionRObject extends AbstractRObject {
     }
 
     @Override
-    public RObject apply(Evaluation evaluation, List<RObject> arguments) {
-        Evaluation applyEvaluation = new Evaluation(evaluation.getUniverse(), arguments);
+    public RObject apply(Evaluation evaluation, RObject receiver, List<RObject> arguments) {
+        Evaluation applyEvaluation = new Evaluation(evaluation.getUniverse(), receiver, arguments);
         block.perform(applyEvaluation);
         return applyEvaluation.valueReturned();
     }

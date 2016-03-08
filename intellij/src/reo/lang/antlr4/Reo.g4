@@ -13,7 +13,7 @@ atom: number | string | access | self | objectLiteral | arrayLiteral | function 
 number: NUMBER;
 string: STRING;
 embeddedExpression: '(' expression ')';
-expressionTail: expressionTailPart* expressionTailEnd;
+expressionTail: expressionTailPart* expressionTailEnd?;
 expressionTailPart: ('.' (call | access)) | indexAccess;
 call: ID '(' (expression (',' expression)*)? ')';
 access: ID;

@@ -1,5 +1,6 @@
 package reo.runtime;
 
+import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 
@@ -12,17 +13,20 @@ public abstract class AbstractRObject implements RObject {
         if(method == null)
             method = resolve(evaluation, selector);
 
-        return method.apply(evaluation, arguments);
+        return method.apply(evaluation, this, arguments);
     }
 
     @Override
     public RObject resolve(Evaluation evaluation, String selector) {
+        RObject object = slots.get(selector);
+        if(object != null)
+            return object;
         throw new RuntimeException("Cannot resolve " + selector);
     }
 
     @Override
-    public RObject apply(Evaluation evaluation, List<RObject> arguments) {
-        return send(evaluation, "apply", arguments);
+    public RObject apply(Evaluation evaluation, RObject receiver, List<RObject> arguments) {
+        return send(evaluation, "apply", Arrays.asList(receiver, new RArray(arguments.toArray(new RObject[arguments.size()]))));
     }
 
     public void put(String selector, RObject value) {

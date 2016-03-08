@@ -47,7 +47,10 @@ public class Parser {
             public Statement visitExpression(ReoParser.ExpressionContext ctx) {
                 Expression expression = parseExpression(ctx);
 
-                return evaluation -> expression.perform(evaluation);
+                if(mustReturn)
+                    return evaluation -> evaluation.returnValue(expression.perform(evaluation));
+                else
+                    return evaluation -> expression.perform(evaluation);
             }
 
             @Override

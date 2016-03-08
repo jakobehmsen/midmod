@@ -6,9 +6,11 @@ public class Evaluation {
     private Universe universe;
     private List<RObject> arguments;
     private RObject returnedValue;
+    private RObject receiver;
 
-    public Evaluation(Universe universe, List<RObject> arguments) {
+    public Evaluation(Universe universe, RObject receiver, List<RObject> arguments) {
         this.universe = universe;
+        this.receiver = receiver;
         this.arguments = arguments;
     }
 
@@ -30,5 +32,9 @@ public class Evaluation {
 
     public void returnValue(RObject value) {
         returnedValue = value;
+    }
+
+    public RObject getReceiver() {
+        return receiver;
     }
 }
