@@ -9,10 +9,12 @@ public class Universe {
 
     public Universe() {
         integerPrototype = new CustomRObject();
-        integerPrototype.put("+", new FunctionRObject(evaluation ->
-            evaluation.returnValue(
-                new IntegerRObject(((IntegerRObject) evaluation.getReceiver()).getValue() + ((IntegerRObject) evaluation.getArgument(0)).getValue()))
-        ));
+        integerPrototype.put("+", new FunctionRObject(new Behavior(new Instruction[]{
+            Instructions.loadLocal(0),
+            Instructions.loadLocal(1),
+            Instructions.addi(),
+            Instructions.ret()
+        })));
         arrayPrototype = new CustomRObject();
         functionPrototype = new CustomRObject();
     }
@@ -21,10 +23,14 @@ public class Universe {
         return integerPrototype;
     }
 
-    public RObject evaluate(Statement statement, RObject receiver) {
+    public RObject evaluate(Behavior behavior, RObject receiver) {
         Evaluation evaluation = new Evaluation(this, receiver, Arrays.asList());
-        statement.perform(evaluation);
-        return evaluation.valueReturned();
+        evaluation.setFrame(behavior.createFrame(null));
+        evaluation.getFrame().push(receiver);
+        evaluation.evaluate();
+        return evaluation.getFrame().peek();
+        //statement.perform(evaluation);
+        //return evaluation.valueReturned();
     }
 
     public RObject getArrayPrototype() {

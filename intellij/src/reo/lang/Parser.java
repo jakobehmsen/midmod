@@ -9,13 +9,15 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import reo.runtime.*;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Parser {
-    public static Statement parse(String text, boolean implicitReturn) {
+    public static Behavior parse(String text, boolean implicitReturn) {
         CharStream charStream = new ANTLRInputStream(text);
         ReoLexer lexer = new ReoLexer(charStream);
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
@@ -24,91 +26,123 @@ public class Parser {
         return parseBlock(parser.block(), implicitReturn);
     }
 
-    private static Statement parseBlock(ReoParser.BlockContext ctx, boolean implicitReturn) {
-        List<Statement> statements = IntStream.range(0, ctx.blockElement().size())
-            .mapToObj(index -> parseBlockElement(ctx.blockElement(index), implicitReturn ? index == ctx.blockElement().size() - 1 : false))
-            .collect(Collectors.toList());
-        return evaluation ->
-            statements.stream().filter(x -> {
-                x.perform(evaluation);
-                return !evaluation.hasReturned();
-            }
-        ).collect(Collectors.toList());
+    private static Behavior parseBlock(ReoParser.BlockContext ctx, boolean implicitReturn) {
+        List<Consumer<List<Instruction>>> emitters = new ArrayList<>();
+
+        IntStream.range(0, ctx.blockElement().size()).forEach(index ->
+            parseBlockElement(ctx.blockElement(index), implicitReturn ? index == ctx.blockElement().size() - 1 : false, emitters)
+        );
+
+        if(implicitReturn)
+            emitters.add(instructions -> instructions.add(Instructions.halt()));
+
+        ArrayList<Instruction> instructions = new ArrayList<>();
+
+        emitters.forEach(e -> e.accept(instructions));
+
+        return new Behavior(instructions.toArray(new Instruction[instructions.size()]));
     }
 
-    private static Statement parseBlockElement(ParserRuleContext ctx, boolean mustReturn) {
-        return ctx.accept(new ReoBaseVisitor<Statement>() {
+    private static void parseBlockElement(ParserRuleContext ctx, boolean mustReturn, List<Consumer<List<Instruction>>> emitters) {
+        ctx.accept(new ReoBaseVisitor<Void>() {
             @Override
-            public Statement visitBlockElement(ReoParser.BlockElementContext ctx) {
+            public Void visitBlockElement(ReoParser.BlockElementContext ctx) {
                 return ctx.getChild(0).accept(this);
             }
 
             @Override
-            public Statement visitExpression(ReoParser.ExpressionContext ctx) {
-                Expression expression = parseExpression(ctx);
+            public Void visitExpression(ReoParser.ExpressionContext ctx) {
+                parseExpression(ctx, emitters);
 
-                if(mustReturn)
-                    return evaluation -> evaluation.returnValue(expression.perform(evaluation));
-                else
-                    return evaluation -> expression.perform(evaluation);
+                //if(mustReturn)
+                //    emitters.add(instructions -> instructions.add(Instructions.ret()));
+
+                return null;
             }
 
             @Override
-            public Statement visitStatement(ReoParser.StatementContext ctx) {
+            public Void visitStatement(ReoParser.StatementContext ctx) {
                 return ctx.getChild(0).accept(this);
             }
         });
     }
 
-    private static Expression parseExpression(ParserRuleContext ctx) {
-        return ctx.accept(new ReoBaseVisitor<Expression>() {
+    private static void parseExpression(ParserRuleContext ctx, List<Consumer<List<Instruction>>> emitters) {
+        ctx.accept(new ReoBaseVisitor<Void>() {
             @Override
-            public Expression visitExpression(ReoParser.ExpressionContext ctx) {
+            public Void visitExpression(ReoParser.ExpressionContext ctx) {
                 return ctx.getChild(0).accept(this);
             }
 
             @Override
-            public Expression visitExpression1(ReoParser.Expression1Context ctx) {
-                Expression lhs = ctx.expression2().accept(this);
+            public Void visitExpression1(ReoParser.Expression1Context ctx) {
+                ctx.expression2().accept(this);
 
                 for (ReoParser.Expression1Context rhsCtx : ctx.expression1()) {
-                    Expression lhsTmp = lhs;
                     String selector = ctx.children.get(ctx.children.indexOf(rhsCtx) - 1).getText();
-                    Expression rhs = rhsCtx.accept(this);
-                    lhs = messageSend(lhsTmp, selector, Arrays.asList(rhs));
+                    rhsCtx.accept(this);
+                    messageSend(selector, 1, emitters);
                 }
 
-                return lhs;
+                return null;
             }
 
             @Override
-            public Expression visitExpression2(ReoParser.Expression2Context ctx) {
-                Expression lhs = ctx.expression3().accept(this);
+            public Void visitExpression2(ReoParser.Expression2Context ctx) {
+                ctx.expression3().accept(this);
 
                 for (ReoParser.Expression2Context rhsCtx : ctx.expression2()) {
-                    Expression lhsTmp = lhs;
                     String selector = ctx.children.get(ctx.children.indexOf(rhsCtx) - 1).getText();
-                    Expression rhs = rhsCtx.accept(this);
-                    lhs = messageSend(lhsTmp, selector, Arrays.asList(rhs));
+                    messageSend(selector, 1, emitters);
                 }
 
-                return lhs;
+                return null;
             }
 
             @Override
-            public Expression visitExpression3(ReoParser.Expression3Context ctx) {
-                return ctx.atom().accept(this);
+            public Void visitExpression3(ReoParser.Expression3Context ctx) {
+                ctx.atom().accept(this);
+
+                /*for (ReoParser.ExpressionTailPartContext expressionTailPartContext : ctx.expressionTail().expressionTailPart()) {
+                    Expression receiver = expression;
+                    expression = expressionTailPartContext.accept(new ReoBaseVisitor<Expression>() {
+                        @Override
+                        public Expression visitCall(ReoParser.CallContext ctx) {
+                            String selector = ctx.ID().getText();
+                            List<Expression> arguments = ctx.expression().stream().map(x -> parseExpression(x, emitters)).collect(Collectors.toList());
+
+                            return messageSend(receiver, selector, arguments);
+                        }
+
+                        @Override
+                        public Expression visitSlotAccess(ReoParser.SlotAccessContext ctx) {
+                            return super.visitSlotAccess(ctx);
+                        }
+
+                        @Override
+                        public Expression visitIndexAccess(ReoParser.IndexAccessContext ctx) {
+                            return super.visitIndexAccess(ctx);
+                        }
+                    });
+                }*/
+
+                return null;
             }
 
-            private Expression messageSend(Expression target, String selector, List<Expression> arguments) {
-                return evaluation -> {
+            private Void messageSend(String selector, int arity, List<Consumer<List<Instruction>>> emitters) {
+                emitters.add(instructions -> instructions.add(Instructions.send(selector, arity)));
+
+                /*return evaluation -> {
                     RObject targetValue = target.perform(evaluation);
                     return targetValue.send(evaluation, selector, arguments.stream().map(x -> x.perform(evaluation)).collect(Collectors.toList()));
-                };
+                };*/
+
+                return null;
             }
 
             @Override
-            public Expression visitNumber(ReoParser.NumberContext ctx) {
+            public Void visitNumber(ReoParser.NumberContext ctx) {
+
                 RObject valueTmp;
 
                 try {
@@ -119,12 +153,20 @@ public class Parser {
 
                 RObject value = valueTmp;
 
-                return evaluation -> value;
+                emitters.add(instructions -> instructions.add(Instructions.loadConst(value)));
+
+                //return evaluation -> value;
+
+                return null;
             }
 
             @Override
-            public Expression visitSelf(ReoParser.SelfContext ctx) {
-                return evaluation -> evaluation.getReceiver();
+            public Void visitSelf(ReoParser.SelfContext ctx) {
+                emitters.add(instructions -> instructions.add(Instructions.loadLocal(0)));
+
+                return null;
+
+                //return evaluation -> evaluation.getReceiver();
             }
         });
     }

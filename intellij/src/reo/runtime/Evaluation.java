@@ -3,6 +3,16 @@ package reo.runtime;
 import java.util.List;
 
 public class Evaluation {
+    private Frame frame;
+
+    public Frame getFrame() {
+        return frame;
+    }
+
+    public void setFrame(Frame frame) {
+        this.frame = frame;
+    }
+
     private Universe universe;
     private List<RObject> arguments;
     private RObject returnedValue;
@@ -36,5 +46,18 @@ public class Evaluation {
 
     public RObject getReceiver() {
         return receiver;
+    }
+
+    private boolean run;
+
+    public void evaluate() {
+        run = true;
+
+        while(run)
+            getFrame().evaluate(this);
+    }
+
+    public void halt() {
+        run = false;
     }
 }
