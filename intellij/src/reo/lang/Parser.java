@@ -10,10 +10,8 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import reo.runtime.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Parser {
@@ -53,9 +51,6 @@ public class Parser {
             @Override
             public Void visitExpression(ReoParser.ExpressionContext ctx) {
                 parseExpression(ctx, emitters);
-
-                //if(mustReturn)
-                //    emitters.add(instructions -> instructions.add(Instructions.ret()));
 
                 return null;
             }
@@ -103,39 +98,11 @@ public class Parser {
             public Void visitExpression3(ReoParser.Expression3Context ctx) {
                 ctx.atom().accept(this);
 
-                /*for (ReoParser.ExpressionTailPartContext expressionTailPartContext : ctx.expressionTail().expressionTailPart()) {
-                    Expression receiver = expression;
-                    expression = expressionTailPartContext.accept(new ReoBaseVisitor<Expression>() {
-                        @Override
-                        public Expression visitCall(ReoParser.CallContext ctx) {
-                            String selector = ctx.ID().getText();
-                            List<Expression> arguments = ctx.expression().stream().map(x -> parseExpression(x, emitters)).collect(Collectors.toList());
-
-                            return messageSend(receiver, selector, arguments);
-                        }
-
-                        @Override
-                        public Expression visitSlotAccess(ReoParser.SlotAccessContext ctx) {
-                            return super.visitSlotAccess(ctx);
-                        }
-
-                        @Override
-                        public Expression visitIndexAccess(ReoParser.IndexAccessContext ctx) {
-                            return super.visitIndexAccess(ctx);
-                        }
-                    });
-                }*/
-
                 return null;
             }
 
             private Void messageSend(String selector, int arity, List<Consumer<List<Instruction>>> emitters) {
                 emitters.add(instructions -> instructions.add(Instructions.send(selector, arity)));
-
-                /*return evaluation -> {
-                    RObject targetValue = target.perform(evaluation);
-                    return targetValue.send(evaluation, selector, arguments.stream().map(x -> x.perform(evaluation)).collect(Collectors.toList()));
-                };*/
 
                 return null;
             }
@@ -155,8 +122,6 @@ public class Parser {
 
                 emitters.add(instructions -> instructions.add(Instructions.loadConst(value)));
 
-                //return evaluation -> value;
-
                 return null;
             }
 
@@ -165,8 +130,6 @@ public class Parser {
                 emitters.add(instructions -> instructions.add(Instructions.loadLocal(0)));
 
                 return null;
-
-                //return evaluation -> evaluation.getReceiver();
             }
         });
     }
