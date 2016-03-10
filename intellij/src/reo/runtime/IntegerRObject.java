@@ -15,4 +15,9 @@ public class IntegerRObject extends PrimitiveRObject {
     public long getValue() {
         return value;
     }
+
+    @Override
+    public String toString() {
+        return "" + value;
+    }
 }

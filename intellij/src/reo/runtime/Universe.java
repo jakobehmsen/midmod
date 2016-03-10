@@ -6,6 +6,7 @@ public class Universe {
     private CustomRObject integerPrototype;
     private CustomRObject arrayPrototype;
     private CustomRObject functionPrototype;
+    private RObject aNull;
 
     public Universe() {
         integerPrototype = new CustomRObject();
@@ -24,13 +25,11 @@ public class Universe {
     }
 
     public RObject evaluate(Behavior behavior, RObject receiver) {
-        Evaluation evaluation = new Evaluation(this, receiver, Arrays.asList());
+        Evaluation evaluation = new Evaluation(this);
         evaluation.setFrame(behavior.createFrame(null));
         evaluation.getFrame().push(receiver);
         evaluation.evaluate();
         return evaluation.getFrame().peek();
-        //statement.perform(evaluation);
-        //return evaluation.valueReturned();
     }
 
     public RObject getArrayPrototype() {
@@ -39,5 +38,9 @@ public class Universe {
 
     public RObject getFunctionPrototype() {
         return functionPrototype;
+    }
+
+    public RObject getNull() {
+        return aNull;
     }
 }

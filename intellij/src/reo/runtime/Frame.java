@@ -50,4 +50,12 @@ public class Frame {
     public void incrementIP() {
         ip++;
     }
+
+    public void set(int ordinal, RObject value) {
+        stack.set(ordinal, value);
+    }
+
+    public void dup() {
+        stack.push(stack.peek());
+    }
 }

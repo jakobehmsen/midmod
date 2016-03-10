@@ -5,7 +5,12 @@ import reo.runtime.*;
 
 public class Main {
     public static void main(String[] args) {
-        Behavior behavior = Parser.parse("1 + 5", true);
+        String script =
+            "var x\n" +
+            "x = 1\n" +
+            "x + 7 + 8";
+
+        Behavior behavior = Parser.parse(script);
         //Behavior behavior = Parser.parse("this", true);
 
         Universe universe = new Universe();
@@ -15,6 +20,6 @@ public class Main {
         world.put("Function", universe.getFunctionPrototype());
 
         RObject result = universe.evaluate(behavior, world);
-        result.toString();
+        System.out.println(result);
     }
 }

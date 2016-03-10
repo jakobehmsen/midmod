@@ -10,28 +10,35 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import reo.runtime.*;
 
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
 public class Parser {
-    public static Behavior parse(String text, boolean implicitReturn) {
+    public static Behavior parse(String text) {
         CharStream charStream = new ANTLRInputStream(text);
         ReoLexer lexer = new ReoLexer(charStream);
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
         ReoParser parser = new ReoParser(tokenStream);
 
-        return parseBlock(parser.block(), implicitReturn);
+        return parseBlock(parser.block(), true);
     }
 
-    private static Behavior parseBlock(ReoParser.BlockContext ctx, boolean implicitReturn) {
+    private static Behavior parseBlock(ReoParser.BlockContext ctx, boolean haltAtEnd) {
         List<Consumer<List<Instruction>>> emitters = new ArrayList<>();
+        Map<String, Integer> locals = new Hashtable<>();
 
         IntStream.range(0, ctx.blockElement().size()).forEach(index ->
-            parseBlockElement(ctx.blockElement(index), implicitReturn ? index == ctx.blockElement().size() - 1 : false, emitters)
+            parseBlockElement(ctx.blockElement(index), emitters, locals, haltAtEnd ? index == ctx.blockElement().size() - 1 : false)
         );
 
-        if(implicitReturn)
+        // Allocate local variables at the beginning
+        locals.forEach((x, y) ->
+            emitters.add(0, instructions -> instructions.add(Instructions.loadNull())));
+
+        if(haltAtEnd)
             emitters.add(instructions -> instructions.add(Instructions.halt()));
 
         ArrayList<Instruction> instructions = new ArrayList<>();
@@ -41,7 +48,7 @@ public class Parser {
         return new Behavior(instructions.toArray(new Instruction[instructions.size()]));
     }
 
-    private static void parseBlockElement(ParserRuleContext ctx, boolean mustReturn, List<Consumer<List<Instruction>>> emitters) {
+    private static void parseBlockElement(ParserRuleContext ctx, List<Consumer<List<Instruction>>> emitters, Map<String, Integer> locals, boolean implicitReturn) {
         ctx.accept(new ReoBaseVisitor<Void>() {
             @Override
             public Void visitBlockElement(ReoParser.BlockElementContext ctx) {
@@ -50,23 +57,62 @@ public class Parser {
 
             @Override
             public Void visitExpression(ReoParser.ExpressionContext ctx) {
-                parseExpression(ctx, emitters);
+                parseExpression(ctx, emitters, locals, !implicitReturn);
 
                 return null;
             }
 
             @Override
             public Void visitStatement(ReoParser.StatementContext ctx) {
-                return ctx.getChild(0).accept(this);
+                parseStatement((ParserRuleContext) ctx.getChild(0), emitters, locals);
+
+                return null;
             }
         });
     }
 
-    private static void parseExpression(ParserRuleContext ctx, List<Consumer<List<Instruction>>> emitters) {
+    private static void parseStatement(ParserRuleContext ctx, List<Consumer<List<Instruction>>> emitters, Map<String, Integer> locals) {
+        ctx.accept(new ReoBaseVisitor<Void>() {
+            @Override
+            public Void visitReturnStatement(ReoParser.ReturnStatementContext ctx) {
+                parseExpression(ctx.expression(), emitters, locals, false);
+                emitters.add(instructions -> instructions.add(Instructions.ret()));
+
+                return null;
+            }
+
+            @Override
+            public Void visitDeclaration(ReoParser.DeclarationContext ctx) {
+                int ordinal = locals.computeIfAbsent(ctx.ID().getText(), id -> locals.size());
+
+                if(ctx.expression() != null)
+                    parseExpression(ctx.expression(), emitters, locals, false);
+                else
+                    emitters.add(instructions -> instructions.add(Instructions.loadNull()));
+
+                emitters.add(instructions -> instructions.add(Instructions.storeLocal(ordinal)));
+
+                return null;
+            }
+        });
+    }
+
+    private static void parseExpression(ParserRuleContext ctx, List<Consumer<List<Instruction>>> emitters, Map<String, Integer> locals, boolean atTop) {
         ctx.accept(new ReoBaseVisitor<Void>() {
             @Override
             public Void visitExpression(ReoParser.ExpressionContext ctx) {
                 return ctx.getChild(0).accept(this);
+            }
+
+            @Override
+            public Void visitAssignment(ReoParser.AssignmentContext ctx) {
+                int ordinal = locals.get(ctx.ID().getText());
+                ctx.expression().accept(this);
+                if(!atTop)
+                    emitters.add(instructions -> instructions.add(Instructions.dup()));
+                emitters.add(instructions -> instructions.add(Instructions.storeLocal(ordinal)));
+
+                return null;
             }
 
             @Override
@@ -109,7 +155,6 @@ public class Parser {
 
             @Override
             public Void visitNumber(ReoParser.NumberContext ctx) {
-
                 RObject valueTmp;
 
                 try {
@@ -128,6 +173,16 @@ public class Parser {
             @Override
             public Void visitSelf(ReoParser.SelfContext ctx) {
                 emitters.add(instructions -> instructions.add(Instructions.loadLocal(0)));
+
+                return null;
+            }
+
+            @Override
+            public Void visitAccess(ReoParser.AccessContext ctx) {
+                if(!atTop) {
+                    int ordinal = locals.get(ctx.ID().getText());
+                    emitters.add(instructions -> instructions.add(Instructions.loadLocal(ordinal)));
+                }
 
                 return null;
             }

@@ -67,4 +67,35 @@ public class Instructions {
             }
         };
     }
+
+    public static Instruction loadNull() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().push(evaluation.getUniverse().getNull());
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction storeLocal(int ordinal) {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                RObject value = evaluation.getFrame().pop();
+                evaluation.getFrame().set(ordinal, value);
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction dup() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().dup();
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
 }

@@ -2,10 +2,11 @@ grammar Reo;
 
 block: blockElement*;
 blockElement: statement | expression;
-statement: assignment | returnStatement;
-assignment: isDecl='var' ID '=' expression;
+statement: declaration | returnStatement;
+declaration: isDecl='var' ID ('=' expression)?;
 returnStatement: 'return' expression;
-expression: expression1;
+expression: assignment | expression1;
+assignment: ID '=' expression;
 expression1: lhs=expression2 ((op='+'|op='-') expression1)*;
 expression2: lhs=expression3 ((op='*'|op='/') expression2)*;
 expression3: atom expressionTail;
