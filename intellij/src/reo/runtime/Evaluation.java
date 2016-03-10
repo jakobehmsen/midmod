@@ -1,9 +1,16 @@
 package reo.runtime;
 
-import java.util.List;
-
 public class Evaluation {
+    private Universe universe;
     private Frame frame;
+
+    public Evaluation(Universe universe) {
+        this.universe = universe;
+    }
+
+    public Universe getUniverse() {
+        return universe;
+    }
 
     public Frame getFrame() {
         return frame;
@@ -11,41 +18,6 @@ public class Evaluation {
 
     public void setFrame(Frame frame) {
         this.frame = frame;
-    }
-
-    private Universe universe;
-    private List<RObject> arguments;
-    private RObject returnedValue;
-    private RObject receiver;
-
-    public Evaluation(Universe universe, RObject receiver, List<RObject> arguments) {
-        this.universe = universe;
-        this.receiver = receiver;
-        this.arguments = arguments;
-    }
-
-    public boolean hasReturned() {
-        return returnedValue != null;
-    }
-
-    public RObject valueReturned() {
-        return returnedValue;
-    }
-
-    public Universe getUniverse() {
-        return universe;
-    }
-
-    public RObject getArgument(int index) {
-        return arguments.get(index);
-    }
-
-    public void returnValue(RObject value) {
-        returnedValue = value;
-    }
-
-    public RObject getReceiver() {
-        return receiver;
     }
 
     private boolean run;

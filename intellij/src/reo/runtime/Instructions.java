@@ -22,7 +22,7 @@ public class Instructions {
                 RObject[] arguments = new RObject[arity];
                 evaluation.getFrame().pop(arguments, arity);
                 RObject receiver = evaluation.getFrame().pop();
-                receiver.send2(evaluation, selector, arguments);
+                receiver.send(evaluation, selector, arguments);
             }
         };
     }

@@ -1,28 +1,17 @@
 package reo.runtime;
 
-import java.util.Arrays;
 import java.util.Hashtable;
-import java.util.List;
 
 public abstract class AbstractRObject implements RObject {
     private Hashtable<String, RObject> slots = new Hashtable<>();
 
     @Override
-    public RObject send(Evaluation evaluation, String selector, List<RObject> arguments) {
+    public void send(Evaluation evaluation, String selector, RObject[] arguments) {
         RObject method = slots.get(selector);
         if(method == null)
             method = resolve(evaluation, selector);
 
-        return method.apply(evaluation, this, arguments);
-    }
-
-    @Override
-    public void send2(Evaluation evaluation, String selector, RObject[] arguments) {
-        RObject method = slots.get(selector);
-        if(method == null)
-            method = resolve(evaluation, selector);
-
-        method.apply2(evaluation, this, arguments);
+        method.apply(evaluation, this, arguments);
     }
 
     @Override
@@ -34,13 +23,8 @@ public abstract class AbstractRObject implements RObject {
     }
 
     @Override
-    public RObject apply(Evaluation evaluation, RObject receiver, List<RObject> arguments) {
-        return send(evaluation, "apply", Arrays.asList(receiver, new RArray(arguments.toArray(new RObject[arguments.size()]))));
-    }
-
-    @Override
-    public void apply2(Evaluation evaluation, RObject receiver, RObject[] arguments) {
-
+    public void apply(Evaluation evaluation, RObject receiver, RObject[] arguments) {
+        send(evaluation, "apply", new RObject[]{receiver, new RArray(arguments)});
     }
 
     public void put(String selector, RObject value) {

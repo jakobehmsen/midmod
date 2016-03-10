@@ -1,7 +1,5 @@
 package reo.runtime;
 
-import java.util.List;
-
 public class FunctionRObject extends PrimitiveRObject {
     /*private Statement block;
 
@@ -16,14 +14,7 @@ public class FunctionRObject extends PrimitiveRObject {
     }
 
     @Override
-    public RObject apply(Evaluation evaluation, RObject receiver, List<RObject> arguments) {
-        Evaluation applyEvaluation = new Evaluation(evaluation.getUniverse(), receiver, arguments);
-        //block.perform(applyEvaluation);
-        return applyEvaluation.valueReturned();
-    }
-
-    @Override
-    public void apply2(Evaluation evaluation, RObject receiver, RObject[] arguments) {
+    public void apply(Evaluation evaluation, RObject receiver, RObject[] arguments) {
         Frame frame = behavior.createFrame(evaluation.getFrame());
         frame.push(receiver);
         frame.push(arguments);
