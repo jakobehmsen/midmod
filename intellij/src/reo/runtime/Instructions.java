@@ -98,4 +98,39 @@ public class Instructions {
             }
         };
     }
+
+    public static Instruction dup3() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().dup3();
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction loadSlot() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                RString selector = (RString) evaluation.getFrame().pop();
+                RObject target = evaluation.getFrame().pop();
+                evaluation.getFrame().push(target.resolve(evaluation, selector.getValue()));
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction storeSlot() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                RObject value = evaluation.getFrame().pop();
+                RString selector = (RString) evaluation.getFrame().pop();
+                RObject target = evaluation.getFrame().pop();
+                ((AbstractRObject)target).put(selector.getValue(), value);
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
 }

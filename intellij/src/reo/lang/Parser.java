@@ -142,7 +142,49 @@ public class Parser {
 
             @Override
             public Void visitExpression3(ReoParser.Expression3Context ctx) {
-                ctx.atom().accept(this);
+                boolean atomAtTop = ctx.expressionTail().expressionTailPart().size() == 0 && ctx.expressionTail().expressionTailEnd() == null;
+                parseExpression(ctx.atom(), emitters, locals, atomAtTop);
+
+                for (ReoParser.ExpressionTailPartContext expressionTailPartContext : ctx.expressionTail().expressionTailPart()) {
+                    expressionTailPartContext.accept(new ReoBaseVisitor<Void>() {
+                        @Override
+                        public Void visitSlotAccess(ReoParser.SlotAccessContext ctx) {
+                            emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString(ctx.ID().getText()))));
+                            messageSend("getSlot", 1, emitters);
+
+                            return null;
+                        }
+
+                        @Override
+                        public Void visitIndexAssign(ReoParser.IndexAssignContext ctx) {
+
+
+                            return null;
+                        }
+                    });
+                }
+
+                if(ctx.expressionTail().expressionTailEnd() != null) {
+                    ctx.expressionTail().expressionTailEnd().accept(new ReoBaseVisitor<Void>() {
+                        @Override
+                        public Void visitSlotAssignment(ReoParser.SlotAssignmentContext ctx) {
+                            emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString(ctx.ID().getText()))));
+                            parseExpression(ctx.expression(), emitters, locals, false);
+                            if(!atTop)
+                                emitters.add(instructions -> instructions.add(Instructions.dup3()));
+                            messageSend("putSlot", 2, emitters);
+
+                            return null;
+                        }
+
+                        @Override
+                        public Void visitIndexAssign(ReoParser.IndexAssignContext ctx) {
+
+
+                            return null;
+                        }
+                    });
+                }
 
                 return null;
             }

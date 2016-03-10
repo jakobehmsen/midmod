@@ -1,8 +1,10 @@
 package reo.runtime;
 
+import java.util.HashSet;
 import java.util.Hashtable;
 
 public abstract class AbstractRObject implements RObject {
+    private HashSet<String> prototypeSlots = new HashSet<>();
     private Hashtable<String, RObject> slots = new Hashtable<>();
 
     @Override
@@ -19,7 +21,12 @@ public abstract class AbstractRObject implements RObject {
         RObject object = slots.get(selector);
         if(object != null)
             return object;
-        throw new RuntimeException("Cannot resolve " + selector);
+
+        return prototypeSlots.stream()
+            .map(x -> slots.get(x).resolve(evaluation, selector))
+            .filter(x -> x != null)
+            .findFirst()
+            .orElseThrow(() -> new RuntimeException("Cannot resolve " + selector));
     }
 
     @Override
@@ -28,6 +35,12 @@ public abstract class AbstractRObject implements RObject {
     }
 
     public void put(String selector, RObject value) {
+        prototypeSlots.remove(selector);
+        slots.put(selector, value);
+    }
+
+    public void putPrototype(String selector, RObject value) {
+        prototypeSlots.add(selector);
         slots.put(selector, value);
     }
 }

@@ -43,7 +43,7 @@ public class Frame {
     }
 
     public void push(RObject[] array) {
-        for(int i = 0; i < array.length; i++)
+        for(int i = array.length - 1; i >= 0; i--)
             push(array[i]);
     }
 
@@ -57,5 +57,9 @@ public class Frame {
 
     public void dup() {
         stack.push(stack.peek());
+    }
+
+    public void dup3() {
+        stack.add(stack.size() - 3, stack.peek());
     }
 }
