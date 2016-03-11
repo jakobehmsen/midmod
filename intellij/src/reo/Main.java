@@ -9,18 +9,19 @@ public class Main {
             "var x\n" +
             "x = 1\n" +
             "x + 7 + 8";*/
-        String script =
+        /*String script =
             "this.Integer.x = 7\n" +
             "this.Integer.x\n" +
+            "";*/
+        String script =
+            "var x = 7\n" +
+            "$addi(x, 5)\n" +
             "";
 
         Behavior behavior = Parser.parse(script);
         //Behavior behavior = Parser.parse("this", true);
 
         Universe universe = new Universe();
-        universe.getAnyPrototype().put("Integer", universe.getIntegerPrototype());
-        universe.getAnyPrototype().put("Array", universe.getArrayPrototype());
-        universe.getAnyPrototype().put("Function", universe.getFunctionPrototype());
 
         RObject result = universe.evaluate(behavior, universe.getAnyPrototype());
         System.out.println(result);

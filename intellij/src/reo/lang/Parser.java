@@ -9,11 +9,10 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import reo.runtime.*;
 
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Parser {
@@ -143,7 +142,7 @@ public class Parser {
             @Override
             public Void visitExpression3(ReoParser.Expression3Context ctx) {
                 boolean atomAtTop = ctx.expressionTail().expressionTailPart().size() == 0 && ctx.expressionTail().expressionTailEnd() == null;
-                parseExpression(ctx.atom(), emitters, locals, atomAtTop);
+                parseExpression(ctx.atom(), emitters, locals, atomAtTop && atTop);
 
                 for (ReoParser.ExpressionTailPartContext expressionTailPartContext : ctx.expressionTail().expressionTailPart()) {
                     expressionTailPartContext.accept(new ReoBaseVisitor<Void>() {
@@ -224,6 +223,26 @@ public class Parser {
                 if(!atTop) {
                     int ordinal = locals.get(ctx.ID().getText());
                     emitters.add(instructions -> instructions.add(Instructions.loadLocal(ordinal)));
+                }
+
+                return null;
+            }
+
+            @Override
+            public Void visitPrimitive(ReoParser.PrimitiveContext ctx) {
+                if(!atTop) {
+                    // Only functional non-closure (parameter-less methods in Instructions) primitives
+                    ctx.expression().forEach(x -> x.accept(this));
+                    try {
+                        Instruction instruction = (Instruction) Instructions.class.getMethod(ctx.ID().getText()).invoke(null);
+                        emitters.add(instructions -> instructions.add(instruction));
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    } catch (NoSuchMethodException e) {
+                        e.printStackTrace();
+                    } catch (InvocationTargetException e) {
+                        e.printStackTrace();
+                    }
                 }
 
                 return null;

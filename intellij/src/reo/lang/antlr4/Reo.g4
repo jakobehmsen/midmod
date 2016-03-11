@@ -10,7 +10,7 @@ assignment: ID '=' expression;
 expression1: lhs=expression2 ((op='+'|op='-') expression1)*;
 expression2: lhs=expression3 ((op='*'|op='/') expression2)*;
 expression3: atom expressionTail;
-atom: number | string | access | self | objectLiteral | arrayLiteral | function | embeddedExpression;
+atom: number | string | access | self | objectLiteral | arrayLiteral | function | primitive | embeddedExpression;
 number: NUMBER;
 string: STRING;
 embeddedExpression: '(' expression ')';
@@ -28,6 +28,7 @@ objectLiteral: '{' (objectLiteralSlot (',' objectLiteralSlot)*)? '}';
 objectLiteralSlot: ID ':' expression;
 arrayLiteral: '[' (expression (',' expression)*)? ']';
 function: functionParameters '=>' (expression | '{' block '}');
+primitive: '$' ID '(' (expression (',' expression)*)? ')';
 functionParameters: ID | '(' (ID (',' ID)*)? ')';
 
 fragment DIGIT: [0-9];

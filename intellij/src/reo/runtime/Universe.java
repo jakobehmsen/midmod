@@ -23,7 +23,7 @@ public class Universe {
             Instructions.storeSlot(),
             Instructions.ret()
         })));
-        integerPrototype = new CustomRObject();
+        integerPrototype = createPrototype("Integer");
         integerPrototype.putPrototype("proto", anyPrototype);
         integerPrototype.put("+", new FunctionRObject(new Behavior(new Instruction[]{
             Instructions.loadLocal(0),
@@ -31,14 +31,21 @@ public class Universe {
             Instructions.addi(),
             Instructions.ret()
         })));
-        arrayPrototype = new CustomRObject();
+        arrayPrototype = createPrototype("Array");
         arrayPrototype.putPrototype("proto", anyPrototype);
         functionPrototype = new CustomRObject();
         functionPrototype.putPrototype("proto", anyPrototype);
-        aNull = new CustomRObject();
+        aNull = createPrototype("Null");
         aNull.putPrototype("proto", anyPrototype);
-        stringPrototype = new CustomRObject();
+        stringPrototype = createPrototype("String");
         stringPrototype.putPrototype("proto", anyPrototype);
+    }
+
+    private CustomRObject createPrototype(String name) {
+        CustomRObject prototype = new CustomRObject();
+        anyPrototype.put(name, prototype);
+        prototype.putPrototype("prototype", anyPrototype);
+        return prototype;
     }
 
     public RObject getIntegerPrototype() {
