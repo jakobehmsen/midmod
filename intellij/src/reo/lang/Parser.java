@@ -12,7 +12,6 @@ import reo.runtime.*;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Parser {
@@ -22,27 +21,31 @@ public class Parser {
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
         ReoParser parser = new ReoParser(tokenStream);
 
-        return parseBlock(parser.block(), true);
+        return parseBlock(parser.block().blockElement(), true, instructions -> instructions.add(Instructions.halt()), new Hashtable<>());
     }
 
-    private static Behavior parseBlock(ReoParser.BlockContext ctx, boolean haltAtEnd) {
+    private static Behavior parseBlock(List<? extends ParserRuleContext> blockElementCtxs, boolean implicitReturn, Consumer<List<Instruction>> postEmitter, Map<String, Integer> parameters) {
         List<Consumer<List<Instruction>>> emitters = new ArrayList<>();
         Map<String, Integer> locals = new Hashtable<>();
+        locals.putAll(parameters);
 
-        IntStream.range(0, ctx.blockElement().size()).forEach(index ->
-            parseBlockElement(ctx.blockElement(index), emitters, locals, haltAtEnd ? index == ctx.blockElement().size() - 1 : false)
+        IntStream.range(0, blockElementCtxs.size()).forEach(index ->
+            parseBlockElement(blockElementCtxs.get(index), emitters, locals, implicitReturn ? index == blockElementCtxs.size() - 1 : false)
         );
 
         // Allocate local variables at the beginning
-        locals.forEach((x, y) ->
-            emitters.add(0, instructions -> instructions.add(Instructions.loadNull())));
+        locals.forEach((x, y) -> {
+            if (!parameters.containsKey(x)) // If not is parameter, then allocate
+                emitters.add(0, instructions -> instructions.add(Instructions.loadNull()));
+        });
 
-        if(haltAtEnd)
-            emitters.add(instructions -> instructions.add(Instructions.halt()));
+        /*if(haltAtEnd)
+            emitters.add(instructions -> instructions.add(Instructions.halt()));*/
 
         ArrayList<Instruction> instructions = new ArrayList<>();
 
         emitters.forEach(e -> e.accept(instructions));
+        postEmitter.accept(instructions);
 
         return new Behavior(instructions.toArray(new Instruction[instructions.size()]));
     }
@@ -167,13 +170,44 @@ public class Parser {
                     ctx.expressionTail().expressionTailEnd().accept(new ReoBaseVisitor<Void>() {
                         @Override
                         public Void visitSlotAssignment(ReoParser.SlotAssignmentContext ctx) {
-                            emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString(ctx.ID().getText()))));
-                            parseExpression(ctx.expression(), emitters, locals, false);
-                            if(!atTop)
-                                emitters.add(instructions -> instructions.add(Instructions.dup3()));
-                            messageSend("putSlot", 2, emitters);
+                            return ctx.getChild(0).accept(new ReoBaseVisitor<Void>() {
+                                @Override
+                                public Void visitFieldSlotAssignment(ReoParser.FieldSlotAssignmentContext ctx) {
+                                    String selector = ctx.selector().selectorName().getText() +
+                                        (ctx.selector().isMethod != null ? "/" + ctx.selector().ID().size() : "");
+                                    emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString(selector))));
+                                    parseExpression(ctx.expression(), emitters, locals, false);
+                                    if(!atTop)
+                                        emitters.add(instructions -> instructions.add(Instructions.dup3()));
+                                    messageSend("putSlot", 2, emitters);
 
-                            return null;
+                                    return null;
+                                }
+
+                                @Override
+                                public Void visitMethodSlotAssignment(ReoParser.MethodSlotAssignmentContext ctx) {
+                                    String selector = ctx.selector().selectorName().getText() +
+                                        (ctx.selector().isMethod != null ? "/" + ctx.selector().ID().size() : "");
+                                    emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString(selector))));
+
+                                    Map<String, Integer> parameters = new Hashtable<>();
+                                    ctx.selector().ID().forEach(x -> parameters.put(x.getText(), parameters.size() + 1 /*Add one because zero is this*/));
+                                    Behavior behavior;
+
+                                    if(ctx.singleExpressionBody != null) {
+                                        behavior = parseBlock(Arrays.asList(ctx.singleExpressionBody), true, instructions -> instructions.add(Instructions.ret()), parameters);
+                                    } else {
+                                        behavior = parseBlock(Arrays.asList(ctx.blockBody), true, instructions -> { }, parameters);
+                                    }
+
+                                    emitters.add(instructions -> instructions.add(Instructions.loadConst(new FunctionRObject(behavior))));
+                                    if(!atTop)
+                                        emitters.add(instructions -> instructions.add(Instructions.dup3()));
+                                    messageSend("putSlot", 2, emitters);
+
+                                    return null;
+                                }
+                            });
                         }
 
                         @Override
@@ -188,7 +222,8 @@ public class Parser {
                 return null;
             }
 
-            private Void messageSend(String selector, int arity, List<Consumer<List<Instruction>>> emitters) {
+            private Void messageSend(String name, int arity, List<Consumer<List<Instruction>>> emitters) {
+                String selector = name + "/" + arity;
                 emitters.add(instructions -> instructions.add(Instructions.send(selector, arity)));
 
                 return null;

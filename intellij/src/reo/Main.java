@@ -13,15 +13,15 @@ public class Main {
             "this.Integer.x = 7\n" +
             "this.Integer.x\n" +
             "";*/
-        String script =
+        /*String script =
             "Integer.x = 7\n" +
             "Integer.x\n" +
-            "";
-        /*String script =
-            //"this.Integer.+ = other => $addi(this, other)\n" +
-            "this.Integer.+(other) => $addi(this, other)\n" +
-            "4 + 7\n" +
             "";*/
+        String script =
+            //"Integer.+(other) => { return $addi(this, other) }\n" +
+            "Integer.+(other) => $addi(this, other)\n" +
+            "4 + 7\n" +
+            "";
 
         Behavior behavior = Parser.parse(script);
         //Behavior behavior = Parser.parse("this", true);

@@ -10,13 +10,13 @@ public class Universe {
 
     public Universe() {
         anyPrototype = new CustomRObject();
-        anyPrototype.put("getSlot", new FunctionRObject(new Behavior(new Instruction[]{
+        anyPrototype.put("getSlot/1", new FunctionRObject(new Behavior(new Instruction[]{
             Instructions.loadLocal(0),
             Instructions.loadLocal(1),
             Instructions.loadSlot(),
             Instructions.ret()
         })));
-        anyPrototype.put("putSlot", new FunctionRObject(new Behavior(new Instruction[]{
+        anyPrototype.put("putSlot/2", new FunctionRObject(new Behavior(new Instruction[]{
             Instructions.loadLocal(0),
             Instructions.loadLocal(1),
             Instructions.loadLocal(2),
@@ -25,12 +25,6 @@ public class Universe {
         })));
         integerPrototype = createPrototype("Integer");
         integerPrototype.putPrototype("proto", anyPrototype);
-        integerPrototype.put("+", new FunctionRObject(new Behavior(new Instruction[]{
-            Instructions.loadLocal(0),
-            Instructions.loadLocal(1),
-            Instructions.addi(),
-            Instructions.ret()
-        })));
         arrayPrototype = createPrototype("Array");
         arrayPrototype.putPrototype("proto", anyPrototype);
         functionPrototype = new CustomRObject();

@@ -34,7 +34,7 @@ public class Frame {
     }
 
     public void pop(RObject[] array, int count) {
-        for(int i = 0; i < count; i++)
+        for(int i = count - 1; i >= 0; i--)
             array[i] = stack.pop();
     }
 
@@ -43,7 +43,8 @@ public class Frame {
     }
 
     public void push(RObject[] array) {
-        for(int i = array.length - 1; i >= 0; i--)
+        //for(int i = array.length - 1; i >= 0; i--)
+        for(int i = 0; i < array.length; i++)
             push(array[i]);
     }
 
