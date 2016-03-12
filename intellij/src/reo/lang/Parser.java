@@ -221,8 +221,15 @@ public class Parser {
             @Override
             public Void visitAccess(ReoParser.AccessContext ctx) {
                 if(!atTop) {
-                    int ordinal = locals.get(ctx.ID().getText());
-                    emitters.add(instructions -> instructions.add(Instructions.loadLocal(ordinal)));
+                    Integer ordinal = locals.get(ctx.ID().getText());
+
+                    if(ordinal != null) // If is local
+                        emitters.add(instructions -> instructions.add(Instructions.loadLocal(ordinal)));
+                    else { // Else is assumed to be instance slot
+                        emitters.add(instructions -> instructions.add(Instructions.loadLocal(0)));
+                        emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString(ctx.ID().getText()))));
+                        emitters.add(instructions -> instructions.add(Instructions.loadSlot()));
+                    }
                 }
 
                 return null;

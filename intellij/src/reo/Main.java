@@ -14,9 +14,14 @@ public class Main {
             "this.Integer.x\n" +
             "";*/
         String script =
-            "var x = 7\n" +
-            "$addi(x, 5)\n" +
+            "Integer.x = 7\n" +
+            "Integer.x\n" +
             "";
+        /*String script =
+            //"this.Integer.+ = other => $addi(this, other)\n" +
+            "this.Integer.+(other) => $addi(this, other)\n" +
+            "4 + 7\n" +
+            "";*/
 
         Behavior behavior = Parser.parse(script);
         //Behavior behavior = Parser.parse("this", true);
