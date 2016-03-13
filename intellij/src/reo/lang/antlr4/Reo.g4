@@ -28,12 +28,12 @@ indexAssign: '[' expression ']' '=' expression;
 self: 'this';
 objectLiteral: '{' (objectLiteralSlot (',' objectLiteralSlot)*)? '}';
 objectLiteralSlot: ID ':' expression;
-arrayLiteral: '[' (expression (',' expression)*)? ']';
+arrayLiteral: '#' '[' (expression (',' expression)*)? ']';
 function: functionParameters '->' (singleExpressionBody=expression | '{' blockBody=block '}');
 primitive: '$' ID '(' (expression (',' expression)*)? ')';
 functionParameters: ID | '(' (ID (',' ID)*)? ')';
 selector: selectorName (isMethod='(' (ID (',' ID)*)? ')')?;
-selectorName: ID | '+' | '-' | '*' | '/';
+selectorName: ID | '+' | '-' | '*' | '/' | '[]' | '[]=';
 
 fragment DIGIT: [0-9];
 fragment LETTER: [A-Z]|[a-z];

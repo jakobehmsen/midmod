@@ -143,4 +143,17 @@ public class Instructions {
             }
         };
     }
+
+    public static Instruction newa() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                IntegerRObject length = (IntegerRObject) evaluation.getFrame().pop();
+                RObject[] array = new RObject[(int)length.getValue()];
+                evaluation.getFrame().pop(array, (int)length.getValue());
+                evaluation.getFrame().push(new RArray(array));
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
 }

@@ -25,10 +25,16 @@ public class Main {
         /*String script =
             "(other => $addi(this, other))\n" +
             "";*/
-        String script =
+        /*String script =
             //"Integer.+(other) => { return $addi(this, other) }\n" +
+            "String.toString() => \"asdf\"\n" +
             "String.toString(other) => other\n" +
-            "\"MyString\".toString(\"sdf\")\n" +
+            "\"MyString\".toString(\"sdf\").toString()\n" +
+            "";*/
+        String script =
+            //"Array.[](index) => $geta(this, index)\n" +
+            //"Array.[]=(index, value) => $seta(this, index)\n" +
+            "#[1, 2, 3, 4, 5]\n" +
             "";
 
         Behavior behavior = Parser.parse(script);

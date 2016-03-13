@@ -341,6 +341,17 @@ public class Parser {
             }
 
             @Override
+            public Void visitArrayLiteral(ReoParser.ArrayLiteralContext ctx) {
+                ctx.expression().forEach(x -> parseExpression(x, emitters, locals, false));
+                emitters.add(instructions -> instructions.add(Instructions.loadConst(new IntegerRObject(ctx.expression().size()))));
+                emitters.add(instructions -> instructions.add(Instructions.newa()));
+                if(atTop)
+                    emitters.add(instructions -> instructions.add(Instructions.pop()));
+
+                return null;
+            }
+
+            @Override
             public Void visitEmbeddedExpression(ReoParser.EmbeddedExpressionContext ctx) {
                 return ctx.expression().accept(this);
             }
