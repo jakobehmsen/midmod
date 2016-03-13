@@ -65,6 +65,11 @@ public class Instructions {
                 evaluation.getFrame().push(new IntegerRObject(lhs.getValue() + rhs.getValue()));
                 evaluation.getFrame().incrementIP();
             }
+
+            @Override
+            public boolean isFunctional() {
+                return true;
+            }
         };
     }
 
@@ -152,6 +157,36 @@ public class Instructions {
                 RObject[] array = new RObject[(int)length.getValue()];
                 evaluation.getFrame().pop(array, (int)length.getValue());
                 evaluation.getFrame().push(new RArray(array));
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction geta() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                IntegerRObject index = (IntegerRObject) evaluation.getFrame().pop();
+                RArray array = (RArray) evaluation.getFrame().pop();
+                evaluation.getFrame().push(array.getValue()[(int)index.getValue()]);
+                evaluation.getFrame().incrementIP();
+            }
+
+            @Override
+            public boolean isFunctional() {
+                return true;
+            }
+        };
+    }
+
+    public static Instruction seta() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                RObject value = evaluation.getFrame().pop();
+                IntegerRObject index = (IntegerRObject) evaluation.getFrame().pop();
+                RArray array = (RArray) evaluation.getFrame().pop();
+                array.getValue()[(int)index.getValue()] = value;
                 evaluation.getFrame().incrementIP();
             }
         };

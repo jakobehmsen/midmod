@@ -18,4 +18,8 @@ public class RArray extends PrimitiveRObject {
     public String toString() {
         return "#" + Arrays.toString(items);
     }
+
+    public RObject[] getValue() {
+        return items;
+    }
 }

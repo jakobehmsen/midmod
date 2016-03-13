@@ -171,8 +171,9 @@ public class Parser {
                         }
 
                         @Override
-                        public Void visitIndexAssign(ReoParser.IndexAssignContext ctx) {
-
+                        public Void visitIndexAccess(ReoParser.IndexAccessContext ctx) {
+                            parseExpression(ctx.expression(), emitters, locals, false);
+                            messageSend("[]", 1, emitters, atTop);
 
                             return null;
                         }
@@ -211,7 +212,7 @@ public class Parser {
                                     if(ctx.singleExpressionBody != null) {
                                         behavior = parseBlock(Arrays.asList(ctx.singleExpressionBody), true, instructions -> instructions.add(Instructions.ret()), parameters);
                                     } else {
-                                        behavior = parseBlock(Arrays.asList(ctx.blockBody), true, instructions -> { }, parameters);
+                                        behavior = parseBlock(ctx.blockBody.blockElement(), true, instructions -> { }, parameters);
                                     }
 
                                     emitters.add(instructions -> instructions.add(Instructions.loadConst(new FunctionRObject(behavior))));
@@ -226,7 +227,8 @@ public class Parser {
 
                         @Override
                         public Void visitIndexAssign(ReoParser.IndexAssignContext ctx) {
-
+                            ctx.expression().forEach(x -> parseExpression(x, emitters, locals, false));
+                            messageSend("[]=", 2, emitters, atTop);
 
                             return null;
                         }
@@ -302,19 +304,28 @@ public class Parser {
 
             @Override
             public Void visitPrimitive(ReoParser.PrimitiveContext ctx) {
-                if(!atTop) {
-                    // Only functional non-closure (parameter-less methods in Instructions) primitives
-                    ctx.expression().forEach(x -> x.accept(this));
-                    try {
-                        Instruction instruction = (Instruction) Instructions.class.getMethod(ctx.ID().getText()).invoke(null);
-                        emitters.add(instructions -> instructions.add(instruction));
-                    } catch (IllegalAccessException e) {
-                        e.printStackTrace();
-                    } catch (NoSuchMethodException e) {
-                        e.printStackTrace();
-                    } catch (InvocationTargetException e) {
-                        e.printStackTrace();
+                ctx.expression().forEach(x -> parseExpression(x, emitters, locals, false));
+                try {
+                    Instruction instruction = (Instruction) Instructions.class.getMethod(ctx.ID().getText()).invoke(null);
+
+                    if(atTop) {
+                        if(instruction.isFunctional()) {
+                            // Ignore since there is no side effect
+                        } else // Emit imperative instruction
+                            emitters.add(instructions -> instructions.add(instruction));
+                    } else {
+                        if(!instruction.isFunctional())
+                            throw new RuntimeException("Imperative instructions must be at top level/cannot be expressions.");
+                        else // Emit functional instruction
+                            emitters.add(instructions -> instructions.add(instruction));
                     }
+
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (NoSuchMethodException e) {
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
                 }
 
                 return null;

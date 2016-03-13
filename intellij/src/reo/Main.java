@@ -32,9 +32,11 @@ public class Main {
             "\"MyString\".toString(\"sdf\").toString()\n" +
             "";*/
         String script =
-            //"Array.[](index) => $geta(this, index)\n" +
-            //"Array.[]=(index, value) => $seta(this, index)\n" +
-            "#[1, 2, 3, 4, 5]\n" +
+            "Array.[](index) => $geta(this, index)\n" +
+            "Array.[]=(index, value) => { $seta(this, index, value) return value }\n" +
+            "var arr = #[1, 2, 3, 4, 5]\n" +
+            "arr[3] = 7\n" +
+            "arr[3]\n" +
             "";
 
         Behavior behavior = Parser.parse(script);
