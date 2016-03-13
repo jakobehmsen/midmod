@@ -1,12 +1,6 @@
 package reo.runtime;
 
 public class FunctionRObject extends PrimitiveRObject {
-    /*private Statement block;
-
-    public FunctionRObject(Statement block) {
-        this.block = block;
-    }*/
-
     private Behavior behavior;
 
     public FunctionRObject(Behavior behavior) {

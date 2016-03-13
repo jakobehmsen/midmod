@@ -17,10 +17,14 @@ public class Main {
             "Integer.x = 7\n" +
             "Integer.x\n" +
             "";*/
-        String script =
+        /*String script =
             //"Integer.+(other) => { return $addi(this, other) }\n" +
             "Integer.+(other) => $addi(this, other)\n" +
             "4 + 7\n" +
+            "";*/
+        String script =
+            //"Integer.+(other) => { return $addi(this, other) }\n" +
+            "other => $addi(this, other)\n" +
             "";
 
         Behavior behavior = Parser.parse(script);

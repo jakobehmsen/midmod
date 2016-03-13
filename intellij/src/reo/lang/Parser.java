@@ -289,6 +289,26 @@ public class Parser {
 
                 return null;
             }
+
+            @Override
+            public Void visitFunction(ReoParser.FunctionContext ctx) {
+                if(!atTop) {
+                    Map<String, Integer> parameters = new Hashtable<>();
+                    ctx.functionParameters().ID().forEach(x -> parameters.put(x.getText(), parameters.size() + 1 /*Add one because zero is this*/));
+                    Behavior behavior;
+
+                    if (ctx.singleExpressionBody != null) {
+                        behavior = parseBlock(Arrays.asList(ctx.singleExpressionBody), true, instructions -> instructions.add(Instructions.ret()), parameters);
+                    } else {
+                        behavior = parseBlock(Arrays.asList(ctx.blockBody), true, instructions -> {
+                        }, parameters);
+                    }
+
+                    emitters.add(instructions -> instructions.add(Instructions.loadConst(new FunctionRObject(behavior))));
+                }
+
+                return null;
+            }
         });
     }
 }
