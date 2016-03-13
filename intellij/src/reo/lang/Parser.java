@@ -309,6 +309,11 @@ public class Parser {
 
                 return null;
             }
+
+            @Override
+            public Void visitEmbeddedExpression(ReoParser.EmbeddedExpressionContext ctx) {
+                return ctx.expression().accept(this);
+            }
         });
     }
 }

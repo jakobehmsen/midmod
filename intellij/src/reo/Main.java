@@ -24,7 +24,7 @@ public class Main {
             "";*/
         String script =
             //"Integer.+(other) => { return $addi(this, other) }\n" +
-            "other => $addi(this, other)\n" +
+            "(other => $addi(this, other))\n" +
             "";
 
         Behavior behavior = Parser.parse(script);
