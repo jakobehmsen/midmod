@@ -124,7 +124,7 @@ public class Parser {
                 for (ReoParser.Expression1Context rhsCtx : ctx.expression1()) {
                     String selector = ctx.children.get(ctx.children.indexOf(rhsCtx) - 1).getText();
                     rhsCtx.accept(this);
-                    messageSend(selector, 1, emitters);
+                    messageSend(selector, 1, emitters, atTop);
                 }
 
                 return null;
@@ -136,7 +136,8 @@ public class Parser {
 
                 for (ReoParser.Expression2Context rhsCtx : ctx.expression2()) {
                     String selector = ctx.children.get(ctx.children.indexOf(rhsCtx) - 1).getText();
-                    messageSend(selector, 1, emitters);
+                    rhsCtx.accept(this);
+                    messageSend(selector, 1, emitters, atTop);
                 }
 
                 return null;
@@ -146,13 +147,25 @@ public class Parser {
             public Void visitExpression3(ReoParser.Expression3Context ctx) {
                 boolean atomAtTop = ctx.expressionTail().expressionTailPart().size() == 0 && ctx.expressionTail().expressionTailEnd() == null;
                 parseExpression(ctx.atom(), emitters, locals, atomAtTop && atTop);
+                int tailCount = ctx.expressionTail().expressionTailPart().size() + (ctx.expressionTail().expressionTailEnd() != null ? 1 : 0);
+                int tailNo = 0;
 
                 for (ReoParser.ExpressionTailPartContext expressionTailPartContext : ctx.expressionTail().expressionTailPart()) {
+                    int tailNoTmp = tailNo;
+                    boolean partAtTop = tailNoTmp == tailCount - 1 ? atTop : false;
                     expressionTailPartContext.accept(new ReoBaseVisitor<Void>() {
+                        @Override
+                        public Void visitCall(ReoParser.CallContext ctx) {
+                            ctx.expression().forEach(x ->  parseExpression(x, emitters, locals, false));
+                            messageSend(ctx.ID().getText(), ctx.expression().size(), emitters, partAtTop);
+
+                            return null;
+                        }
+
                         @Override
                         public Void visitSlotAccess(ReoParser.SlotAccessContext ctx) {
                             emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString(ctx.ID().getText()))));
-                            messageSend("getSlot", 1, emitters);
+                            messageSend("getSlot", 1, emitters, partAtTop);
 
                             return null;
                         }
@@ -164,6 +177,7 @@ public class Parser {
                             return null;
                         }
                     });
+                    tailNo++;
                 }
 
                 if(ctx.expressionTail().expressionTailEnd() != null) {
@@ -179,7 +193,7 @@ public class Parser {
                                     parseExpression(ctx.expression(), emitters, locals, false);
                                     if(!atTop)
                                         emitters.add(instructions -> instructions.add(Instructions.dup3()));
-                                    messageSend("putSlot", 2, emitters);
+                                    messageSend("putSlot", 2, emitters, atTop);
 
                                     return null;
                                 }
@@ -203,7 +217,7 @@ public class Parser {
                                     emitters.add(instructions -> instructions.add(Instructions.loadConst(new FunctionRObject(behavior))));
                                     if(!atTop)
                                         emitters.add(instructions -> instructions.add(Instructions.dup3()));
-                                    messageSend("putSlot", 2, emitters);
+                                    messageSend("putSlot", 2, emitters, atTop);
 
                                     return null;
                                 }
@@ -222,9 +236,11 @@ public class Parser {
                 return null;
             }
 
-            private Void messageSend(String name, int arity, List<Consumer<List<Instruction>>> emitters) {
+            private Void messageSend(String name, int arity, List<Consumer<List<Instruction>>> emitters, boolean atTop) {
                 String selector = name + "/" + arity;
                 emitters.add(instructions -> instructions.add(Instructions.send(selector, arity)));
+                if(atTop)
+                    emitters.add(instructions -> instructions.add(Instructions.pop()));
 
                 return null;
             }
@@ -244,6 +260,20 @@ public class Parser {
                 emitters.add(instructions -> instructions.add(Instructions.loadConst(value)));
 
                 return null;
+            }
+
+            @Override
+            public Void visitString(ReoParser.StringContext ctx) {
+                RString value = new RString(parseString(ctx));
+
+                emitters.add(instructions -> instructions.add(Instructions.loadConst(value)));
+
+                return null;
+            }
+
+            private String parseString(ParserRuleContext ctx) {
+                String rawString = ctx.getText().substring(1, ctx.getText().length() - 1);
+                return rawString.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
             }
 
             @Override

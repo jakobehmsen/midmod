@@ -22,9 +22,13 @@ public class Main {
             "Integer.+(other) => $addi(this, other)\n" +
             "4 + 7\n" +
             "";*/
+        /*String script =
+            "(other => $addi(this, other))\n" +
+            "";*/
         String script =
             //"Integer.+(other) => { return $addi(this, other) }\n" +
-            "(other => $addi(this, other))\n" +
+            "String.toString(other) => other\n" +
+            "\"MyString\".toString(\"sdf\")\n" +
             "";
 
         Behavior behavior = Parser.parse(script);

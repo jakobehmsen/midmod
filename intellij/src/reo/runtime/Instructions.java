@@ -133,4 +133,14 @@ public class Instructions {
             }
         };
     }
+
+    public static Instruction pop() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().pop();
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
 }

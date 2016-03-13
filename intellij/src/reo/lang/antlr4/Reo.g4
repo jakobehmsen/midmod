@@ -29,7 +29,7 @@ self: 'this';
 objectLiteral: '{' (objectLiteralSlot (',' objectLiteralSlot)*)? '}';
 objectLiteralSlot: ID ':' expression;
 arrayLiteral: '[' (expression (',' expression)*)? ']';
-function: functionParameters '=>' (singleExpressionBody=expression | '{' blockBody=block '}');
+function: functionParameters '->' (singleExpressionBody=expression | '{' blockBody=block '}');
 primitive: '$' ID '(' (expression (',' expression)*)? ')';
 functionParameters: ID | '(' (ID (',' ID)*)? ')';
 selector: selectorName (isMethod='(' (ID (',' ID)*)? ')')?;
