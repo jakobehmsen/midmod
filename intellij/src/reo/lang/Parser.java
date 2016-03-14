@@ -185,44 +185,9 @@ public class Parser {
                     ctx.expressionTail().expressionTailEnd().accept(new ReoBaseVisitor<Void>() {
                         @Override
                         public Void visitSlotAssignment(ReoParser.SlotAssignmentContext ctx) {
-                            return ctx.getChild(0).accept(new ReoBaseVisitor<Void>() {
-                                @Override
-                                public Void visitFieldSlotAssignment(ReoParser.FieldSlotAssignmentContext ctx) {
-                                    String selector = ctx.selector().selectorName().getText() +
-                                        (ctx.selector().isMethod != null ? "/" + ctx.selector().ID().size() : "");
-                                    emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString(selector))));
-                                    parseExpression(ctx.expression(), emitters, locals, false);
-                                    if(!atTop)
-                                        emitters.add(instructions -> instructions.add(Instructions.dup3()));
-                                    messageSend("putSlot", 2, emitters, atTop);
+                            parseSlotAssignment(ctx, true);
 
-                                    return null;
-                                }
-
-                                @Override
-                                public Void visitMethodSlotAssignment(ReoParser.MethodSlotAssignmentContext ctx) {
-                                    String selector = ctx.selector().selectorName().getText() +
-                                        (ctx.selector().isMethod != null ? "/" + ctx.selector().ID().size() : "");
-                                    emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString(selector))));
-
-                                    Map<String, Integer> parameters = new Hashtable<>();
-                                    ctx.selector().ID().forEach(x -> parameters.put(x.getText(), parameters.size() + 1 /*Add one because zero is this*/));
-                                    Behavior behavior;
-
-                                    if(ctx.singleExpressionBody != null) {
-                                        behavior = parseBlock(Arrays.asList(ctx.singleExpressionBody), true, instructions -> instructions.add(Instructions.ret()), parameters);
-                                    } else {
-                                        behavior = parseBlock(ctx.blockBody.blockElement(), true, instructions -> { }, parameters);
-                                    }
-
-                                    emitters.add(instructions -> instructions.add(Instructions.loadConst(new FunctionRObject(behavior))));
-                                    if(!atTop)
-                                        emitters.add(instructions -> instructions.add(Instructions.dup3()));
-                                    messageSend("putSlot", 2, emitters, atTop);
-
-                                    return null;
-                                }
-                            });
+                            return null;
                         }
 
                         @Override
@@ -236,6 +201,53 @@ public class Parser {
                 }
 
                 return null;
+            }
+
+            private void parseSlotAssignment(ReoParser.SlotAssignmentContext ctx, boolean sendMessage) {
+                ctx.getChild(0).accept(new ReoBaseVisitor<Void>() {
+                    @Override
+                    public Void visitFieldSlotAssignment(ReoParser.FieldSlotAssignmentContext ctx) {
+                        String selector = ctx.selector().selectorName().getText() +
+                            (ctx.selector().isMethod != null ? "/" + ctx.selector().ID().size() : "");
+                        emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString(selector))));
+                        parseExpression(ctx.expression(), emitters, locals, false);
+                        if(sendMessage) {
+                            if(!atTop)
+                                emitters.add(instructions -> instructions.add(Instructions.dup2()));
+                            messageSend("putSlot", 2, emitters, atTop);
+                        } else
+                            emitters.add(instructions -> instructions.add(Instructions.storeSlot()));
+
+                        return null;
+                    }
+
+                    @Override
+                    public Void visitMethodSlotAssignment(ReoParser.MethodSlotAssignmentContext ctx) {
+                        String selector = ctx.selector().selectorName().getText() +
+                            (ctx.selector().isMethod != null ? "/" + ctx.selector().ID().size() : "");
+                        emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString(selector))));
+
+                        Map<String, Integer> parameters = new Hashtable<>();
+                        ctx.selector().ID().forEach(x -> parameters.put(x.getText(), parameters.size() + 1 /*Add one because zero is this*/));
+                        Behavior behavior;
+
+                        if(ctx.singleExpressionBody != null) {
+                            behavior = parseBlock(Arrays.asList(ctx.singleExpressionBody), true, instructions -> instructions.add(Instructions.ret()), parameters);
+                        } else {
+                            behavior = parseBlock(ctx.blockBody.blockElement(), true, instructions -> { }, parameters);
+                        }
+
+                        emitters.add(instructions -> instructions.add(Instructions.loadConst(new FunctionRObject(behavior))));
+                        if(sendMessage) {
+                            if(!atTop)
+                                emitters.add(instructions -> instructions.add(Instructions.dup2()));
+                            messageSend("putSlot", 2, emitters, atTop);
+                        } else
+                            emitters.add(instructions -> instructions.add(Instructions.storeSlot()));
+
+                        return null;
+                    }
+                });
             }
 
             private Void messageSend(String name, int arity, List<Consumer<List<Instruction>>> emitters, boolean atTop) {
@@ -356,6 +368,34 @@ public class Parser {
                 ctx.expression().forEach(x -> parseExpression(x, emitters, locals, false));
                 emitters.add(instructions -> instructions.add(Instructions.loadConst(new IntegerRObject(ctx.expression().size()))));
                 emitters.add(instructions -> instructions.add(Instructions.newa()));
+                if(atTop)
+                    emitters.add(instructions -> instructions.add(Instructions.pop()));
+
+                return null;
+            }
+
+            @Override
+            public Void visitObjectLiteral(ReoParser.ObjectLiteralContext ctx) {
+                emitters.add(instructions -> instructions.add(Instructions.loadLocal(0)));
+                emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString("Any"))));
+                emitters.add(instructions -> instructions.add(Instructions.loadSlot()));
+                //[Any]
+                //[Any, o]
+                emitters.add(instructions -> instructions.add(Instructions.newo()));
+                ctx.slotAssignment().forEach(x -> {
+                    emitters.add(instructions -> instructions.add(Instructions.dup()));
+                    parseSlotAssignment(x, false);
+                });
+                //[Any, o]
+
+                emitters.add(instructions -> instructions.add(Instructions.dup()));
+                //[Any, o, o]
+                emitters.add(instructions -> instructions.add(Instructions.swap1()));
+                //[o, o, Any]
+                String selector = "prototype";
+                emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString(selector))));
+                emitters.add(instructions -> instructions.add(Instructions.swap()));
+                emitters.add(instructions -> instructions.add(Instructions.storeSlotPrototype()));
                 if(atTop)
                     emitters.add(instructions -> instructions.add(Instructions.pop()));
 

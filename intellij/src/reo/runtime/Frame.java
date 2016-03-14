@@ -60,7 +60,19 @@ public class Frame {
         stack.push(stack.peek());
     }
 
-    public void dup3() {
+    public void dup2() {
         stack.add(stack.size() - 3, stack.peek());
+    }
+
+    public void swap() {
+        RObject tmp = stack.peek();
+        stack.set(stack.size() - 1, stack.get(stack.size() - 2));
+        stack.set(stack.size() - 2, tmp);
+    }
+
+    public void swap1() {
+        RObject tmp = stack.peek();
+        stack.set(stack.size() - 1, stack.get(stack.size() - 3));
+        stack.set(stack.size() - 3, tmp);
     }
 }

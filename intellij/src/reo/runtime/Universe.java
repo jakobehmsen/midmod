@@ -10,6 +10,7 @@ public class Universe {
 
     public Universe() {
         anyPrototype = new CustomRObject();
+        anyPrototype.put("Any", anyPrototype);
         anyPrototype.put("getSlot/1", new FunctionRObject(new Behavior(new Instruction[]{
             Instructions.loadLocal(0),
             Instructions.loadLocal(1),

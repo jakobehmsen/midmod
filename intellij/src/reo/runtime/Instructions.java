@@ -104,11 +104,11 @@ public class Instructions {
         };
     }
 
-    public static Instruction dup3() {
+    public static Instruction dup2() {
         return new Instruction() {
             @Override
             public void evaluate(Evaluation evaluation) {
-                evaluation.getFrame().dup3();
+                evaluation.getFrame().dup2();
                 evaluation.getFrame().incrementIP();
             }
         };
@@ -134,6 +134,19 @@ public class Instructions {
                 RString selector = (RString) evaluation.getFrame().pop();
                 RObject target = evaluation.getFrame().pop();
                 ((AbstractRObject)target).put(selector.getValue(), value);
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction storeSlotPrototype() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                RObject value = evaluation.getFrame().pop();
+                RString selector = (RString) evaluation.getFrame().pop();
+                RObject target = evaluation.getFrame().pop();
+                ((AbstractRObject)target).putPrototype(selector.getValue(), value);
                 evaluation.getFrame().incrementIP();
             }
         };
@@ -187,6 +200,36 @@ public class Instructions {
                 IntegerRObject index = (IntegerRObject) evaluation.getFrame().pop();
                 RArray array = (RArray) evaluation.getFrame().pop();
                 array.getValue()[(int)index.getValue()] = value;
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction newo() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().push(new CustomRObject());
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction swap() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().swap();
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction swap1() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().swap1();
                 evaluation.getFrame().incrementIP();
             }
         };
