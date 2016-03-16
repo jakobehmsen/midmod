@@ -382,20 +382,13 @@ public class Parser {
                 //[Any]
                 //[Any, o]
                 emitters.add(instructions -> instructions.add(Instructions.newo()));
+                //[o]
                 ctx.slotAssignment().forEach(x -> {
                     emitters.add(instructions -> instructions.add(Instructions.dup()));
                     parseSlotAssignment(x, false);
                 });
-                //[Any, o]
+                //[o]
 
-                emitters.add(instructions -> instructions.add(Instructions.dup()));
-                //[Any, o, o]
-                emitters.add(instructions -> instructions.add(Instructions.swap1()));
-                //[o, o, Any]
-                String selector = "prototype";
-                emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString(selector))));
-                emitters.add(instructions -> instructions.add(Instructions.swap()));
-                emitters.add(instructions -> instructions.add(Instructions.storeSlotPrototype()));
                 if(atTop)
                     emitters.add(instructions -> instructions.add(Instructions.pop()));
 

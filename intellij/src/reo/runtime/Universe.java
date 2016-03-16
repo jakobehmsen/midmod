@@ -7,9 +7,10 @@ public class Universe {
     private CustomRObject functionPrototype;
     private CustomRObject aNull;
     private CustomRObject stringPrototype;
+    private CustomRObject doublePrototype;
 
     public Universe() {
-        anyPrototype = new CustomRObject();
+        anyPrototype = new CustomRObject(null);
         anyPrototype.put("Any", anyPrototype);
         anyPrototype.put("getSlot/1", new FunctionRObject(new Behavior(new Instruction[]{
             Instructions.loadLocal(0),
@@ -25,21 +26,16 @@ public class Universe {
             Instructions.ret()
         })));
         integerPrototype = createPrototype("Integer");
-        integerPrototype.putPrototype("proto", anyPrototype);
         arrayPrototype = createPrototype("Array");
-        arrayPrototype.putPrototype("proto", anyPrototype);
-        functionPrototype = new CustomRObject();
-        functionPrototype.putPrototype("proto", anyPrototype);
+        functionPrototype = createPrototype("Function");
         aNull = createPrototype("Null");
-        aNull.putPrototype("proto", anyPrototype);
         stringPrototype = createPrototype("String");
-        stringPrototype.putPrototype("proto", anyPrototype);
+        doublePrototype = createPrototype("Double");
     }
 
     private CustomRObject createPrototype(String name) {
-        CustomRObject prototype = new CustomRObject();
+        CustomRObject prototype = new CustomRObject(anyPrototype);
         anyPrototype.put(name, prototype);
-        prototype.putPrototype("prototype", anyPrototype);
         return prototype;
     }
 
@@ -73,5 +69,9 @@ public class Universe {
 
     public CustomRObject getAnyPrototype() {
         return anyPrototype;
+    }
+
+    public RObject getDoublePrototype() {
+        return doublePrototype;
     }
 }

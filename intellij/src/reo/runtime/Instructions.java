@@ -139,19 +139,6 @@ public class Instructions {
         };
     }
 
-    public static Instruction storeSlotPrototype() {
-        return new Instruction() {
-            @Override
-            public void evaluate(Evaluation evaluation) {
-                RObject value = evaluation.getFrame().pop();
-                RString selector = (RString) evaluation.getFrame().pop();
-                RObject target = evaluation.getFrame().pop();
-                ((AbstractRObject)target).putPrototype(selector.getValue(), value);
-                evaluation.getFrame().incrementIP();
-            }
-        };
-    }
-
     public static Instruction pop() {
         return new Instruction() {
             @Override
@@ -209,7 +196,8 @@ public class Instructions {
         return new Instruction() {
             @Override
             public void evaluate(Evaluation evaluation) {
-                evaluation.getFrame().push(new CustomRObject());
+                RObject prototype = evaluation.getFrame().pop();
+                evaluation.getFrame().push(new CustomRObject(prototype));
                 evaluation.getFrame().incrementIP();
             }
         };

@@ -39,7 +39,7 @@ public class Main {
             "arr[3]\n" +
             "";*/
         String script =
-            "#{x = 5 y = 6 toString() => \"Whatever\"}\n" +
+            "#{x = 5 y = 6 toString() => \"Whatever\"}.Integer\n" +
             "";
 
         Behavior behavior = Parser.parse(script);
