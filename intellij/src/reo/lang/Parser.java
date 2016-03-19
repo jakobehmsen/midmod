@@ -108,11 +108,24 @@ public class Parser {
 
             @Override
             public Void visitAssignment(ReoParser.AssignmentContext ctx) {
-                int ordinal = locals.get(ctx.ID().getText());
-                ctx.expression().accept(this);
-                if(!atTop)
-                    emitters.add(instructions -> instructions.add(Instructions.dup()));
-                emitters.add(instructions -> instructions.add(Instructions.storeLocal(ordinal)));
+                Integer ordinal = locals.get(ctx.ID().getText());
+
+                if(ordinal != null) {
+                    // Variable assignment
+                    ctx.expression().accept(this);
+                    if (!atTop)
+                        emitters.add(instructions -> instructions.add(Instructions.dup()));
+                    emitters.add(instructions -> instructions.add(Instructions.storeLocal(ordinal)));
+                } else {
+                    // Slot assignment against this
+                    emitters.add(instructions -> instructions.add(Instructions.loadLocal(0)));
+                    String selector = ctx.ID().getText();
+                    emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString(selector))));
+                    parseExpression(ctx.expression(), emitters, locals, false);
+                    if(!atTop)
+                        emitters.add(instructions -> instructions.add(Instructions.dup2()));
+                    messageSend("putSlot", 2, emitters, atTop);
+                }
 
                 return null;
             }

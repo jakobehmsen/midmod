@@ -49,3 +49,5 @@ NUMBER
 fragment INT :   '0' | [1-9] [0-9]* ; // no leading zeros
 fragment EXP :   [Ee] [+\-]? INT ; // \- since - means "range" inside [...]
 WS  :   [ \t\n\r]+ -> skip ;
+SINGLE_LINE_COMMENT: '//' ~('\r' | '\n')* -> skip;
+MULTI_LINE_COMMENT: '/*' .*? '*/' -> skip;
