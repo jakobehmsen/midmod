@@ -3,8 +3,11 @@ package reo;
 import reo.lang.Parser;
 import reo.runtime.*;
 
+import java.io.IOException;
+import java.nio.file.Paths;
+
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         /*String script =
             "var x\n" +
             "x = 1\n" +
@@ -38,9 +41,11 @@ public class Main {
             "arr[3] = 7\n" +
             "arr[3]\n" +
             "";*/
-        String script =
+        /*String script =
             "#{x = 5 y = 6 toString() => \"Whatever\"}.toString()\n" +
-            "";
+            "";*/
+
+        String script = new String(java.nio.file.Files.readAllBytes(Paths.get("src/reo/core/bootstrap.reo")));
 
         Behavior behavior = Parser.parse(script);
         //Behavior behavior = Parser.parse("this", true);
