@@ -2,11 +2,11 @@ package reo.runtime;
 
 import java.util.Hashtable;
 
-public class CustomRObject extends AbstractRObject {
+public class DeltaRObject extends AbstractRObject {
     private Hashtable<String, RObject> slots = new Hashtable<>();
     private RObject prototype; // Method on local cache-miss
 
-    public CustomRObject(RObject prototype) {
+    public DeltaRObject(RObject prototype) {
         this.prototype = prototype;
     }
 

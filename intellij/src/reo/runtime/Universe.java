@@ -1,16 +1,16 @@
 package reo.runtime;
 
 public class Universe {
-    private CustomRObject anyPrototype;
-    private CustomRObject integerPrototype;
-    private CustomRObject arrayPrototype;
-    private CustomRObject functionPrototype;
-    private CustomRObject aNull;
-    private CustomRObject stringPrototype;
-    private CustomRObject doublePrototype;
+    private DeltaRObject anyPrototype;
+    private DeltaRObject integerPrototype;
+    private DeltaRObject arrayPrototype;
+    private DeltaRObject functionPrototype;
+    private DeltaRObject aNull;
+    private DeltaRObject stringPrototype;
+    private DeltaRObject doublePrototype;
 
     public Universe() {
-        anyPrototype = new CustomRObject(null);
+        anyPrototype = new DeltaRObject(null);
         anyPrototype.put("Any", anyPrototype);
         anyPrototype.put("getSlot/1", new FunctionRObject(new Behavior(new Instruction[]{
             Instructions.loadLocal(0),
@@ -33,8 +33,8 @@ public class Universe {
         doublePrototype = createPrototype("Double");
     }
 
-    private CustomRObject createPrototype(String name) {
-        CustomRObject prototype = new CustomRObject(anyPrototype);
+    private DeltaRObject createPrototype(String name) {
+        DeltaRObject prototype = new DeltaRObject(anyPrototype);
         anyPrototype.put(name, prototype);
         return prototype;
     }
@@ -67,7 +67,7 @@ public class Universe {
         return stringPrototype;
     }
 
-    public CustomRObject getAnyPrototype() {
+    public DeltaRObject getAnyPrototype() {
         return anyPrototype;
     }
 

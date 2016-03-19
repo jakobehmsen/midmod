@@ -133,7 +133,7 @@ public class Instructions {
                 RObject value = evaluation.getFrame().pop();
                 RString selector = (RString) evaluation.getFrame().pop();
                 RObject target = evaluation.getFrame().pop();
-                ((CustomRObject)target).put(selector.getValue(), value);
+                ((DeltaRObject)target).put(selector.getValue(), value);
                 evaluation.getFrame().incrementIP();
             }
         };
@@ -197,7 +197,7 @@ public class Instructions {
             @Override
             public void evaluate(Evaluation evaluation) {
                 RObject prototype = evaluation.getFrame().pop();
-                evaluation.getFrame().push(new CustomRObject(prototype));
+                evaluation.getFrame().push(new DeltaRObject(prototype));
                 evaluation.getFrame().incrementIP();
             }
         };
