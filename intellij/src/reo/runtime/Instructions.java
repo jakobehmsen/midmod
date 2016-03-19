@@ -222,4 +222,16 @@ public class Instructions {
             }
         };
     }
+
+    public static Instruction setPrototype() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                RObject prototype = evaluation.getFrame().pop();
+                RObject target = evaluation.getFrame().pop();
+                ((DeltaRObject)target).setPrototype(prototype);
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
 }

@@ -28,4 +28,8 @@ public class DeltaRObject extends AbstractRObject {
     public void put(String selector, RObject value) {
         slots.put(selector, value);
     }
+
+    public void setPrototype(RObject prototype) {
+        this.prototype = prototype;
+    }
 }

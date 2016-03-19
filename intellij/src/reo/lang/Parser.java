@@ -377,10 +377,8 @@ public class Parser {
             @Override
             public Void visitObjectLiteral(ReoParser.ObjectLiteralContext ctx) {
                 emitters.add(instructions -> instructions.add(Instructions.loadLocal(0)));
-                emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString("Any"))));
-                emitters.add(instructions -> instructions.add(Instructions.loadSlot()));
-                //[Any]
-                //[Any, o]
+                //[this]
+                //[this, o]
                 emitters.add(instructions -> instructions.add(Instructions.newo()));
                 //[o]
                 ctx.slotAssignment().forEach(x -> {
