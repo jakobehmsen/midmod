@@ -1,1 +1,11 @@
-#{x = 5 y = 6 toString() => "Whatever"}.toString()
+Any.setPrototype(p) => {
+    $setPrototype(this, p)
+    return this
+}
+Collection = #{
+    toString() => "I am a collection"
+}
+Array.setPrototype(Collection)
+
+#[1, 2, 3].toString()
+//#{x = 5 y = 6 toString() => "Whatever"}.toString()
