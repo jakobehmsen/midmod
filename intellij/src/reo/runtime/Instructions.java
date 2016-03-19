@@ -133,7 +133,7 @@ public class Instructions {
                 RObject value = evaluation.getFrame().pop();
                 RString selector = (RString) evaluation.getFrame().pop();
                 RObject target = evaluation.getFrame().pop();
-                ((AbstractRObject)target).put(selector.getValue(), value);
+                ((CustomRObject)target).put(selector.getValue(), value);
                 evaluation.getFrame().incrementIP();
             }
         };
