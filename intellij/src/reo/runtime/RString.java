@@ -20,4 +20,9 @@ public class RString extends PrimitiveRObject {
     public String getValue() {
         return value;
     }
+
+    @Override
+    public Object toNative() {
+        return value;
+    }
 }

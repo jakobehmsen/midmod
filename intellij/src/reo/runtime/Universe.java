@@ -1,5 +1,7 @@
 package reo.runtime;
 
+import java.util.Hashtable;
+
 public class Universe {
     private DeltaRObject anyPrototype;
     private DeltaRObject integerPrototype;
@@ -8,6 +10,7 @@ public class Universe {
     private DeltaRObject aNull;
     private DeltaRObject stringPrototype;
     private DeltaRObject doublePrototype;
+    private Hashtable<String, DeltaRObject> instructionPrototypes = new Hashtable<>();
 
     public Universe() {
         anyPrototype = new DeltaRObject(null);
@@ -73,5 +76,9 @@ public class Universe {
 
     public RObject getDoublePrototype() {
         return doublePrototype;
+    }
+
+    public RObject getInstructionPrototype(String instructionName) {
+        return instructionPrototypes.computeIfAbsent(instructionName, in -> new DeltaRObject(anyPrototype));
     }
 }

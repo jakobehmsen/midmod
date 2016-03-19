@@ -20,4 +20,9 @@ public class IntegerRObject extends PrimitiveRObject {
     public String toString() {
         return "" + value;
     }
+
+    @Override
+    public Object toNative() {
+        return (int)value;
+    }
 }

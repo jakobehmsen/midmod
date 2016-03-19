@@ -1,5 +1,9 @@
 package reo.runtime;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+
 public class Instructions {
     public static Instruction ret() {
         return new Instruction() {
@@ -230,6 +234,43 @@ public class Instructions {
                 RObject prototype = evaluation.getFrame().pop();
                 RObject target = evaluation.getFrame().pop();
                 ((DeltaRObject)target).setPrototype(prototype);
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction newInstruction() {
+        return new Instruction() {
+            @Override
+            public boolean isFunctional() {
+                return true;
+            }
+
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                IntegerRObject creationOperandCount = (IntegerRObject) evaluation.getFrame().pop();
+                RString instructionName = (RString) evaluation.getFrame().pop();
+
+                Method instructionCreator = Arrays.asList(Instructions.class.getDeclaredMethods()).stream()
+                    .filter(x -> x.getName().equals(instructionName.getValue())).findFirst().get();
+
+                RObject[] creationOperands = new RObject[(int)creationOperandCount.getValue()];
+                evaluation.getFrame().pop(creationOperands, (int)creationOperandCount.getValue());
+
+                Object[] arguments = new Object[(int)creationOperandCount.getValue()];
+                for(int i = 0; i < (int)creationOperandCount.getValue(); i++) {
+                    Object argument = creationOperands[i].toNative();
+                    arguments[i] = argument;
+                }
+
+                try {
+                    Instruction instruction = (Instruction) instructionCreator.invoke(null, arguments);
+                    evaluation.getFrame().push(new InstructionRObject(instructionName.getValue(), instruction));
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                }
                 evaluation.getFrame().incrementIP();
             }
         };

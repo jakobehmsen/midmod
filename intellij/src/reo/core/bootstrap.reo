@@ -7,5 +7,7 @@ Collection = #{
 }
 Array.setPrototype(Collection)
 
-#[1, 2, 3].toString()
+$newInstruction("newa", 0)
+
+//#[1, 2, 3].toString()
 //#{x = 5 y = 6 toString() => "Whatever"}.toString()
