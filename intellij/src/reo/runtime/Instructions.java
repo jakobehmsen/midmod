@@ -1,6 +1,5 @@
 package reo.runtime;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
@@ -251,9 +250,6 @@ public class Instructions {
                 IntegerRObject creationOperandCount = (IntegerRObject) evaluation.getFrame().pop();
                 RString instructionName = (RString) evaluation.getFrame().pop();
 
-                Method instructionCreator = Arrays.asList(Instructions.class.getDeclaredMethods()).stream()
-                    .filter(x -> x.getName().equals(instructionName.getValue())).findFirst().get();
-
                 RObject[] creationOperands = new RObject[(int)creationOperandCount.getValue()];
                 evaluation.getFrame().pop(creationOperands, (int)creationOperandCount.getValue());
 
@@ -263,14 +259,9 @@ public class Instructions {
                     arguments[i] = argument;
                 }
 
-                try {
-                    Instruction instruction = (Instruction) instructionCreator.invoke(null, arguments);
-                    evaluation.getFrame().push(new InstructionRObject(instructionName.getValue(), instruction));
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                } catch (InvocationTargetException e) {
-                    e.printStackTrace();
-                }
+                InstructionRObject instruction = evaluation.getUniverse().getInstruction(instructionName.getValue(), arguments);
+                evaluation.getFrame().push(instruction);
+
                 evaluation.getFrame().incrementIP();
             }
         };

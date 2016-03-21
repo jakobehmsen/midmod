@@ -335,7 +335,9 @@ public class Parser {
 
                     if(atTop) {
                         if(instruction.isFunctional()) {
-                            // Ignore since there is no side effect
+                            emitters.add(instructions -> instructions.add(instruction));
+                            // Ignore result
+                            emitters.add(instructions -> Instructions.pop());
                         } else // Emit imperative instruction
                             emitters.add(instructions -> instructions.add(instruction));
                     } else {
