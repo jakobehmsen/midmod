@@ -11,7 +11,7 @@ Array.setPrototype(Collection)
 
 Instructions.newa.toString() => "newa"
 
-$newInstruction("storeLocal", 0)
+//$newInstruction("storeLocal", 0)
 $newInstruction("newa", 0)
 $newInstruction("newa", 0).toString()
 
