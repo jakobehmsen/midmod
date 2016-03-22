@@ -11,9 +11,17 @@ Array.setPrototype(Collection)
 
 Instructions.newa.toString() => "newa"
 
-//$newInstruction("storeLocal", 0)
-$newInstruction("newa", 0)
-$newInstruction("newa", 0).toString()
+// Instructions.newa.new()
+// Instructions.newa.get()
+// Instructions.storeLocal.get(0)
+// Instructions.newa.get(#[])
+// Instructions.storeLocal.get(#[0])
+// Instructions.newa.get(0)
+// Instructions.storeLocal.get(1, 0)
+
+//$newInstruction("storeLocal", #[0])
+$newInstruction("newa", #[])
+$newInstruction("newa", #[]).toString()
 
 //#[1, 2, 3].toString()
 //#{x = 5 y = 6 toString() => "Whatever"}.toString()

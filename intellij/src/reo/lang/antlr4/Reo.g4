@@ -32,12 +32,13 @@ function: functionParameters '->' (singleExpressionBody=expression | '{' blockBo
 primitive: '$' ID '(' (expression (',' expression)*)? ')';
 functionParameters: ID | '(' (ID (',' ID)*)? ')';
 selector: selectorName (isMethod='(' (ID (',' ID)*)? ')')?;
-selectorName: ID | '+' | '-' | '*' | '/' | '[]' | '[]=';
+selectorName: ID | SELECTOR;//'+' | '-' | '*' | '/' | '[]' | '[]=';
 
 fragment DIGIT: [0-9];
 fragment LETTER: [A-Z]|[a-z];
 ID: (LETTER | '_') (LETTER | '_' | DIGIT)*;
 STRING :  '"' (ESC | ~["\\])* '"' ;
+SELECTOR :  '\'' ~['\\]* '\'';
 fragment ESC :   '\\' (["\\/bfnrt] | UNICODE) ;
 fragment UNICODE : 'u' HEX HEX HEX HEX ;
 fragment HEX : [0-9a-fA-F] ;

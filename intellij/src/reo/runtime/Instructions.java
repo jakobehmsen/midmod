@@ -247,15 +247,12 @@ public class Instructions {
 
             @Override
             public void evaluate(Evaluation evaluation) {
-                IntegerRObject creationOperandCount = (IntegerRObject) evaluation.getFrame().pop();
+                RArray creationOperands = (RArray) evaluation.getFrame().pop();
                 RString instructionName = (RString) evaluation.getFrame().pop();
 
-                RObject[] creationOperands = new RObject[(int)creationOperandCount.getValue()];
-                evaluation.getFrame().pop(creationOperands, (int)creationOperandCount.getValue());
-
-                Object[] arguments = new Object[(int)creationOperandCount.getValue()];
-                for(int i = 0; i < (int)creationOperandCount.getValue(); i++) {
-                    Object argument = creationOperands[i].toNative();
+                Object[] arguments = new Object[creationOperands.getValue().length];
+                for(int i = 0; i < creationOperands.getValue().length; i++) {
+                    Object argument = creationOperands.getValue()[i].toNative();
                     arguments[i] = argument;
                 }
 

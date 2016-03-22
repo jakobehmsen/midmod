@@ -216,11 +216,17 @@ public class Parser {
                 return null;
             }
 
+            private String getSelectorName(ReoParser.SelectorNameContext ctx) {
+                if(ctx.ID() != null)
+                    return ctx.ID().getText();
+                return ctx.SELECTOR().getText().substring(1, ctx.SELECTOR().getText().length() - 1);
+            }
+
             private void parseSlotAssignment(ReoParser.SlotAssignmentContext ctx, boolean sendMessage) {
                 ctx.getChild(0).accept(new ReoBaseVisitor<Void>() {
                     @Override
                     public Void visitFieldSlotAssignment(ReoParser.FieldSlotAssignmentContext ctx) {
-                        String selector = ctx.selector().selectorName().getText() +
+                        String selector = getSelectorName(ctx.selector().selectorName()) +
                             (ctx.selector().isMethod != null ? "/" + ctx.selector().ID().size() : "");
                         emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString(selector))));
                         parseExpression(ctx.expression(), emitters, locals, false);
@@ -236,7 +242,7 @@ public class Parser {
 
                     @Override
                     public Void visitMethodSlotAssignment(ReoParser.MethodSlotAssignmentContext ctx) {
-                        String selector = ctx.selector().selectorName().getText() +
+                        String selector = getSelectorName(ctx.selector().selectorName()) +
                             (ctx.selector().isMethod != null ? "/" + ctx.selector().ID().size() : "");
                         emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString(selector))));
 
@@ -341,9 +347,10 @@ public class Parser {
                         } else // Emit imperative instruction
                             emitters.add(instructions -> instructions.add(instruction));
                     } else {
-                        if(!instruction.isFunctional())
+                        if(!instruction.isFunctional()) {
+                            // TODO: Consider: Implicitly emit load of this/local(0)?
                             throw new RuntimeException("Imperative instructions must be at top level/cannot be expressions.");
-                        else // Emit functional instruction
+                        } else // Emit functional instruction
                             emitters.add(instructions -> instructions.add(instruction));
                     }
 
