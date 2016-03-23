@@ -30,6 +30,67 @@ public class Instructions {
         };
     }
 
+    public static Instruction loadIntegerPrototype() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().push(evaluation.getUniverse().getIntegerPrototype());
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction loadDoublePrototype() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().push(evaluation.getUniverse().getDoublePrototype());
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction loadFunctionPrototype() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().push(evaluation.getUniverse().getFunctionPrototype());
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction loadStringPrototype() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().push(evaluation.getUniverse().getStringPrototype());
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction loadArrayPrototype() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().push(evaluation.getUniverse().getArrayPrototype());
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction loadInstructionPrototype() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                RString instructionName = (RString) evaluation.getFrame().pop();
+                evaluation.getFrame().push(evaluation.getUniverse().getInstructionPrototype(instructionName.getValue()));
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
     public static Instruction loadConst(RObject value) {
         return new Instruction() {
             @Override

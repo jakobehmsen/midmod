@@ -14,28 +14,23 @@ public class Universe {
     private DeltaRObject stringPrototype;
     private DeltaRObject doublePrototype;
     private Hashtable<String, DeltaRObject> instructionPrototypes = new Hashtable<>();
-    private DeltaRObject instructions;
 
     public Universe() {
         anyPrototype = new DeltaRObject(null);
-        anyPrototype.put("Any", anyPrototype);
-        integerPrototype = createPrototype("Integer");
-        arrayPrototype = createPrototype("Array");
-        functionPrototype = createPrototype("Function");
-        aNull = createPrototype("Null");
-        stringPrototype = createPrototype("String");
-        doublePrototype = createPrototype("Double");
-        instructions = createPrototype("Instructions");
+        integerPrototype = createPrototype();
+        arrayPrototype = createPrototype();
+        functionPrototype = createPrototype();
+        aNull = createPrototype();
+        stringPrototype = createPrototype();
+        doublePrototype = createPrototype();
         Arrays.asList(Instructions.class.getDeclaredMethods()).forEach(m -> {
             DeltaRObject instructionPrototype = new DeltaRObject(anyPrototype);
-            instructions.put(m.getName(), instructionPrototype);
             instructionPrototypes.put(m.getName(), instructionPrototype);
         });
     }
 
-    private DeltaRObject createPrototype(String name) {
+    private DeltaRObject createPrototype() {
         DeltaRObject prototype = new DeltaRObject(anyPrototype);
-        anyPrototype.put(name, prototype);
         return prototype;
     }
 

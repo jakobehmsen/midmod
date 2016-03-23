@@ -1,6 +1,13 @@
-$storeSlot(Any, "putSlot/2", (name, value) -> $storeSlot(this, name, value))
+$storeSlot(this, "putSlot/2", (name, value) -> $storeSlot(this, name, value))
+Any = this
 Any.getSlot(name) => $loadSlot(this, name)
 Any.setPrototype(p) => $setPrototype(this, p)
+
+Array = $loadArrayPrototype()
+Integer = $loadIntegerPrototype()
+Double = $loadDoublePrototype()
+String = $loadStringPrototype()
+Function = $loadFunctionPrototype()
 
 Collection = #{
     toString() => "I am a collection"
@@ -9,7 +16,8 @@ Array.setPrototype(Collection)
 
 //$newInstruction("newa", 0)
 
-Instructions.newa.toString() => "newa"
+$loadInstructionPrototype("newa").toString() => "newa"
+//Instructions.newa.toString() => "newa"
 
 // Instructions.newa.new()
 // Instructions.newa.get()
