@@ -348,8 +348,10 @@ public class Parser {
                             emitters.add(instructions -> instructions.add(instruction));
                     } else {
                         if(!instruction.isFunctional()) {
-                            // TODO: Consider: Implicitly emit load of this/local(0)?
-                            throw new RuntimeException("Imperative instructions must be at top level/cannot be expressions.");
+                            emitters.add(instructions -> instructions.add(instruction));
+                            emitters.add(instructions -> Instructions.loadLocal(0));
+                            //// TODO: Consider: Implicitly emit load of this/local(0)?
+                            //throw new RuntimeException("Imperative instructions must be at top level/cannot be expressions.");
                         } else // Emit functional instruction
                             emitters.add(instructions -> instructions.add(instruction));
                     }

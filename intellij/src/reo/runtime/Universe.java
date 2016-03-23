@@ -3,7 +3,6 @@ package reo.runtime;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Hashtable;
 
 public class Universe {
@@ -20,19 +19,6 @@ public class Universe {
     public Universe() {
         anyPrototype = new DeltaRObject(null);
         anyPrototype.put("Any", anyPrototype);
-        anyPrototype.put("getSlot/1", new FunctionRObject(new Behavior(new Instruction[]{
-            Instructions.loadLocal(0),
-            Instructions.loadLocal(1),
-            Instructions.loadSlot(),
-            Instructions.ret()
-        })));
-        anyPrototype.put("putSlot/2", new FunctionRObject(new Behavior(new Instruction[]{
-            Instructions.loadLocal(0),
-            Instructions.loadLocal(1),
-            Instructions.loadLocal(2),
-            Instructions.storeSlot(),
-            Instructions.ret()
-        })));
         integerPrototype = createPrototype("Integer");
         arrayPrototype = createPrototype("Array");
         functionPrototype = createPrototype("Function");

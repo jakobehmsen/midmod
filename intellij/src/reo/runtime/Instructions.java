@@ -120,6 +120,11 @@ public class Instructions {
     public static Instruction loadSlot() {
         return new Instruction() {
             @Override
+            public boolean isFunctional() {
+                return true;
+            }
+
+            @Override
             public void evaluate(Evaluation evaluation) {
                 RString selector = (RString) evaluation.getFrame().pop();
                 RObject target = evaluation.getFrame().pop();

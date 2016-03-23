@@ -1,7 +1,7 @@
-Any.setPrototype(p) => {
-    $setPrototype(this, p)
-    return this
-}
+$storeSlot(Any, "putSlot/2", (name, value) -> $storeSlot(this, name, value))
+Any.getSlot(name) => $loadSlot(this, name)
+Any.setPrototype(p) => $setPrototype(this, p)
+
 Collection = #{
     toString() => "I am a collection"
 }
@@ -19,9 +19,13 @@ Instructions.newa.toString() => "newa"
 // Instructions.newa.get(0)
 // Instructions.storeLocal.get(1, 0)
 
+// Instructions.loadConst(value) => $newInstruction("loadConst", #[value])
 //$newInstruction("storeLocal", #[0])
 $newInstruction("newa", #[])
 $newInstruction("newa", #[]).toString()
+
+// It should be possible to enumerate through all instructions and their meta data, such as creation operand count.
+// Should the newInstruction primitive be supported at all?
 
 //#[1, 2, 3].toString()
 //#{x = 5 y = 6 toString() => "Whatever"}.toString()
