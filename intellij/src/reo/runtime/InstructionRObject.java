@@ -13,4 +13,8 @@ public class InstructionRObject extends PrimitiveRObject {
     protected RObject getPrototype(Universe universe) {
         return universe.getInstructionPrototype(name);
     }
+
+    public Instruction getValue() {
+        return instruction;
+    }
 }

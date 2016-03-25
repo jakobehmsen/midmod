@@ -97,6 +97,13 @@ public class Universe {
 
     private Hashtable<CachedInstruction, InstructionRObject> cachedInstructions = new Hashtable<>();
 
+    public boolean instructionUsesNativeValues(String instructionName) {
+        Method instructionCreator = Arrays.asList(Instructions.class.getDeclaredMethods()).stream()
+            .filter(x -> x.getName().equals(instructionName)).findFirst().get();
+
+        return !Arrays.asList(instructionCreator.getDeclaredAnnotations()).stream().anyMatch(x -> x instanceof FirstClassValues);
+    }
+
     public InstructionRObject getInstruction(String instructionName, Object[] arguments) {
         return cachedInstructions.computeIfAbsent(new CachedInstruction(instructionName, arguments), in -> {
             Method instructionCreator = Arrays.asList(Instructions.class.getDeclaredMethods()).stream()

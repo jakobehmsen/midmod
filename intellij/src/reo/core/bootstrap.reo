@@ -32,6 +32,18 @@ $loadInstructionPrototype("newa").toString() => "newa"
 $newInstruction("newa", #[])
 $newInstruction("newa", #[]).toString()
 
+/*
+$applyf($newf(#[
+    $newInstruction("loadConst", #["Hello World"]),
+    $newInstruction("ret", #[])
+]), this, #[])
+*/
+
+$applyf($newf(#[
+    $newInstruction("loadLocal", #[1]),
+    $newInstruction("ret", #[])
+]), this, #["Hello World"])
+
 // It should be possible to enumerate through all instructions and their meta data, such as creation operand count.
 // Should the newInstruction primitive be supported at all?
 

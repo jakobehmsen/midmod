@@ -91,6 +91,7 @@ public class Instructions {
         };
     }
 
+    @FirstClassValues
     public static Instruction loadConst(RObject value) {
         return new Instruction() {
             @Override
@@ -231,6 +232,32 @@ public class Instructions {
         };
     }
 
+    public static Instruction newf() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                RArray instructions = (RArray) evaluation.getFrame().pop();
+                Instruction[] nativeInstructions = new Instruction[instructions.getValue().length];
+                for(int i = 0; i < instructions.getValue().length; i++)
+                    nativeInstructions[i] = ((InstructionRObject)instructions.getValue()[i]).getValue();
+                evaluation.getFrame().push(new FunctionRObject(new Behavior(nativeInstructions)));
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction applyf() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                RArray arguments = (RArray) evaluation.getFrame().pop();
+                RObject receiver = evaluation.getFrame().pop();
+                FunctionRObject function = (FunctionRObject) evaluation.getFrame().pop();
+                function.apply(evaluation, receiver, arguments.getValue());
+            }
+        };
+    }
+
     public static Instruction geta() {
         return new Instruction() {
             @Override
@@ -317,8 +344,9 @@ public class Instructions {
                 RString instructionName = (RString) evaluation.getFrame().pop();
 
                 Object[] arguments = new Object[creationOperands.getValue().length];
+                boolean useNativeValues = evaluation.getUniverse().instructionUsesNativeValues(instructionName.getValue());
                 for(int i = 0; i < creationOperands.getValue().length; i++) {
-                    Object argument = creationOperands.getValue()[i].toNative();
+                    Object argument = useNativeValues ? creationOperands.getValue()[i].toNative() : creationOperands.getValue()[i];
                     arguments[i] = argument;
                 }
 
