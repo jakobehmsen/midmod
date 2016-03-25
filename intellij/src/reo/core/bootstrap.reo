@@ -44,8 +44,29 @@ $applyf($newf(#[
     $newInstruction("ret", #[])
 ]), this, #["Hello World"])
 
+myObject = #{
+    toString() = $newf(#[
+        $newInstruction("loadConst", #["Hello World"]),
+        $newInstruction("ret", #[])
+    ])
+    /*toString(x) = $newf(#[
+        $newInstruction("loadLocal", #[1]),
+        $newInstruction("ret", #[])
+    ])*/
+    myMethod() = #{
+        apply(receiver, arguments) => "Whatever"
+    }
+}
+myObject.putSlot("toString/1", $newf(#[
+   $newInstruction("loadLocal", #[1]),
+   $newInstruction("ret", #[])
+]))
+myObject.toString("Bla bla")
+myObject.myMethod()
+
+
 // It should be possible to enumerate through all instructions and their meta data, such as creation operand count.
-// Should the newInstruction primitive be supported at all?
+// A reflective instruction set.
 
 //#[1, 2, 3].toString()
 //#{x = 5 y = 6 toString() => "Whatever"}.toString()

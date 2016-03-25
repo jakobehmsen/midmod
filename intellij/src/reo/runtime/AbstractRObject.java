@@ -11,6 +11,6 @@ public abstract class AbstractRObject implements RObject {
 
     @Override
     public void apply(Evaluation evaluation, RObject receiver, RObject[] arguments) {
-        send(evaluation, "apply", new RObject[]{receiver, new RArray(arguments)});
+        send(evaluation, "apply/2", new RObject[]{receiver, new RArray(arguments)});
     }
 }
