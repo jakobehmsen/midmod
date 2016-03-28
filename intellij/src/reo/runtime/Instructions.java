@@ -91,6 +91,16 @@ public class Instructions {
         };
     }
 
+    public static Instruction loadFramePrototype() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().push(evaluation.getUniverse().getFramePrototype());
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
     @FirstClassValues
     public static Instruction loadConst(RObject value) {
         return new Instruction() {

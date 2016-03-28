@@ -337,6 +337,10 @@ public class Parser {
             public Void visitPrimitive(ReoParser.PrimitiveContext ctx) {
                 ctx.expression().forEach(x -> parseExpression(x, emitters, locals, false));
                 try {
+                    // Support instruction creation arguments
+                    // Perhaps, something like:
+                    // $loadConst["A const"]()
+                    // where, [...] denotes the creation arguments
                     Instruction instruction = (Instruction) Instructions.class.getMethod(ctx.ID().getText()).invoke(null);
 
                     if(atTop) {

@@ -8,6 +8,7 @@ Integer = $loadIntegerPrototype()
 Double = $loadDoublePrototype()
 String = $loadStringPrototype()
 Function = $loadFunctionPrototype()
+Frame = $loadFramePrototype()
 
 Collection = #{
     toString() => "I am a collection"
@@ -64,6 +65,12 @@ myObject.putSlot("toString/1", $newf(#[
 myObject.toString("Bla bla")
 myObject.myMethod()
 
+Frame.onNativeException(aFrame, aNativeException) = $newf(#[
+   $newInstruction("loadConst", #["Error"]),
+   $newInstruction("halt", #[])
+])
+
+$addi(1, "adf")
 
 // It should be possible to enumerate through all instructions and their meta data, such as creation operand count.
 // A reflective instruction set.

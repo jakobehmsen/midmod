@@ -25,8 +25,14 @@ public class Evaluation {
     public void evaluate() {
         run = true;
 
-        while(run)
-            getFrame().evaluate(this);
+        while(run) {
+            try {
+                while (run)
+                    getFrame().evaluate(this);
+            } catch (Exception exception) {
+                getUniverse().getFramePrototype().send(this, "onNativeException/2", new RObject[]{new FrameRObject(getFrame()), new NativeRObject(exception)});
+            }
+        }
     }
 
     public void halt() {

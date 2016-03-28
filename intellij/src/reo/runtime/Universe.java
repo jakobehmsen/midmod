@@ -13,6 +13,8 @@ public class Universe {
     private DeltaRObject aNull;
     private DeltaRObject stringPrototype;
     private DeltaRObject doublePrototype;
+    private DeltaRObject framePrototype;
+    private DeltaRObject nativePrototype;
     private Hashtable<String, DeltaRObject> instructionPrototypes = new Hashtable<>();
 
     public Universe() {
@@ -23,6 +25,8 @@ public class Universe {
         aNull = createPrototype();
         stringPrototype = createPrototype();
         doublePrototype = createPrototype();
+        framePrototype = createPrototype();
+        nativePrototype = createPrototype();
         Arrays.asList(Instructions.class.getDeclaredMethods()).forEach(m -> {
             DeltaRObject instructionPrototype = new DeltaRObject(anyPrototype);
             instructionPrototypes.put(m.getName(), instructionPrototype);
@@ -72,6 +76,14 @@ public class Universe {
 
     public RObject getInstructionPrototype(String instructionName) {
         return instructionPrototypes.get(instructionName);
+    }
+
+    public DeltaRObject getFramePrototype() {
+        return framePrototype;
+    }
+
+    public RObject getNativePrototype() {
+        return nativePrototype;
     }
 
     private static class CachedInstruction {
