@@ -11,4 +11,8 @@ public class FrameRObject extends PrimitiveRObject {
     protected RObject getPrototype(Universe universe) {
         return universe.getFramePrototype();
     }
+
+    public Frame getValue() {
+        return frame;
+    }
 }

@@ -135,8 +135,9 @@ public class Instructions {
         return new Instruction() {
             @Override
             public void evaluate(Evaluation evaluation) {
-                IntegerRObject rhs = (IntegerRObject) evaluation.getFrame().pop();
-                IntegerRObject lhs = (IntegerRObject) evaluation.getFrame().pop();
+                evaluation.popOperands(2);
+                IntegerRObject lhs = (IntegerRObject) evaluation.getOperand(0);
+                IntegerRObject rhs = (IntegerRObject) evaluation.getOperand(1);
                 evaluation.getFrame().push(new IntegerRObject(lhs.getValue() + rhs.getValue()));
                 evaluation.getFrame().incrementIP();
             }
@@ -325,6 +326,20 @@ public class Instructions {
             public void evaluate(Evaluation evaluation) {
                 evaluation.getFrame().swap1();
                 evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction resumeFrame() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.popOperands(2);
+                FrameRObject frame = (FrameRObject) evaluation.getOperand(0);
+                RObject value = evaluation.getOperand(1);
+                frame.getValue().push(value);
+                frame.getValue().incrementIP();
+                evaluation.setFrame(frame.getValue());
             }
         };
     }

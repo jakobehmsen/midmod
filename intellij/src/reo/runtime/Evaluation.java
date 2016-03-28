@@ -38,4 +38,16 @@ public class Evaluation {
     public void halt() {
         run = false;
     }
+
+    private RObject[] operands = new RObject[0];
+
+    public void popOperands(int count) {
+        if(operands.length < count)
+            operands = new RObject[count];
+        getFrame().pop(operands, count);
+    }
+
+    public RObject getOperand(int index) {
+        return operands[index];
+    }
 }
