@@ -382,4 +382,20 @@ public class Instructions {
             }
         };
     }
+
+    public static Instruction loadFrame() {
+        return new Instruction() {
+            @Override
+            public boolean isFunctional() {
+                return true;
+            }
+
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().push(new FrameRObject(evaluation.getFrame()));
+
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
 }

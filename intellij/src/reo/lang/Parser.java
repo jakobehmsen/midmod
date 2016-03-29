@@ -317,6 +317,13 @@ public class Parser {
             }
 
             @Override
+            public Void visitThisFrame(ReoParser.ThisFrameContext ctx) {
+                emitters.add(instructions -> instructions.add(Instructions.loadFrame()));
+
+                return null;
+            }
+
+            @Override
             public Void visitAccess(ReoParser.AccessContext ctx) {
                 if(!atTop) {
                     Integer ordinal = locals.get(ctx.ID().getText());

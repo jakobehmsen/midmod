@@ -74,6 +74,8 @@ Frame.resume(aValue) => $resumeFrame(this, aValue)
 
 $addi(1, "adf") // Error: cannot add an integer and a string
 
+thisFrame
+
 // It should be possible to enumerate through all instructions and their meta data, such as creation operand count.
 // A reflective instruction set.
 

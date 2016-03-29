@@ -10,7 +10,9 @@ assignment: ID '=' expression;
 expression1: lhs=expression2 ((op='+'|op='-') expression1)*;
 expression2: lhs=expression3 ((op='*'|op='/') expression2)*;
 expression3: atom expressionTail;
-atom: number | string | access | self | objectLiteral | arrayLiteral | function | primitive | embeddedExpression;
+atom:
+    number | string | access | self | thisFrame |
+    objectLiteral | arrayLiteral | function | primitive | embeddedExpression;
 number: NUMBER;
 string: STRING;
 embeddedExpression: '(' expression ')';
@@ -26,6 +28,7 @@ fieldSlotAssignment: selector '=' expression;
 methodSlotAssignment: selector '=>' (singleExpressionBody=expression | '{' blockBody=block '}');
 indexAssign: '[' expression ']' '=' expression;
 self: 'this';
+thisFrame: 'thisFrame';
 objectLiteral: '#' '{' slotAssignment* '}';
 arrayLiteral: '#' '[' (expression (',' expression)*)? ']';
 function: functionParameters '->' (singleExpressionBody=expression | '{' blockBody=block '}');
