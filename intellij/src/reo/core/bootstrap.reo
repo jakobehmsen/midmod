@@ -71,6 +71,16 @@ myObject.myMethod()
 ])*/
 Frame.onNativeException(aFrame, aNativeException) => aFrame.resume("Whatever...")
 Frame.resume(aValue) => $resumeFrame(this, aValue)
+Frame.nextHandlerContext(anException) => {
+    return {this.handles(anException)}.ifTrue: {this} IfFalse: {this.outer().nextHandlerContext(anException)}
+}
+Exception = #{}
+Exception.signal() => {
+    var signalContext = thisFrame
+    //var exception = #this{}
+    var handlerContext = signalContext.nextHandlerContext()
+    handlerContext.handlerSignal(exception)
+}
 
 $addi(1, "adf") // Error: cannot add an integer and a string
 

@@ -12,6 +12,7 @@ import reo.runtime.*;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Parser {
@@ -210,6 +211,15 @@ public class Parser {
 
                             return null;
                         }
+
+                        @Override
+                        public Void visitKeyword(ReoParser.KeywordContext ctx) {
+                            String selector = ctx.ID_LOWER().getText().substring(0, ctx.ID_LOWER().getText().length() - 1) +
+                                ctx.ID_UPPER().stream().map(x -> x.getText().substring(0, x.getText().length() - 1)).collect(Collectors.joining());
+
+
+                            return super.visitKeyword(ctx);
+                        }
                     });
                 }
 
@@ -382,7 +392,8 @@ public class Parser {
             public Void visitFunction(ReoParser.FunctionContext ctx) {
                 if(!atTop) {
                     Map<String, Integer> parameters = new Hashtable<>();
-                    ctx.functionParameters().ID().forEach(x -> parameters.put(x.getText(), parameters.size() + 1 /*Add one because zero is this*/));
+                    if(ctx.functionParameters() != null)
+                        ctx.functionParameters().ID().forEach(x -> parameters.put(x.getText(), parameters.size() + 1 /*Add one because zero is this*/));
                     Behavior behavior;
 
                     if (ctx.singleExpressionBody != null) {
