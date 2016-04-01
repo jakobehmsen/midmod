@@ -75,7 +75,7 @@ Frame.onNativeException(aFrame, aNativeException) => aFrame.resume("Whatever..."
 Frame.resume(aValue) => $resumeFrame(this, aValue)
 //Frame.handles(anException) => this.defines("exception") && anException.instantiates(this.exception)
 Frame.nextHandlerContext(anException) => {
-    return this.handles(anException).ifTrue: {this} IfFalse: {this.outer().nextHandlerContext(anException)}
+    return handles(anException).ifTrue: {this} IfFalse: {outer().nextHandlerContext(anException)}
 }
 Exception = #{}
 Exception.signal() => {

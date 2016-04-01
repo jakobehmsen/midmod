@@ -217,6 +217,7 @@ public class Parser {
                             String selector = ctx.ID_LOWER().getText().substring(0, ctx.ID_LOWER().getText().length() - 1) +
                                 ctx.ID_UPPER().stream().map(x -> x.getText().substring(0, x.getText().length() - 1)).collect(Collectors.joining());
 
+                            ctx.expression().forEach(x -> parseExpression(x, emitters, locals, false));
                             messageSend(selector, 1 + ctx.ID_UPPER().size(), emitters, atTop);
 
                             return null;
@@ -285,6 +286,14 @@ public class Parser {
                 emitters.add(instructions -> instructions.add(Instructions.send(selector, arity)));
                 if(atTop)
                     emitters.add(instructions -> instructions.add(Instructions.pop()));
+
+                return null;
+            }
+
+            @Override
+            public Void visitSelfCall(ReoParser.SelfCallContext ctx) {
+                ctx.call().expression().forEach(x -> parseExpression(x, emitters, locals, false));
+                messageSend(ctx.call().ID().getText(), ctx.call().expression().size(), emitters, atTop);
 
                 return null;
             }

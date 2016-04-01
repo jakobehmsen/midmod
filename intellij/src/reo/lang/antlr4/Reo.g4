@@ -11,14 +11,16 @@ expression1: lhs=expression2 ((op='+'|op='-') expression1)*;
 expression2: lhs=expression3 ((op='*'|op='/') expression2)*;
 expression3: atom expressionTail;
 atom:
+    selfCall |
     number | string | access | self | thisFrame |
     objectLiteral | arrayLiteral | function | primitive | embeddedExpression;
+selfCall: call;
 number: NUMBER;
 string: STRING;
 embeddedExpression: '(' expression ')';
 expressionTail: expressionTailPart* expressionTailEnd?;
-expressionTailPart: call | slotAccess | indexAccess;
-call: '.' ID '(' (expression (',' expression)*)? ')';
+expressionTailPart: ('.' call) | slotAccess | indexAccess;
+call: ID '(' (expression (',' expression)*)? ')';
 slotAccess: '.' ID;
 access: ID;
 indexAccess: '[' expression ']';
