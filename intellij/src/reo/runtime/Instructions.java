@@ -50,6 +50,26 @@ public class Instructions {
         };
     }
 
+    public static Instruction loadTruePrototype() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().push(evaluation.getUniverse().getTruePrototype());
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction loadFalsePrototype() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().push(evaluation.getUniverse().getFalsePrototype());
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
     public static Instruction loadFunctionPrototype() {
         return new Instruction() {
             @Override

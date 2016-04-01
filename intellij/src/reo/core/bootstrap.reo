@@ -6,6 +6,8 @@ Any.setPrototype(p) => $setPrototype(this, p)
 Array = $loadArrayPrototype()
 Integer = $loadIntegerPrototype()
 Double = $loadDoublePrototype()
+True = $loadTruePrototype()
+False = $loadFalsePrototype()
 String = $loadStringPrototype()
 Function = $loadFunctionPrototype()
 Frame = $loadFramePrototype()
@@ -71,13 +73,14 @@ myObject.myMethod()
 ])*/
 Frame.onNativeException(aFrame, aNativeException) => aFrame.resume("Whatever...")
 Frame.resume(aValue) => $resumeFrame(this, aValue)
+//Frame.handles(anException) => this.defines("exception") && anException.instantiates(this.exception)
 Frame.nextHandlerContext(anException) => {
-    return {this.handles(anException)}.ifTrue: {this} IfFalse: {this.outer().nextHandlerContext(anException)}
+    return this.handles(anException).ifTrue: {this} IfFalse: {this.outer().nextHandlerContext(anException)}
 }
 Exception = #{}
 Exception.signal() => {
     var signalContext = thisFrame
-    //var exception = #this{}
+    var exception = #{}
     var handlerContext = signalContext.nextHandlerContext()
     handlerContext.handlerSignal(exception)
 }

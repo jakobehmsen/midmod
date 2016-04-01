@@ -217,8 +217,9 @@ public class Parser {
                             String selector = ctx.ID_LOWER().getText().substring(0, ctx.ID_LOWER().getText().length() - 1) +
                                 ctx.ID_UPPER().stream().map(x -> x.getText().substring(0, x.getText().length() - 1)).collect(Collectors.joining());
 
+                            messageSend(selector, 1 + ctx.ID_UPPER().size(), emitters, atTop);
 
-                            return super.visitKeyword(ctx);
+                            return null;
                         }
                     });
                 }
@@ -422,9 +423,12 @@ public class Parser {
 
             @Override
             public Void visitObjectLiteral(ReoParser.ObjectLiteralContext ctx) {
-                emitters.add(instructions -> instructions.add(Instructions.loadLocal(0)));
-                //[this]
-                //[this, o]
+                if(ctx.expression() == null)
+                    emitters.add(instructions -> instructions.add(Instructions.loadLocal(0)));
+                else
+                    parseExpression(ctx.expression(), emitters, locals, false);
+                //[this|expression]
+                //[this|expression, o]
                 emitters.add(instructions -> instructions.add(Instructions.newo()));
                 //[o]
                 ctx.slotAssignment().forEach(x -> {

@@ -13,6 +13,8 @@ public class Universe {
     private DeltaRObject aNull;
     private DeltaRObject stringPrototype;
     private DeltaRObject doublePrototype;
+    private DeltaRObject truePrototype;
+    private DeltaRObject falsePrototype;
     private DeltaRObject framePrototype;
     private DeltaRObject nativePrototype;
     private Hashtable<String, DeltaRObject> instructionPrototypes = new Hashtable<>();
@@ -25,6 +27,8 @@ public class Universe {
         aNull = createPrototype();
         stringPrototype = createPrototype();
         doublePrototype = createPrototype();
+        truePrototype = createPrototype();
+        falsePrototype = createPrototype();
         framePrototype = createPrototype();
         nativePrototype = createPrototype();
         Arrays.asList(Instructions.class.getDeclaredMethods()).forEach(m -> {
@@ -68,6 +72,14 @@ public class Universe {
 
     public DeltaRObject getAnyPrototype() {
         return anyPrototype;
+    }
+
+    public RObject getTruePrototype() {
+        return truePrototype;
+    }
+
+    public RObject getFalsePrototype() {
+        return falsePrototype;
     }
 
     public RObject getDoublePrototype() {

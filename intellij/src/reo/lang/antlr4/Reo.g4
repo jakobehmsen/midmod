@@ -30,7 +30,7 @@ methodSlotAssignment: selector '=>' (singleExpressionBody=expression | '{' block
 indexAssign: '[' expression ']' '=' expression;
 self: 'this';
 thisFrame: 'thisFrame';
-objectLiteral: '#' '{' slotAssignment* '}';
+objectLiteral: '#' expression? '{' slotAssignment* '}';
 arrayLiteral: '#' '[' (expression (',' expression)*)? ']';
 function:
     ( functionParameters '->' (singleExpressionBody=expression | '{' blockBody=block '}') )
