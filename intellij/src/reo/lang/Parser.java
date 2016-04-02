@@ -131,34 +131,46 @@ public class Parser {
                 return null;
             }
 
-            @Override
-            public Void visitExpression1(ReoParser.Expression1Context ctx) {
-                ctx.expression2().accept(this);
+            private void parseBinary(ParserRuleContext ctx, ParserRuleContext exprCtx, List<? extends ParserRuleContext> exprCtxTail) {
+                exprCtx.accept(this);
 
-                for (ReoParser.Expression1Context rhsCtx : ctx.expression1()) {
+                for (ParserRuleContext rhsCtx : exprCtxTail) {
                     String selector = ctx.children.get(ctx.children.indexOf(rhsCtx) - 1).getText();
                     rhsCtx.accept(this);
                     messageSend(selector, 1, emitters, atTop);
                 }
+            }
+
+            @Override
+            public Void visitExpression1(ReoParser.Expression1Context ctx) {
+                parseBinary(ctx, ctx.expression2(), ctx.expression1());
 
                 return null;
             }
 
             @Override
             public Void visitExpression2(ReoParser.Expression2Context ctx) {
-                ctx.expression3().accept(this);
-
-                for (ReoParser.Expression2Context rhsCtx : ctx.expression2()) {
-                    String selector = ctx.children.get(ctx.children.indexOf(rhsCtx) - 1).getText();
-                    rhsCtx.accept(this);
-                    messageSend(selector, 1, emitters, atTop);
-                }
+                parseBinary(ctx, ctx.expression3(), ctx.expression2());
 
                 return null;
             }
 
             @Override
             public Void visitExpression3(ReoParser.Expression3Context ctx) {
+                parseBinary(ctx, ctx.expression4(), ctx.expression3());
+
+                return null;
+            }
+
+            @Override
+            public Void visitExpression4(ReoParser.Expression4Context ctx) {
+                parseBinary(ctx, ctx.expression5(), ctx.expression4());
+
+                return null;
+            }
+
+            @Override
+            public Void visitExpression5(ReoParser.Expression5Context ctx) {
                 boolean atomAtTop = ctx.expressionTail().expressionTailPart().size() == 0 && ctx.expressionTail().expressionTailEnd() == null;
                 parseExpression(ctx.atom(), emitters, locals, atomAtTop && atTop);
                 int tailCount = ctx.expressionTail().expressionTailPart().size() + (ctx.expressionTail().expressionTailEnd() != null ? 1 : 0);
@@ -217,7 +229,7 @@ public class Parser {
                             String selector = ctx.ID_LOWER().getText().substring(0, ctx.ID_LOWER().getText().length() - 1) +
                                 ctx.ID_UPPER().stream().map(x -> x.getText().substring(0, x.getText().length() - 1)).collect(Collectors.joining());
 
-                            ctx.expression().forEach(x -> parseExpression(x, emitters, locals, false));
+                            ctx.expression0().forEach(x -> parseExpression(x, emitters, locals, false));
                             messageSend(selector, 1 + ctx.ID_UPPER().size(), emitters, atTop);
 
                             return null;
@@ -294,6 +306,17 @@ public class Parser {
             public Void visitSelfCall(ReoParser.SelfCallContext ctx) {
                 ctx.call().expression().forEach(x -> parseExpression(x, emitters, locals, false));
                 messageSend(ctx.call().ID().getText(), ctx.call().expression().size(), emitters, atTop);
+
+                return null;
+            }
+
+            @Override
+            public Void visitSelfKeyword(ReoParser.SelfKeywordContext ctx) {
+                String selector = ctx.keyword().ID_LOWER().getText().substring(0, ctx.keyword().ID_LOWER().getText().length() - 1) +
+                    ctx.keyword().ID_UPPER().stream().map(x -> x.getText().substring(0, x.getText().length() - 1)).collect(Collectors.joining());
+
+                ctx.keyword().expression0().forEach(x -> parseExpression(x, emitters, locals, false));
+                messageSend(selector, 1 + ctx.keyword().ID_UPPER().size(), emitters, atTop);
 
                 return null;
             }

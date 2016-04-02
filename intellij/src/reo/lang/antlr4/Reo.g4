@@ -5,16 +5,19 @@ blockElement: statement | expression;
 statement: declaration | returnStatement;
 declaration: isDecl='var' ID ('=' expression)?;
 returnStatement: 'return' expression;
-expression: assignment | expression1;
+expression: selfKeyword | expression0;
 assignment: ID '=' expression;
-expression1: lhs=expression2 ((op='+'|op='-') expression1)*;
-expression2: lhs=expression3 ((op='*'|op='/') expression2)*;
-expression3: atom expressionTail;
+expression0: assignment | expression1;
+expression1: lhs=expression2 ((op='||') expression1)*;
+expression2: lhs=expression3 ((op='&&') expression2)*;
+expression3: lhs=expression4 ((op='+'|op='-') expression3)*;
+expression4: lhs=expression5 ((op='*'|op='/') expression4)*;
+expression5: atom expressionTail;
 atom:
-    selfCall |
-    number | string | access | self | thisFrame |
+    selfCall | number | string | access | self | thisFrame |
     objectLiteral | arrayLiteral | function | primitive | embeddedExpression;
 selfCall: call;
+selfKeyword: keyword;
 number: NUMBER;
 string: STRING;
 embeddedExpression: '(' expression ')';
@@ -25,7 +28,7 @@ slotAccess: '.' ID;
 access: ID;
 indexAccess: '[' expression ']';
 expressionTailEnd: ('.' (slotAssignment | keyword)) | indexAssign;
-keyword: ID_LOWER expression (ID_UPPER expression)*;
+keyword: ID_LOWER expression0 (ID_UPPER expression0)*;
 slotAssignment: fieldSlotAssignment | methodSlotAssignment;
 fieldSlotAssignment: selector '=' expression;
 methodSlotAssignment: selector '=>' (singleExpressionBody=expression | '{' blockBody=block '}');
