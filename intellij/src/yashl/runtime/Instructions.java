@@ -39,8 +39,8 @@ public class Instructions {
             @Override
             public void evaluate(Evaluation evaluation) {
                 evaluation.popOperands(2);
-                Object car = evaluation.getOperand(0);
-                ConsCell cdr = (ConsCell) evaluation.getOperand(1);
+                Object car = evaluation.getOperand(1);
+                ConsCell cdr = (ConsCell) evaluation.getOperand(0);
                 evaluation.getFrame().push(new ConsCell(car, cdr));
 
                 evaluation.getFrame().incrementIP();
@@ -98,6 +98,30 @@ public class Instructions {
             public void evaluate(Evaluation evaluation) {
                 Object value = evaluation.getFrame().pop();
                 evaluation.getEnvironment().set(symbol.getCode(), value);
+
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction car() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                ConsCell value = (ConsCell) evaluation.getFrame().pop();
+                evaluation.getFrame().push(value.getCar());
+
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction cdr() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                ConsCell value = (ConsCell) evaluation.getFrame().pop();
+                evaluation.getFrame().push(value.getCdr());
 
                 evaluation.getFrame().incrementIP();
             }

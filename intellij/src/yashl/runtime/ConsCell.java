@@ -32,8 +32,10 @@ public class ConsCell {
     }
 
     private static String toString(ConsCell cell, boolean atFirst) {
-        return cell != null
-            ? (!atFirst ? " " : "") + cell.getCar().toString() + toString(cell.getCdr(), false)
-            : "";
+        if(cell != null) {
+            String carToString = cell.getCar() != null ? cell.getCar().toString() : "()";
+            return (!atFirst ? " " : "") + carToString + toString(cell.getCdr(), false);
+        }
+        return "";
     }
 }

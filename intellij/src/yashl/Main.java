@@ -14,6 +14,11 @@ public class Main {
             "(set x 6)\n" +
             "(1)\n" +
             "x\n" +
+            "(quote (x y z))\n" +
+            "(cons x (cons (quote y) ()))\n" +
+            ";(1 2 3)\n" +
+            "(set myList (quote (x y z)))\n" +
+            "(cdr myList)\n" +
             "";
         Object value = Parser.parse(sourceCode);
         Object result = Evaluation.evaluate(Function.compile(value, instructions -> instructions.add(Instructions.halt())));

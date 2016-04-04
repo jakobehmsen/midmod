@@ -1,7 +1,9 @@
 package yashl.runtime;
 
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class Function {
@@ -44,6 +46,81 @@ public class Function {
         return instructions.toArray(new Instruction[instructions.size()]);
     }
 
+    private interface SpecialForm {
+        void compileTo(List<Consumer<List<Instruction>>> emitters, ConsCell form, boolean asExpression);
+    }
+
+    private static Hashtable<Integer, SpecialForm> specialForms = new Hashtable<>();
+
+    static {
+        specialForms.put(Symbol.get("set").getCode(), (emitters, listValue, asExpression) -> {
+            compileOperands2(emitters, listValue, compileTimeOperand(), runtimeOperand(), (Symbol id, Object valueForId) -> {
+                if(asExpression)
+                    emitters.add(instructions -> instructions.add(Instructions.dup()));
+                emitters.add(instructions -> instructions.add(Instructions.setEnvironment(id)));
+            });
+        });
+        specialForms.put(Symbol.get("quote").getCode(), (emitters, listValue, asExpression) -> {
+            compileOperands1(emitters, listValue, compileTimeOperand(), valueToQuote -> {
+                if(asExpression)
+                    emitters.add(instructions -> instructions.add(Instructions.loadConst(valueToQuote)));
+            });
+        });
+        specialForms.put(Symbol.get("cons").getCode(), (emitters, listValue, asExpression) -> {
+            compileOperands2(emitters, listValue, runtimeOperand(), runtimeOperand(), (Object car, Object cdr) -> {
+                if (asExpression)
+                    emitters.add(instructions -> instructions.add(Instructions.cons()));
+            });
+        });
+        specialForms.put(Symbol.get("car").getCode(), (emitters, listValue, asExpression) -> {
+            compileOperands1(emitters, listValue, runtimeOperand(), value -> {
+                emitters.add(instructions -> instructions.add(Instructions.car()));
+                if(!asExpression)
+                    emitters.add(instructions -> instructions.add(Instructions.pop()));
+            });
+        });
+        specialForms.put(Symbol.get("cdr").getCode(), (emitters, listValue, asExpression) -> {
+            compileOperands1(emitters, listValue, runtimeOperand(), value -> {
+                emitters.add(instructions -> instructions.add(Instructions.cdr()));
+                if(!asExpression)
+                    emitters.add(instructions -> instructions.add(Instructions.pop()));
+            });
+        });
+    }
+
+    private interface OperandCompiler<T> {
+        void compileTo(List<Consumer<List<Instruction>>> emitters, Object value);
+    }
+
+    private static <T> OperandCompiler<T> runtimeOperand() {
+        return (emitters, value) -> {
+            compileTo(value, emitters, true);
+        };
+    }
+
+    private static <T> OperandCompiler<T> compileTimeOperand() {
+        return (emitters, value) -> { };
+    }
+
+    private static <T0> void compileOperands1(List<Consumer<List<Instruction>>> emitters, ConsCell form,
+                                                  OperandCompiler<T0> operand0Compiler,
+                                                  Consumer<T0> formCompiler) {
+        operand0Compiler.compileTo(emitters, form.getCdr().getCar());
+        T0 operand0 = (T0) form.getCdr().getCar();
+        formCompiler.accept(operand0);
+    }
+
+    private static <T0, T1> void compileOperands2(List<Consumer<List<Instruction>>> emitters, ConsCell form,
+                                                  OperandCompiler<T0> operand0Compiler,
+                                                  OperandCompiler<T1> operand1Compiler,
+                                                  BiConsumer<T0, T1> formCompiler) {
+        operand0Compiler.compileTo(emitters, form.getCdr().getCar());
+        T0 operand0 = (T0) form.getCdr().getCar();
+        operand1Compiler.compileTo(emitters, form.getCdr().getCdr().getCar());
+        T1 operand1 = (T1) form.getCdr().getCdr().getCar();
+        formCompiler.accept(operand0, operand1);
+    }
+
     public static void compileTo(Object value, List<Consumer<List<Instruction>>> emitters, boolean asExpression) {
         if(!(value instanceof ConsCell)) {
             if(asExpression) {
@@ -58,31 +135,23 @@ public class Function {
             Object firstValue = listValue.getCar();
             if(firstValue instanceof Symbol) {
                 Symbol symbolFirstValue = (Symbol) firstValue;
+                SpecialForm specialForm = specialForms.get(symbolFirstValue.getCode());
 
-                switch (symbolFirstValue.getName()) {
-                    case "set":
-                        Symbol id = (Symbol) listValue.getCdr().getCar();
-                        Object valueForId = listValue.getCdr().getCdr().getCar();
-                        compileTo(valueForId, emitters, true);
-                        if(asExpression)
-                            emitters.add(instructions -> instructions.add(Instructions.dup()));
-                        emitters.add(instructions -> instructions.add(Instructions.setEnvironment(id)));
-
-                        break;
-                    default: {
-                        int arityTmp = 0;
-                        ConsCell currentCell = listValue.getCdr();
-                        while(currentCell != null) {
-                            compileTo(currentCell.getCar(), emitters, true);
-                            currentCell = currentCell.getCdr();
-                            arityTmp++;
-                        }
-                        int arity = arityTmp;
-
-                        emitters.add(instructions -> instructions.add(Instructions.call(symbolFirstValue, arity)));
-                        if(!asExpression)
-                            emitters.add(instructions -> instructions.add(Instructions.pop()));
+                if(specialForm != null) {
+                    specialForm.compileTo(emitters, listValue, asExpression);
+                } else {
+                    int arityTmp = 0;
+                    ConsCell currentCell = listValue.getCdr();
+                    while(currentCell != null) {
+                        compileTo(currentCell.getCar(), emitters, true);
+                        currentCell = currentCell.getCdr();
+                        arityTmp++;
                     }
+                    int arity = arityTmp;
+
+                    emitters.add(instructions -> instructions.add(Instructions.call(symbolFirstValue, arity)));
+                    if(!asExpression)
+                        emitters.add(instructions -> instructions.add(Instructions.pop()));
                 }
             } else {
                 compileCons(listValue, emitters);
@@ -93,11 +162,11 @@ public class Function {
     }
 
     private static void compileCons(ConsCell listValue, List<Consumer<List<Instruction>>> emitters) {
+        compileTo(listValue.getCar(), emitters, true);
         if(listValue.getCdr() == null)
             emitters.add(instructions -> instructions.add(Instructions.loadConst(null)));
         else
             compileCons(listValue.getCdr(), emitters);
-        compileTo(listValue.getCar(), emitters, true);
         emitters.add(instructions -> instructions.add(Instructions.cons()));
     }
 }
