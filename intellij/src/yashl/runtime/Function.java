@@ -60,6 +60,17 @@ public class Function {
                 emitters.add(instructions -> instructions.add(Instructions.setEnvironment(id)));
             });
         });
+        specialForms.put(Symbol.get("let").getCode(), (emitters, listValue, asExpression) -> {
+            compileOperands2(emitters, listValue, compileTimeOperand(), runtimeOperand(), (Symbol id, Object valueForId) -> {
+                // Allocate local id
+                // Extract allocated index
+                //locals.add(id.getName());
+                //int ordinal = locals.size();
+                if(asExpression)
+                    emitters.add(instructions -> instructions.add(Instructions.dup()));
+                //emitters.add(instructions -> instructions.add(Instructions.store(ordinal)));
+            });
+        });
         specialForms.put(Symbol.get("quote").getCode(), (emitters, listValue, asExpression) -> {
             compileOperands1(emitters, listValue, compileTimeOperand(), valueToQuote -> {
                 if(asExpression)

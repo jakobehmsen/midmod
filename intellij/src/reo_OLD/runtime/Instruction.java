@@ -1,4 +1,4 @@
-package reo.runtime;
+package reo_OLD.runtime;
 
 public interface Instruction {
     default boolean isFunctional() { return false; }

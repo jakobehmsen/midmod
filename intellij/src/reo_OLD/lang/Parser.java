@@ -1,4 +1,4 @@
-package reo.lang;
+package reo_OLD.lang;
 
 import jsflow.bindlang.antlr4.ReoBaseVisitor;
 import jsflow.bindlang.antlr4.ReoLexer;
@@ -7,7 +7,7 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
-import reo.runtime.*;
+import reo_OLD.runtime.*;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;

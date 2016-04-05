@@ -1,7 +1,7 @@
-package reo;
+package reo_OLD;
 
-import reo.lang.Parser;
-import reo.runtime.*;
+import reo_OLD.lang.Parser;
+import reo_OLD.runtime.*;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -45,7 +45,7 @@ public class Main {
             "#{x = 5 y = 6 toString() => \"Whatever\"}.toString()\n" +
             "";*/
 
-        String script = new String(java.nio.file.Files.readAllBytes(Paths.get("src/reo/core/bootstrap.reo")));
+        String script = new String(java.nio.file.Files.readAllBytes(Paths.get("src/reo_OLD/core/bootstrap.reo")));
 
         Behavior behavior = Parser.parse(script);
         //Behavior behavior = Parser.parse("this", true);
