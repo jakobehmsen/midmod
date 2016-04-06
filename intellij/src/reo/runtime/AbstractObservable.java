@@ -20,5 +20,9 @@ public abstract class AbstractObservable implements Observable {
         observers.forEach(x -> x.handle(value));
     }
 
+    protected void sendRelease() {
+        observers.forEach(x -> x.release());
+    }
+
     protected abstract void sendStateTo(Observer observer);
 }

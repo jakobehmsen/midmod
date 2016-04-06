@@ -1,7 +1,6 @@
 package reo.runtime;
 
-import jsflow.Main;
-
+import java.util.Arrays;
 import java.util.Hashtable;
 
 public class Dictionary extends AbstractObservable {
@@ -52,6 +51,11 @@ public class Dictionary extends AbstractObservable {
             sendChange(value);
         }
 
+        @Override
+        public void release() {
+            sendRelease();
+        }
+
         public void changeObservable(Observable observable) {
             if(this.observable != null)
                 observable.removeObserver(this);
@@ -69,16 +73,76 @@ public class Dictionary extends AbstractObservable {
             slot.changeObservable(value);
         } else {
             slot = new Slot();
+            slot.addObserver(new Observer() {
+                @Override
+                public void handle(Object value) {
+
+                }
+
+                @Override
+                public void release() {
+                    slots.remove(name);
+                }
+            });
             slot.changeObservable(value);
             slots.put(name, slot);
         }
     }
 
     public Observable get(String name) {
-        return slots.computeIfAbsent(name, n -> new Slot());
+        return slots.get(name);
+    }
+
+    public void remove(String name) {
+        slots.get(name).release(); // Release implicitly remove slot from map
+    }
+
+    private class Application extends AbstractObservable implements Observer {
+        private Observable[] arguments;
+        private Reducer reducer;
+        private Object value;
+
+        private Application(Observable[] arguments) {
+            this.arguments = arguments;
+        }
+
+        @Override
+        protected void sendStateTo(Observer observer) {
+            if(value != null)
+                observer.handle(value);
+        }
+
+        @Override
+        public void handle(Object value) {
+            reducer = ((ReducerConstructor)value).create(Dictionary.this, arguments);
+            reducer.bind(new Observer() {
+                @Override
+                public void handle(Object value) {
+                    Application.this.value = value;
+                    sendChange(Application.this.value);
+                }
+
+                @Override
+                public void release() {
+                    Application.this.release();
+                }
+            });
+        }
+
+        @Override
+        public void release() {
+            sendRelease();
+        }
     }
 
     public Observable apply(String name, Observable[] arguments) {
+        Application application = new Application(arguments);
+
+        get(name).addObserver(application);
+
+        return application;
+
+        /*
         // The values of the slot must be reducer constructors.
         // A reducer constructor:
         // - must be able to construct reducers when given arguments and a particular self/dictionary
@@ -88,6 +152,7 @@ public class Dictionary extends AbstractObservable {
 
             }
         };
+        */
     }
 
     @Override

@@ -29,6 +29,11 @@ public class Reducer extends AbstractObservable {
                     if(reduction != null)
                         sendChange(reduction);
                 }
+
+                @Override
+                public void release() {
+                    sendRelease();
+                }
             });
         });
     }
