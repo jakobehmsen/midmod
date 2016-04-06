@@ -1,7 +1,9 @@
 package reo.runtime;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Reducer extends AbstractObservable {
@@ -50,5 +52,10 @@ public class Reducer extends AbstractObservable {
     protected void sendStateTo(Observer observer) {
         if(reduction != null)
             observer.handle(reduction);
+    }
+
+    @Override
+    public String toString() {
+        return "" + function + "(" + Arrays.asList(arguments).stream().map(x -> x.toString()).collect(Collectors.joining(", ")) + ")";
     }
 }

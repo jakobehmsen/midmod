@@ -1,10 +1,9 @@
 package reo.runtime;
 
-import java.util.Arrays;
 import java.util.Hashtable;
 
 public class Dictionary extends AbstractObservable {
-    public static class SlotChange extends Exception {
+    public static class SlotChange {
         private String name;
 
         public SlotChange(String name) {
@@ -17,15 +16,15 @@ public class Dictionary extends AbstractObservable {
     }
 
     public static class PutSlotChange extends SlotChange {
-        private Object newValue;
+        private Observable slot;
 
-        public PutSlotChange(String name, Object newValue) {
+        public PutSlotChange(String name, Observable slot) {
             super(name);
-            this.newValue = newValue;
+            this.slot = slot;
         }
 
-        public Object getNewValue() {
-            return newValue;
+        public Observable getSlot() {
+            return slot;
         }
     }
 
@@ -86,6 +85,8 @@ public class Dictionary extends AbstractObservable {
             });
             slot.changeObservable(value);
             slots.put(name, slot);
+
+            sendChange(new PutSlotChange(name, slot));
         }
     }
 
@@ -99,7 +100,7 @@ public class Dictionary extends AbstractObservable {
 
     private class Application extends AbstractObservable implements Observer {
         private Observable[] arguments;
-        private Reducer reducer;
+        private Observable reducer;
         private Object value;
 
         private Application(Observable[] arguments) {

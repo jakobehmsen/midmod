@@ -15,7 +15,7 @@ public class Main {
 
         /*d.addObserver(new ReflectiveObserver() {
             void handle(Dictionary.PutSlotChange putSlotChange) {
-                System.out.println("Put slot " + putSlotChange.getName() + " to " + putSlotChange.getNewValue());
+                System.out.println("Put slot " + putSlotChange.getName() + " to " + putSlotChange.getSlot());
             }
         });
 
@@ -61,7 +61,7 @@ public class Main {
 
         d.put("method", new Constant(new ReducerConstructor() {
             @Override
-            public Reducer create(Dictionary self, Observable[] arguments) {
+            public Observable create(Dictionary self, Observable[] arguments) {
                 return new Reducer(Arrays.asList(self.get("y"), arguments[0]), a ->
                     (int)a[0] * (int)a[1]);
             }
@@ -83,5 +83,59 @@ public class Main {
         d.put("x", new Constant(9));
 
         d.remove("x");
+
+        Frame frame = new Frame(null, new Instruction[] {
+            Instructions.load(0),
+            Instructions.loadConstant(8),
+            Instructions.storeSlot("x"),
+            Instructions.load(0),
+            Instructions.loadConstant(18),
+            Instructions.storeSlot("y"),
+
+            Instructions.load(0),
+
+            Instructions.load(0),
+            Instructions.loadSlot("x"),
+            Instructions.load(0),
+            Instructions.loadSlot("y"),
+            Instructions.addi(),
+
+            Instructions.storeSlot("sum"),
+
+            Instructions.load(0),
+            Instructions.loadConstant(10),
+            Instructions.storeSlot("y"),
+
+            Instructions.load(0),
+            Instructions.removeSlot("y"),
+
+            //Instructions.loadConstant("Finished"),
+            Instructions.halt()
+        });
+        Dictionary self = new Dictionary();
+
+        self.addObserver(new ReflectiveObserver() {
+            void handle(Dictionary.PutSlotChange putSlotChange) {
+                System.out.println("Allocated slot " + putSlotChange.getName());
+
+                putSlotChange.getSlot().addObserver(new Observer() {
+                    @Override
+                    public void handle(Object value) {
+                        System.out.println("Set slot " + putSlotChange.getName() + " to " + value);
+                    }
+
+                    @Override
+                    public void release() {
+                        System.out.println("Deallocated slot " + putSlotChange.getName());
+                    }
+                });
+            }
+        });
+
+        frame.push(self);
+        Evaluation evaluation = new Evaluation(frame);
+        evaluation.evaluate();
+        Observable result = evaluation.getFrame().pop();
+        System.out.println(result);
     }
 }

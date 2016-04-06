@@ -21,4 +21,22 @@ public class Evaluation {
         while(running)
             frame.evaluate(this);
     }
+
+    public void halt() {
+        running = false;
+    }
+
+    private Observable[] operands = new Observable[0];
+
+    public void popOperands(int count) {
+        if(operands.length < count)
+            operands = new Observable[count];
+
+        for(int i = 0; i < count; i++)
+            operands[i] = getFrame().pop();
+    }
+
+    public Observable getOperand(int ordinal) {
+        return operands[ordinal];
+    }
 }

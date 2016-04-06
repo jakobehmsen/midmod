@@ -11,4 +11,9 @@ public class Constant extends AbstractObservable {
     protected void sendStateTo(Observer observer) {
         observer.handle(value);
     }
+
+    @Override
+    public String toString() {
+        return value.toString();
+    }
 }
