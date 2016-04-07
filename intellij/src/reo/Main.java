@@ -84,20 +84,6 @@ public class Main {
 
         d.remove("x");
 
-        // obj = newDict
-        Observables.setSlot(Observables.constant(d), "obj", Observables.constant(new Dictionary()));
-
-        // obj.i = 10
-        Observables.setSlot(Observables.getSlot(Observables.constant(d), "obj"), "i", Observables.constant(10));
-        // obj.m = 11
-        Observables.setSlot(Observables.getSlot(Observables.constant(d), "obj"), "m", Observables.constant(11));
-
-        // j = obj.i
-        Observables.setSlot(Observables.constant(d), "j", Observables.getSlot(Observables.getSlot(Observables.constant(d), "obj"), "i"));
-
-        // obj.i = 15
-        Observables.setSlot(Observables.getSlot(Observables.constant(d), "obj"), "i", Observables.constant(15));
-
         Universe universe = new Universe();
         universe.getIntegerPrototype().put("+", Observables.constant(new ReducerConstructor() {
             @Override
@@ -106,8 +92,19 @@ public class Main {
                     (int)a[0] + (int)a[1]);
             }
         }));
-        // Should receiver be an argument to the constructor of MessageSend instead?
-        // Otherwise, addObserver is require for the receiver
+
+        /*
+        // obj = {}
+        Observables.setSlot(Observables.constant(d), "obj", Observables.constant(new Dictionary()));
+        // obj.i = 10
+        Observables.setSlot(Observables.getSlot(Observables.constant(d), "obj"), "i", Observables.constant(10));
+        // obj.m = 11
+        Observables.setSlot(Observables.getSlot(Observables.constant(d), "obj"), "m", Observables.constant(11));
+        // j = obj.i
+        Observables.setSlot(Observables.constant(d), "j", Observables.getSlot(Observables.getSlot(Observables.constant(d), "obj"), "i"));
+        // obj.i = 15
+        Observables.setSlot(Observables.getSlot(Observables.constant(d), "obj"), "i", Observables.constant(15));
+        // someSum() => obj.i + obj.m
         Observables.setSlot(Observables.getSlot(Observables.constant(d), "obj"), "someSum", Observables.messageSend(
             universe, Observables.getSlot(Observables.getSlot(Observables.constant(d), "obj"), "i"), "+", new Observable[]{Observables.getSlot(Observables.getSlot(Observables.constant(d), "obj"), "m")}));
 
@@ -117,18 +114,54 @@ public class Main {
                 System.out.println("someSum = " + value);
             }
         });
+        */
 
         /*
         - A first language
-        - Dereference support for observables? How to support something like:
-          obj.i = 10
-          j = obj.i
         */
 
         Frame frame = new Frame(null, new Instruction[] {
             Instructions.load(0),
+            Instructions.newDict(),
+            Instructions.storeSlot("obj"),
+
+            Instructions.load(0),
+            Instructions.loadSlot("obj"),
+            Instructions.loadConstant(10),
+            Instructions.storeSlot("i"),
+
+            Instructions.load(0),
+            Instructions.loadSlot("obj"),
+            Instructions.loadConstant(11),
+            Instructions.storeSlot("m"),
+
+            Instructions.load(0),
+            Instructions.load(0),
+            Instructions.loadSlot("obj"),
+            Instructions.loadSlot("i"),
+            Instructions.storeSlot("j"),
+
+            Instructions.load(0),
+            Instructions.loadSlot("obj"),
+            Instructions.loadConstant(15),
+            Instructions.storeSlot("i"),
+
+            Instructions.load(0),
+            Instructions.load(0),
+            Instructions.loadSlot("obj"),
+            Instructions.loadSlot("i"),
+            Instructions.load(0),
+            Instructions.loadSlot("obj"),
+            Instructions.loadSlot("m"),
+            Instructions.messageSend("+", 1),
+            Instructions.storeSlot("someSum"),
+
+
+
+            Instructions.load(0),
             Instructions.loadConstant(8),
             Instructions.storeSlot("x"),
+
             Instructions.load(0),
             Instructions.loadConstant(18),
             Instructions.storeSlot("y"),
@@ -174,7 +207,7 @@ public class Main {
         });
 
         frame.push(new Constant(self));
-        Evaluation evaluation = new Evaluation(frame);
+        Evaluation evaluation = new Evaluation(universe, frame);
         evaluation.evaluate();
         Observable result = evaluation.getFrame().pop();
         System.out.println(result);

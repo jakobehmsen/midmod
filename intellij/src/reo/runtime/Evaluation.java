@@ -1,10 +1,12 @@
 package reo.runtime;
 
 public class Evaluation {
+    private Universe universe;
     private Frame frame;
     private boolean running;
 
-    public Evaluation(Frame frame) {
+    public Evaluation(Universe universe, Frame frame) {
+        this.universe = universe;
         this.frame = frame;
     }
 
@@ -38,5 +40,13 @@ public class Evaluation {
 
     public Observable getOperand(int ordinal) {
         return operands[ordinal];
+    }
+
+    public Observable[] getOperands() {
+        return operands;
+    }
+
+    public Universe getUniverse() {
+        return universe;
     }
 }

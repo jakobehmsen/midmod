@@ -77,6 +77,21 @@ public class Instructions {
         };
     }
 
+    public static Instruction messageSend(String selector, int arity) {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.popOperands(arity);
+                Observable[] arguments = evaluation.getOperands();
+                Observable receiverObs = evaluation.getFrame().pop();
+
+                evaluation.getFrame().push(Observables.messageSend(evaluation.getUniverse(), receiverObs, selector, arguments));
+
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
     public static Instruction addi() {
         return new Instruction() {
             @Override
@@ -97,6 +112,17 @@ public class Instructions {
                         return "addi";
                     }
                 }));
+
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction newDict() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().push(new Constant(new Dictionary()));
 
                 evaluation.getFrame().incrementIP();
             }
