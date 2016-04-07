@@ -98,12 +98,14 @@ public class Dictionary extends AbstractObservable {
         slots.get(name).release(); // Release implicitly remove slot from map
     }
 
-    private class Application extends AbstractObservable implements Observer {
+    public class Application extends AbstractObservable implements Observer {
+        private Object self;
         private Observable[] arguments;
         private Observable reducer;
         private Object value;
 
-        private Application(Observable[] arguments) {
+        private Application(Object self, Observable[] arguments) {
+            this.self = self;
             this.arguments = arguments;
         }
 
@@ -115,7 +117,7 @@ public class Dictionary extends AbstractObservable {
 
         @Override
         public void handle(Object value) {
-            reducer = ((ReducerConstructor)value).create(Dictionary.this, arguments);
+            reducer = ((ReducerConstructor)value).create(self, Dictionary.this, arguments);
             reducer.bind(new Observer() {
                 @Override
                 public void handle(Object value) {
@@ -136,8 +138,8 @@ public class Dictionary extends AbstractObservable {
         }
     }
 
-    public Observable apply(String name, Observable[] arguments) {
-        Application application = new Application(arguments);
+    public Observable apply(Object self, String name, Observable[] arguments) {
+        Application application = new Application(self, arguments);
 
         get(name).addObserver(application);
 

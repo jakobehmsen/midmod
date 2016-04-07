@@ -42,9 +42,9 @@ public class Instructions {
                 evaluation.popOperands(2);
 
                 Observable value = evaluation.getOperand(0);
-                Dictionary dict = (Dictionary) evaluation.getOperand(1);
+                Observable dictObs = evaluation.getOperand(1);
 
-                dict.put(name, value);
+                Observables.setSlot(dictObs, name, value);
 
                 evaluation.getFrame().incrementIP();
             }
@@ -55,9 +55,9 @@ public class Instructions {
         return new Instruction() {
             @Override
             public void evaluate(Evaluation evaluation) {
-                Dictionary dict = (Dictionary) evaluation.getFrame().pop();
+                Observable dictObs = evaluation.getFrame().pop();
 
-                evaluation.getFrame().push(dict.get(name));
+                evaluation.getFrame().push(Observables.getSlot(dictObs, name));
 
                 evaluation.getFrame().incrementIP();
             }
@@ -68,9 +68,9 @@ public class Instructions {
         return new Instruction() {
             @Override
             public void evaluate(Evaluation evaluation) {
-                Dictionary dict = (Dictionary) evaluation.getFrame().pop();
+                Observable dictObs = evaluation.getFrame().pop();
 
-                dict.remove(name);
+                Observables.removeSlot(dictObs, name);
 
                 evaluation.getFrame().incrementIP();
             }

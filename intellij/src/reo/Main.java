@@ -38,13 +38,13 @@ public class Main {
 
         d.put("method", new Constant(new ReducerConstructor() {
             @Override
-            public Reducer create(Dictionary self, Observable[] arguments) {
-                return new Reducer(Arrays.asList(self.get("x"), self.get("y"), arguments[0]), a ->
+            public Reducer create(Object self, Dictionary prototype, Observable[] arguments) {
+                return new Reducer(Arrays.asList(prototype.get("x"), prototype.get("y"), arguments[0]), a ->
                     (int)a[0] * (int)a[1] * (int)a[2]);
             }
         }));
 
-        d.apply("method", new Observable[]{new Constant(10)})
+        d.apply(d, "method", new Observable[]{new Constant(10)})
             .addObserver(new Observer() {
                 @Override
                 public void handle(Object value) {
@@ -61,8 +61,8 @@ public class Main {
 
         d.put("method", new Constant(new ReducerConstructor() {
             @Override
-            public Observable create(Dictionary self, Observable[] arguments) {
-                return new Reducer(Arrays.asList(self.get("y"), arguments[0]), a ->
+            public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
+                return new Reducer(Arrays.asList(prototype.get("y"), arguments[0]), a ->
                     (int)a[0] * (int)a[1]);
             }
         }));
@@ -83,6 +83,47 @@ public class Main {
         d.put("x", new Constant(9));
 
         d.remove("x");
+
+        // obj = newDict
+        Observables.setSlot(Observables.constant(d), "obj", Observables.constant(new Dictionary()));
+
+        // obj.i = 10
+        Observables.setSlot(Observables.getSlot(Observables.constant(d), "obj"), "i", Observables.constant(10));
+        // obj.m = 11
+        Observables.setSlot(Observables.getSlot(Observables.constant(d), "obj"), "m", Observables.constant(11));
+
+        // j = obj.i
+        Observables.setSlot(Observables.constant(d), "j", Observables.getSlot(Observables.getSlot(Observables.constant(d), "obj"), "i"));
+
+        // obj.i = 15
+        Observables.setSlot(Observables.getSlot(Observables.constant(d), "obj"), "i", Observables.constant(15));
+
+        Universe universe = new Universe();
+        universe.getIntegerPrototype().put("+", Observables.constant(new ReducerConstructor() {
+            @Override
+            public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
+                return new Reducer(Arrays.asList(new Constant(self), arguments[0]), a ->
+                    (int)a[0] + (int)a[1]);
+            }
+        }));
+        // Should receiver be an argument to the constructor of MessageSend instead?
+        // Otherwise, addObserver is require for the receiver
+        Observables.setSlot(Observables.getSlot(Observables.constant(d), "obj"), "someSum", Observables.messageSend(
+            universe, Observables.getSlot(Observables.getSlot(Observables.constant(d), "obj"), "i"), "+", new Observable[]{Observables.getSlot(Observables.getSlot(Observables.constant(d), "obj"), "m")}));
+
+        Observables.getSlot(Observables.getSlot(Observables.constant(d), "obj"), "someSum").addObserver(new Observer() {
+            @Override
+            public void handle(Object value) {
+                System.out.println("someSum = " + value);
+            }
+        });
+
+        /*
+        - A first language
+        - Dereference support for observables? How to support something like:
+          obj.i = 10
+          j = obj.i
+        */
 
         Frame frame = new Frame(null, new Instruction[] {
             Instructions.load(0),
@@ -132,7 +173,7 @@ public class Main {
             }
         });
 
-        frame.push(self);
+        frame.push(new Constant(self));
         Evaluation evaluation = new Evaluation(frame);
         evaluation.evaluate();
         Observable result = evaluation.getFrame().pop();
