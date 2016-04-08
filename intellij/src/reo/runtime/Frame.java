@@ -32,4 +32,22 @@ public class Frame {
     public void load(int ordinal) {
         stack.push(stack.get(0));
     }
+
+    public void allocate(int count) {
+        for(int i = 0; i < count; i++)
+            stack.push(null);
+    }
+
+    public void set(Observable[] values, int offset) {
+        for(int i = 0; i < values.length; i++)
+            stack.set(offset + i, values[i]);
+    }
+
+    public void set(int ordinal, Observable value) {
+        stack.set(ordinal, value);
+    }
+
+    public Frame getOuter() {
+        return outer;
+    }
 }

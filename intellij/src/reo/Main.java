@@ -85,13 +85,26 @@ public class Main {
         d.remove("x");
 
         Universe universe = new Universe();
-        universe.getIntegerPrototype().put("+", Observables.constant(new ReducerConstructor() {
+        universe.getIntegerPrototype().addObserver(new Observer() {
+            @Override
+            public void handle(Object value) {
+                Dictionary integerPrototype = (Dictionary)value;
+                integerPrototype.put("+", Observables.constant(new ReducerConstructor() {
+                    @Override
+                    public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
+                        return new Reducer(Arrays.asList(new Constant(self), arguments[0]), a ->
+                            (int)a[0] + (int)a[1]);
+                    }
+                }));
+            }
+        });
+        /*universe.getIntegerPrototype().put("+", Observables.constant(new ReducerConstructor() {
             @Override
             public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
                 return new Reducer(Arrays.asList(new Constant(self), arguments[0]), a ->
                     (int)a[0] + (int)a[1]);
             }
-        }));
+        }));*/
 
         /*
         // obj = {}

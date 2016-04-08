@@ -4,6 +4,7 @@ public class Evaluation {
     private Universe universe;
     private Frame frame;
     private boolean running;
+    private Observable nullPrototype;
 
     public Evaluation(Universe universe, Frame frame) {
         this.universe = universe;

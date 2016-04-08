@@ -124,7 +124,7 @@ public class Observables {
                 if(target instanceof Dictionary)
                     return (Dictionary)target;
                 if(target instanceof Integer)
-                    return universe.getIntegerPrototype();
+                    return universe.getIntegerPrototype2();
 
                 throw new RuntimeException("Could not resolve prototype for: " + target);
             }

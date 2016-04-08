@@ -24,6 +24,17 @@ public class Instructions {
         };
     }
 
+    public static Instruction pop() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().pop();
+
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
     public static Instruction load(int ordinal) {
         return new Instruction() {
             @Override
@@ -124,6 +135,54 @@ public class Instructions {
             public void evaluate(Evaluation evaluation) {
                 evaluation.getFrame().push(new Constant(new Dictionary()));
 
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction newMethod(Behavior behavior) {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().push(new Constant(new Method(evaluation.getUniverse(), behavior)));
+
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction loadNull() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().push(evaluation.getUniverse().getNull());
+
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction storeLocal(int ordinal) {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                Observable value = evaluation.getFrame().pop();
+                evaluation.getFrame().set(ordinal, value);
+
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction ret() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                Frame frame = evaluation.getFrame();
+                Observable result = frame.pop();
+                Frame outerFrame = frame.getOuter();
+                outerFrame.push(result);
+                evaluation.setFrame(outerFrame);
                 evaluation.getFrame().incrementIP();
             }
         };
