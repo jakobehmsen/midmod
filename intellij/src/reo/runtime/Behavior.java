@@ -11,10 +11,11 @@ public class Behavior {
         this.externalCount = externalCount;
     }
 
-    public Frame createFrame(Frame outer, Observable[] arguments) {
+    public Frame createFrame(Frame outer, Object self, Observable[] arguments) {
         Frame frame = new Frame(outer, instructions);
         frame.allocate(internalCount + externalCount);
-        frame.set(arguments, 0);
+        frame.set(0, new Constant(self));
+        frame.set(arguments, internalCount);
         return frame;
     }
 }

@@ -93,7 +93,8 @@ public class Instructions {
             @Override
             public void evaluate(Evaluation evaluation) {
                 evaluation.popOperands(arity);
-                Observable[] arguments = evaluation.getOperands();
+                Observable[] arguments = new Observable[arity];
+                System.arraycopy(evaluation.getOperands(), 0, arguments, 0, arity);
                 Observable receiverObs = evaluation.getFrame().pop();
 
                 evaluation.getFrame().push(Observables.messageSend(evaluation.getUniverse(), receiverObs, selector, arguments));

@@ -10,13 +10,19 @@ import reo.lang.antlr4.ReoParser;
 import reo.runtime.Behavior;
 import reo.runtime.Instruction;
 import reo.runtime.Instructions;
-import reo.runtime.Method;
 
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
 public class Parser {
+    private interface Emitter {
+        default void emit(List<Instruction> instructions, Map<String, Integer> parameters, Map<String, Integer> locals) {
+            emit(instructions);
+        }
+        void emit(List<Instruction> instructions);
+    }
+
     public static Behavior parse(String text) {
         CharStream charStream = new ANTLRInputStream(text);
         ReoLexer lexer = new ReoLexer(charStream);
@@ -27,26 +33,27 @@ public class Parser {
     }
 
     private static Behavior parseBlock(List<? extends ParserRuleContext> blockElementCtxs, boolean implicitReturn, Consumer<List<Instruction>> postEmitter, Map<String, Integer> parameters) {
-        List<Consumer<List<Instruction>>> emitters = new ArrayList<>();
+        List<Emitter> emitters = new ArrayList<>();
         Map<String, Integer> locals = new Hashtable<>();
-        locals.putAll(parameters);
+        locals.put("this", 0);
+        //locals.putAll(parameters);
 
         IntStream.range(0, blockElementCtxs.size()).forEach(index ->
-                parseBlockElement(blockElementCtxs.get(index), emitters, locals, implicitReturn ? index == blockElementCtxs.size() - 1 : false)
+            parseBlockElement(blockElementCtxs.get(index), emitters, parameters, locals, implicitReturn ? index == blockElementCtxs.size() - 1 : false)
         );
 
-        int internalCount = (int)locals.keySet().stream().filter(x -> !parameters.containsKey(x)).count();
-        int externalCount = (int)locals.keySet().stream().filter(x -> parameters.containsKey(x)).count();
+        int internalCount = locals.size(); //(int)locals.keySet().stream().filter(x -> !parameters.containsKey(x)).count();
+        int externalCount = parameters.size(); //(int)locals.keySet().stream().filter(x -> parameters.containsKey(x)).count();
 
         ArrayList<Instruction> instructions = new ArrayList<>();
 
-        emitters.forEach(e -> e.accept(instructions));
+        emitters.forEach(e -> e.emit(instructions, parameters, locals));
         postEmitter.accept(instructions);
 
         return new Behavior(instructions.toArray(new Instruction[instructions.size()]), internalCount, externalCount);
     }
 
-    private static void parseBlockElement(ParserRuleContext ctx, List<Consumer<List<Instruction>>> emitters, Map<String, Integer> locals, boolean implicitReturn) {
+    private static void parseBlockElement(ParserRuleContext ctx, List<Emitter> emitters, Map<String, Integer> parameters, Map<String, Integer> locals, boolean implicitReturn) {
         ctx.accept(new ReoBaseVisitor<Void>() {
             @Override
             public Void visitStatementOrExpression(ReoParser.StatementOrExpressionContext ctx) {
@@ -55,28 +62,32 @@ public class Parser {
 
             @Override
             public Void visitExpression(ReoParser.ExpressionContext ctx) {
-                parseExpression(ctx, emitters, locals, !implicitReturn);
+                parseExpression(ctx, emitters, parameters, locals, !implicitReturn);
 
                 return null;
             }
 
             @Override
             public Void visitStatement(ReoParser.StatementContext ctx) {
-                parseStatement((ParserRuleContext) ctx.getChild(0), emitters, locals);
+                parseStatement((ParserRuleContext) ctx.getChild(0), emitters, parameters, locals);
 
                 return null;
             }
         });
     }
 
-    private static void parseStatement(ParserRuleContext ctx, List<Consumer<List<Instruction>>> emitters, Map<String, Integer> locals) {
+    private static void parseStatement(ParserRuleContext ctx, List<Emitter> emitters, Map<String, Integer> parameters, Map<String, Integer> locals) {
         ctx.accept(new ReoBaseVisitor<Void>() {
             @Override
             public Void visitVariableDeclaration(ReoParser.VariableDeclarationContext ctx) {
+                if(parameters.containsKey(ctx.ID().getText())) {
+                    // Error
+                }
+
                 int ordinal = locals.computeIfAbsent(ctx.ID().getText(), id -> locals.size());
 
                 if(ctx.expression() != null)
-                    parseExpression(ctx.expression(), emitters, locals, false);
+                    parseExpression(ctx.expression(), emitters, parameters, locals, false);
                 else
                     emitters.add(instructions -> instructions.add(Instructions.loadNull()));
 
@@ -109,7 +120,7 @@ public class Parser {
         });
     }
 
-    private static void parseExpression(ParserRuleContext ctx, List<Consumer<List<Instruction>>> emitters, Map<String, Integer> locals, boolean atTop) {
+    private static void parseExpression(ParserRuleContext ctx, List<Emitter> emitters, Map<String, Integer> parameters, Map<String, Integer> locals, boolean atTop) {
         ctx.accept(new ReoBaseVisitor<Void>() {
             @Override
             public Void visitExpression(ReoParser.ExpressionContext ctx) {
@@ -147,13 +158,36 @@ public class Parser {
                 return null;
             }
 
-            private void parseSlotAssignment(ReoParser.SlotAssignmentContext ctx, boolean sendMessage) {
+            private void parseSlotAssignment(ReoParser.SlotAssignmentContext ctx, boolean isChain) {
                 ctx.getChild(0).accept(new ReoBaseVisitor<Void>() {
                     @Override
                     public Void visitFieldSlotAssignment(ReoParser.FieldSlotAssignmentContext ctx) {
                         String selector = getSelector(ctx.selector());
-                        parseExpression(ctx.expression(), emitters, locals, false);
-                        emitters.add(instructions -> instructions.add(Instructions.storeSlot(selector)));
+
+                        if(!isChain && parameters.containsKey(selector)) {
+                            parseExpression(ctx.expression(), emitters, parameters, locals, false);
+                            emitters.add(new Emitter() {
+                                @Override
+                                public void emit(List<Instruction> instructions, Map<String, Integer> parameters, Map<String, Integer> locals) {
+                                    int ordinal = locals.size() + parameters.get(selector);
+                                    instructions.add(Instructions.storeLocal(ordinal));
+                                }
+
+                                @Override
+                                public void emit(List<Instruction> instructions) {
+
+                                }
+                            });
+                        } else if(!isChain && locals.containsKey(selector)) {
+                            parseExpression(ctx.expression(), emitters, parameters, locals, false);
+                            int ordinal = locals.get(selector);
+                            emitters.add(instructions -> instructions.add(Instructions.storeLocal(ordinal)));
+                        } else {
+                            if(!isChain)
+                                emitters.add(instructions -> instructions.add(Instructions.load(0)));
+                            parseExpression(ctx.expression(), emitters, parameters, locals, false);
+                            emitters.add(instructions -> instructions.add(Instructions.storeSlot(selector)));
+                        }
 
                         /*if(sendMessage) {
                             if(!atTop)
@@ -179,8 +213,32 @@ public class Parser {
                             behavior = parseBlock(ctx.blockBody.statementOrExpression(), true, instructions -> { }, parameters);
                         }
 
-                        emitters.add(instructions -> instructions.add(Instructions.newMethod(behavior)));
-                        emitters.add(instructions -> instructions.add(Instructions.storeSlot(selector)));
+
+                        //emitters.add(instructions -> instructions.add(Instructions.storeSlot(selector)));
+                        if(!isChain && parameters.containsKey(selector)) {
+                            emitters.add(instructions -> instructions.add(Instructions.newMethod(behavior)));
+                            emitters.add(new Emitter() {
+                                @Override
+                                public void emit(List<Instruction> instructions, Map<String, Integer> parameters, Map<String, Integer> locals) {
+                                    int ordinal = locals.size() + parameters.get(selector);
+                                    instructions.add(Instructions.storeLocal(ordinal));
+                                }
+
+                                @Override
+                                public void emit(List<Instruction> instructions) {
+
+                                }
+                            });
+                        } else if(!isChain && locals.containsKey(selector)) {
+                            emitters.add(instructions -> instructions.add(Instructions.newMethod(behavior)));
+                            int ordinal = locals.get(selector);
+                            emitters.add(instructions -> instructions.add(Instructions.storeLocal(ordinal)));
+                        } else {
+                            if(!isChain)
+                                emitters.add(instructions -> instructions.add(Instructions.load(0)));
+                            emitters.add(instructions -> instructions.add(Instructions.newMethod(behavior)));
+                            emitters.add(instructions -> instructions.add(Instructions.storeSlot(selector)));
+                        }
                         /*if(sendMessage) {
                             if(!atTop)
                                 emitters.add(instructions -> instructions.add(Instructions.dup2()));
@@ -191,6 +249,15 @@ public class Parser {
                         return null;
                     }
                 });
+            }
+
+            private String getSelector(ReoParser.AccessContext ctx) {
+                if(ctx.ID() != null) {
+                    return ctx.getText();
+                } else {
+                    String name = ctx.getText().substring(1, ctx.getText().length() - 1);
+                    return getSelector(name, ctx.qualifiedSelector().selectorParameters());
+                }
             }
 
             private String getSelector(ReoParser.SelectorContext ctx) {
@@ -233,6 +300,87 @@ public class Parser {
             @Override
             public Void visitMulExpression(ReoParser.MulExpressionContext ctx) {
                 parseBinary(ctx, ctx.lhs, ctx.mulExpressionOp());
+
+                return null;
+            }
+
+            @Override
+            public Void visitChainedExpression(ReoParser.ChainedExpressionContext ctx) {
+                boolean atomAtTop = ctx.expressionTail().expressionTailPart().size() == 0 && ctx.expressionTail().expressionTailEnd() == null;
+                parseExpression(ctx.atomExpression(), emitters, parameters, locals, atomAtTop && atTop);
+                int tailCount = ctx.expressionTail().expressionTailPart().size() + (ctx.expressionTail().expressionTailEnd() != null ? 1 : 0);
+                int tailNo = 0;
+
+                for (ReoParser.ExpressionTailPartContext expressionTailPartContext : ctx.expressionTail().expressionTailPart()) {
+                    int tailNoTmp = tailNo;
+                    boolean partAtTop = tailNoTmp == tailCount - 1 ? atTop : false;
+                    expressionTailPartContext.accept(new ReoBaseVisitor<Void>() {
+                        /*@Override
+                        public Void visitCall(ReoParser.CallContext ctx) {
+                            ctx.expression().forEach(x ->  parseExpression(x, emitters, locals, false));
+                            messageSend(ctx.ID().getText(), ctx.expression().size(), emitters, partAtTop);
+
+                            return null;
+                        }*/
+
+                        @Override
+                        public Void visitMessage(ReoParser.MessageContext ctx) {
+                            ctx.expression().forEach(x ->  parseExpression(x, emitters, parameters, locals, false));
+                            messageSend(ctx.ID().getText(), ctx.expression().size(), emitters, partAtTop);
+
+                            return null;
+                        }
+
+                        @Override
+                        public Void visitSlotAccess(ReoParser.SlotAccessContext ctx) {
+                            /*emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString(ctx.ID().getText()))));
+                            messageSend("getSlot", 1, emitters, partAtTop);*/
+                            String selector = getSelector(ctx.access());
+                            emitters.add(instructions -> instructions.add(Instructions.loadSlot(selector)));
+
+                            return null;
+                        }
+
+                        /*@Override
+                        public Void visitIndexAccess(ReoParser.IndexAccessContext ctx) {
+                            parseExpression(ctx.expression(), emitters, locals, false);
+                            messageSend("[]", 1, emitters, atTop);
+
+                            return null;
+                        }*/
+                    });
+                    tailNo++;
+                }
+
+                if(ctx.expressionTail().expressionTailEnd() != null) {
+                    ctx.expressionTail().expressionTailEnd().accept(new ReoBaseVisitor<Void>() {
+                        @Override
+                        public Void visitSlotAssignment(ReoParser.SlotAssignmentContext ctx) {
+                            parseSlotAssignment(ctx, true);
+
+                            return null;
+                        }
+
+                        /*@Override
+                        public Void visitIndexAssign(ReoParser.IndexAssignContext ctx) {
+                            ctx.expression().forEach(x -> parseExpression(x, emitters, locals, false));
+                            messageSend("[]=", 2, emitters, atTop);
+
+                            return null;
+                        }
+
+                        @Override
+                        public Void visitKeyword(ReoParser.KeywordContext ctx) {
+                            String selector = ctx.ID_LOWER().getText().substring(0, ctx.ID_LOWER().getText().length() - 1) +
+                                ctx.ID_UPPER().stream().map(x -> x.getText().substring(0, x.getText().length() - 1)).collect(Collectors.joining());
+
+                            ctx.expression0().forEach(x -> parseExpression(x, emitters, locals, false));
+                            messageSend(selector, 1 + ctx.ID_UPPER().size(), emitters, atTop);
+
+                            return null;
+                        }*/
+                    });
+                }
 
                 return null;
             }
@@ -390,7 +538,7 @@ public class Parser {
 //                });
 //            }
 //
-            private Void messageSend(String name, int arity, List<Consumer<List<Instruction>>> emitters, boolean atTop) {
+            private Void messageSend(String name, int arity, List<Emitter> emitters, boolean atTop) {
                 String selector = name + "/" + arity;
                 emitters.add(instructions -> instructions.add(Instructions.messageSend(selector, arity)));
                 if(atTop)
@@ -398,7 +546,16 @@ public class Parser {
 
                 return null;
             }
-//
+
+            @Override
+            public Void visitSelfSend(ReoParser.SelfSendContext ctx) {
+                ctx.message().expression().forEach(x -> parseExpression(x, emitters, parameters, locals, false));
+                messageSend(ctx.message().ID().getText(), ctx.message().expression().size(), emitters, atTop);
+
+                return null;
+            }
+
+            //
 //            @Override
 //            public Void visitSelfCall(ReoParser.SelfCallContext ctx) {
 //                ctx.call().expression().forEach(x -> parseExpression(x, emitters, locals, false));
@@ -418,43 +575,47 @@ public class Parser {
 //                return null;
 //            }
 //
-//            @Override
-//            public Void visitNumber(ReoParser.NumberContext ctx) {
-//                RObject valueTmp;
-//
-//                try {
-//                    valueTmp =  new IntegerRObject(Long.parseLong(ctx.getText()));
-//                } catch (NumberFormatException e) {
-//                    valueTmp = new DoubleRObject(Double.parseDouble(ctx.getText()));
-//                }
-//
-//                RObject value = valueTmp;
-//
-//                emitters.add(instructions -> instructions.add(Instructions.loadConst(value)));
-//
-//                return null;
-//            }
-//
-//            @Override
-//            public Void visitString(ReoParser.StringContext ctx) {
-//                RString value = new RString(parseString(ctx));
-//
-//                emitters.add(instructions -> instructions.add(Instructions.loadConst(value)));
-//
-//                return null;
-//            }
-//
-//            private String parseString(ParserRuleContext ctx) {
-//                String rawString = ctx.getText().substring(1, ctx.getText().length() - 1);
-//                return rawString.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
-//            }
-//
-//            @Override
-//            public Void visitSelf(ReoParser.SelfContext ctx) {
-//                emitters.add(instructions -> instructions.add(Instructions.loadLocal(0)));
-//
-//                return null;
-//            }
+            @Override
+            public Void visitNumber(ReoParser.NumberContext ctx) {
+                Object valueTmp;
+
+                try {
+                    valueTmp =  Integer.parseInt(ctx.getText());
+                } catch (NumberFormatException e1) {
+                    try {
+                        valueTmp =  Long.parseLong(ctx.getText());
+                    } catch (NumberFormatException e2) {
+                        valueTmp = Double.parseDouble(ctx.getText());
+                    }
+                }
+
+                Object value = valueTmp;
+
+                emitters.add(instructions -> instructions.add(Instructions.loadConstant(value)));
+
+                return null;
+            }
+
+            @Override
+            public Void visitString(ReoParser.StringContext ctx) {
+                String value = parseString(ctx);
+
+                emitters.add(instructions -> instructions.add(Instructions.loadConstant(value)));
+
+                return null;
+            }
+
+            private String parseString(ParserRuleContext ctx) {
+                String rawString = ctx.getText().substring(1, ctx.getText().length() - 1);
+                return rawString.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
+            }
+
+            @Override
+            public Void visitSelf(ReoParser.SelfContext ctx) {
+                emitters.add(instructions -> instructions.add(Instructions.load(0)));
+
+                return null;
+            }
 //
 //            @Override
 //            public Void visitThisFrame(ReoParser.ThisFrameContext ctx) {
@@ -463,22 +624,45 @@ public class Parser {
 //                return null;
 //            }
 //
-//            @Override
-//            public Void visitAccess(ReoParser.AccessContext ctx) {
-//                if(!atTop) {
-//                    Integer ordinal = locals.get(ctx.ID().getText());
-//
-//                    if(ordinal != null) // If is local
-//                        emitters.add(instructions -> instructions.add(Instructions.loadLocal(ordinal)));
-//                    else { // Else is assumed to be instance slot
-//                        emitters.add(instructions -> instructions.add(Instructions.loadLocal(0)));
-//                        emitters.add(instructions -> instructions.add(Instructions.loadConst(new RString(ctx.ID().getText()))));
-//                        emitters.add(instructions -> instructions.add(Instructions.loadSlot()));
-//                    }
-//                }
-//
-//                return null;
-//            }
+            @Override
+            public Void visitAccess(ReoParser.AccessContext ctx) {
+                String selector = getSelector(ctx);
+
+                if(!atTop) {
+                    if(parameters.containsKey(selector)) {
+                        emitters.add(new Emitter() {
+                            @Override
+                            public void emit(List<Instruction> instructions, Map<String, Integer> parameters, Map<String, Integer> locals) {
+                                int ordinal = locals.size() + parameters.get(selector);
+                                instructions.add(Instructions.load(ordinal));
+                            }
+
+                            @Override
+                            public void emit(List<Instruction> instructions) {
+
+                            }
+                        });
+                    } else if(locals.containsKey(selector)) {
+                        int ordinal = locals.get(selector);
+                        emitters.add(instructions -> instructions.add(Instructions.load(ordinal)));
+                    } else {
+                        emitters.add(instructions -> instructions.add(Instructions.load(0)));
+                        emitters.add(instructions -> instructions.add(Instructions.loadSlot(selector)));
+                    }
+
+                    /*Integer ordinal = locals.get(selector);
+
+                    if(ordinal != null) // If is local
+                        emitters.add(instructions -> instructions.add(Instructions.load(ordinal)));
+                    else { // Else is assumed to be instance slot
+
+                        emitters.add(instructions -> instructions.add(Instructions.load(0)));
+                        emitters.add(instructions -> instructions.add(Instructions.loadSlot(selector)));
+                    }*/
+                }
+
+                return null;
+            }
 //
 //            @Override
 //            public Void visitPrimitive(ReoParser.PrimitiveContext ctx) {
@@ -572,10 +756,10 @@ public class Parser {
 //                return null;
 //            }
 //
-//            @Override
-//            public Void visitEmbeddedExpression(ReoParser.EmbeddedExpressionContext ctx) {
-//                return ctx.expression().accept(this);
-//            }
+            @Override
+            public Void visitEmbeddedExpression(ReoParser.EmbeddedExpressionContext ctx) {
+                return ctx.expression().accept(this);
+            }
         });
     }
 }

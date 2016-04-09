@@ -1,5 +1,6 @@
 package reo;
 
+import reo.lang.Parser;
 import reo.runtime.*;
 
 import java.util.Arrays;
@@ -85,19 +86,20 @@ public class Main {
         d.remove("x");
 
         Universe universe = new Universe();
-        universe.getIntegerPrototype().addObserver(new Observer() {
+        universe.getIntegerPrototype2().put("+", Observables.constant(new ReducerConstructor() {
             @Override
-            public void handle(Object value) {
-                Dictionary integerPrototype = (Dictionary)value;
-                integerPrototype.put("+", Observables.constant(new ReducerConstructor() {
-                    @Override
-                    public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
-                        return new Reducer(Arrays.asList(new Constant(self), arguments[0]), a ->
-                            (int)a[0] + (int)a[1]);
-                    }
-                }));
+            public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
+                return new Reducer(Arrays.asList(new Constant(self), arguments[0]), a ->
+                    (int) a[0] + (int) a[1]);
             }
-        });
+        }));
+        universe.getIntegerPrototype2().put("+/1", Observables.constant(new ReducerConstructor() {
+            @Override
+            public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
+                return new Reducer(Arrays.asList(new Constant(self), arguments[0]), a ->
+                    (int) a[0] + (int) a[1]);
+            }
+        }));
         /*universe.getIntegerPrototype().put("+", Observables.constant(new ReducerConstructor() {
             @Override
             public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
@@ -133,7 +135,17 @@ public class Main {
         - A first language
         */
 
-        Frame frame = new Frame(null, new Instruction[] {
+        String script =
+            "test = 1\n" +
+            "asdf = y + 1\n" +
+            "";
+        Behavior behavior = Parser.parse(script);
+        Evaluation evaluation = new Evaluation(universe, behavior.createFrame(null, d, new Observable[0]));
+        evaluation.evaluate();
+
+        System.out.println(d);
+
+        /*Frame frame = new Frame(null, new Instruction[] {
             Instructions.load(0),
             Instructions.newDict(),
             Instructions.storeSlot("obj"),
@@ -223,6 +235,6 @@ public class Main {
         Evaluation evaluation = new Evaluation(universe, frame);
         evaluation.evaluate();
         Observable result = evaluation.getFrame().pop();
-        System.out.println(result);
+        System.out.println(result);*/
     }
 }
