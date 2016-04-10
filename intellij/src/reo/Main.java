@@ -140,6 +140,8 @@ public class Main {
             "asdf = y + 1\n" +
             "objectL = #{y = test}\n" +
             "test = 12\n" +
+            "someMethod(arg) => test + arg\n" +
+            "test2 = someMethod(5)\n" +
             "";
         Behavior behavior = Parser.parse(script);
         Evaluation evaluation = new Evaluation(universe, behavior.createFrame(null, d, new Observable[0]));

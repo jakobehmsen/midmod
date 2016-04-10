@@ -30,7 +30,7 @@ assignment: slotAssignment;
 selector: unqualifiedSelector | qualifiedSelector;
 unqualifiedSelector: ID selectorParameters?;
 qualifiedSelector: SELECTOR selectorParameters?;
-selectorParameters: '(' (ID (',' ID)*)?;
+selectorParameters: '(' (ID (',' ID)*)? ')';
 selectorName: ID | SELECTOR;
 
 fragment DIGIT: [0-9];

@@ -204,7 +204,7 @@ public class Parser {
                         String selector = getSelector(getSelectorSelectorName(ctx.selectorName()), ctx.selectorParameters());
 
                         Map<String, Integer> parameters = new Hashtable<>();
-                        ctx.selectorParameters().ID().forEach(x -> parameters.put(x.getText(), parameters.size() + 1 /*Add one because zero is this*/));
+                        ctx.selectorParameters().ID().forEach(x -> parameters.put(x.getText(), parameters.size()));
                         Behavior behavior;
 
                         if(ctx.singleExpressionBody != null) {

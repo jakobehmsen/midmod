@@ -11,7 +11,7 @@ public class Method implements ReducerConstructor {
 
     @Override
     public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
-        Frame returnFrame = new Frame(null, new Instruction[]{Instructions.halt()});
+        Frame returnFrame = new Frame(null, new Instruction[]{null, Instructions.halt()});
         Evaluation evaluation = new Evaluation(universe, behavior.createFrame(returnFrame, self, arguments));
 
         evaluation.evaluate();

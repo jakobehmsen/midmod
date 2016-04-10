@@ -30,7 +30,7 @@ public class Frame {
     }
 
     public void load(int ordinal) {
-        stack.push(stack.get(0));
+        stack.push(stack.get(ordinal));
     }
 
     public void allocate(int count) {
