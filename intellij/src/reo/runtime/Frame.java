@@ -50,4 +50,8 @@ public class Frame {
     public Frame getOuter() {
         return outer;
     }
+
+    public void dup() {
+        stack.push(stack.peek());
+    }
 }

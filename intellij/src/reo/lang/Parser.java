@@ -158,13 +158,13 @@ public class Parser {
                 return null;
             }
 
-            private void parseSlotAssignment(ReoParser.SlotAssignmentContext ctx, boolean isChain) {
+            private void parseSlotAssignment(ReoParser.SlotAssignmentContext ctx, boolean hasTarget) {
                 ctx.getChild(0).accept(new ReoBaseVisitor<Void>() {
                     @Override
                     public Void visitFieldSlotAssignment(ReoParser.FieldSlotAssignmentContext ctx) {
                         String selector = getSelector(ctx.selector());
 
-                        if(!isChain && parameters.containsKey(selector)) {
+                        if(!hasTarget && parameters.containsKey(selector)) {
                             parseExpression(ctx.expression(), emitters, parameters, locals, false);
                             emitters.add(new Emitter() {
                                 @Override
@@ -178,12 +178,12 @@ public class Parser {
 
                                 }
                             });
-                        } else if(!isChain && locals.containsKey(selector)) {
+                        } else if(!hasTarget && locals.containsKey(selector)) {
                             parseExpression(ctx.expression(), emitters, parameters, locals, false);
                             int ordinal = locals.get(selector);
                             emitters.add(instructions -> instructions.add(Instructions.storeLocal(ordinal)));
                         } else {
-                            if(!isChain)
+                            if(!hasTarget)
                                 emitters.add(instructions -> instructions.add(Instructions.load(0)));
                             parseExpression(ctx.expression(), emitters, parameters, locals, false);
                             emitters.add(instructions -> instructions.add(Instructions.storeSlot(selector)));
@@ -215,7 +215,7 @@ public class Parser {
 
 
                         //emitters.add(instructions -> instructions.add(Instructions.storeSlot(selector)));
-                        if(!isChain && parameters.containsKey(selector)) {
+                        if(!hasTarget && parameters.containsKey(selector)) {
                             emitters.add(instructions -> instructions.add(Instructions.newMethod(behavior)));
                             emitters.add(new Emitter() {
                                 @Override
@@ -229,12 +229,12 @@ public class Parser {
 
                                 }
                             });
-                        } else if(!isChain && locals.containsKey(selector)) {
+                        } else if(!hasTarget && locals.containsKey(selector)) {
                             emitters.add(instructions -> instructions.add(Instructions.newMethod(behavior)));
                             int ordinal = locals.get(selector);
                             emitters.add(instructions -> instructions.add(Instructions.storeLocal(ordinal)));
                         } else {
-                            if(!isChain)
+                            if(!hasTarget)
                                 emitters.add(instructions -> instructions.add(Instructions.load(0)));
                             emitters.add(instructions -> instructions.add(Instructions.newMethod(behavior)));
                             emitters.add(instructions -> instructions.add(Instructions.storeSlot(selector)));
@@ -734,28 +734,20 @@ public class Parser {
 //                return null;
 //            }
 //
-//            @Override
-//            public Void visitObjectLiteral(ReoParser.ObjectLiteralContext ctx) {
-//                if(ctx.expression() == null)
-//                    emitters.add(instructions -> instructions.add(Instructions.loadLocal(0)));
-//                else
-//                    parseExpression(ctx.expression(), emitters, locals, false);
-//                //[this|expression]
-//                //[this|expression, o]
-//                emitters.add(instructions -> instructions.add(Instructions.newo()));
-//                //[o]
-//                ctx.slotAssignment().forEach(x -> {
-//                    emitters.add(instructions -> instructions.add(Instructions.dup()));
-//                    parseSlotAssignment(x, false);
-//                });
-//                //[o]
-//
-//                if(atTop)
-//                    emitters.add(instructions -> instructions.add(Instructions.pop()));
-//
-//                return null;
-//            }
-//
+            @Override
+            public Void visitObjectLiteral(ReoParser.ObjectLiteralContext ctx) {
+                emitters.add(instructions -> instructions.add(Instructions.newDict()));
+                ctx.slotAssignment().forEach(x -> {
+                    emitters.add(instructions -> instructions.add(Instructions.dup()));
+                    parseSlotAssignment(x, true);
+                });
+
+                if(atTop)
+                    emitters.add(instructions -> instructions.add(Instructions.pop()));
+
+                return null;
+            }
+
             @Override
             public Void visitEmbeddedExpression(ReoParser.EmbeddedExpressionContext ctx) {
                 return ctx.expression().accept(this);
