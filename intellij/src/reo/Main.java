@@ -1,40 +1,33 @@
 package reo;
 
+import com.sun.glass.events.KeyEvent;
 import reo.lang.Parser;
 import reo.runtime.*;
 
+import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.plaf.ComponentUI;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.JTextComponent;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.Arrays;
 
 public class Main {
     public static void main(String[] args) {
         Dictionary d = new Dictionary();
 
-        d.put("asdf", new Constant("sdf"));
+        /*d.put("asdf", new Constant("sdf"));
 
         d.put("x", new Constant(2));
         d.put("y", new Constant(4));
 
-        /*d.addObserver(new ReflectiveObserver() {
-            void handle(Dictionary.PutSlotChange putSlotChange) {
-                System.out.println("Put slot " + putSlotChange.getName() + " to " + putSlotChange.getSlot());
-            }
-        });
-
-        d.addObserver(new PutSlotAdapter());*/
-
-        //d.get("asdf").addObserver(value -> System.out.println("Put slot asdf to " + value));
-
         new Reducer(Arrays.asList(d.get("x"), d.get("y")), a -> (int)a[0] + (int)a[1])
             .addObserver(value -> System.out.println("Reduced to: " + value));
 
-        //d.put("asdf", new Constant("fsfsdfsd"));
-
-        /*
-        x.i = 7
-        x.y(z) => i * z // Is a reducer constructor; when given an observable (z), then a reducer is constructed
-        // So, basically, is an observable that produces reducers
-        h = x.y(u) // A reducer of i and z is crystalized
-        */
         d.put("x", new Constant(7));
 
         d.put("method", new Constant(new ReducerConstructor() {
@@ -83,7 +76,7 @@ public class Main {
 
         d.put("x", new Constant(9));
 
-        d.remove("x");
+        d.remove("x");*/
 
         Universe universe = new Universe();
         universe.getIntegerPrototype2().put("+", Observables.constant(new ReducerConstructor() {
@@ -100,54 +93,123 @@ public class Main {
                     (int) a[0] + (int) a[1]);
             }
         }));
-        /*universe.getIntegerPrototype().put("+", Observables.constant(new ReducerConstructor() {
-            @Override
-            public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
-                return new Reducer(Arrays.asList(new Constant(self), arguments[0]), a ->
-                    (int)a[0] + (int)a[1]);
-            }
-        }));*/
-
-        /*
-        // obj = {}
-        Observables.setSlot(Observables.constant(d), "obj", Observables.constant(new Dictionary()));
-        // obj.i = 10
-        Observables.setSlot(Observables.getSlot(Observables.constant(d), "obj"), "i", Observables.constant(10));
-        // obj.m = 11
-        Observables.setSlot(Observables.getSlot(Observables.constant(d), "obj"), "m", Observables.constant(11));
-        // j = obj.i
-        Observables.setSlot(Observables.constant(d), "j", Observables.getSlot(Observables.getSlot(Observables.constant(d), "obj"), "i"));
-        // obj.i = 15
-        Observables.setSlot(Observables.getSlot(Observables.constant(d), "obj"), "i", Observables.constant(15));
-        // someSum() => obj.i + obj.m
-        Observables.setSlot(Observables.getSlot(Observables.constant(d), "obj"), "someSum", Observables.messageSend(
-            universe, Observables.getSlot(Observables.getSlot(Observables.constant(d), "obj"), "i"), "+", new Observable[]{Observables.getSlot(Observables.getSlot(Observables.constant(d), "obj"), "m")}));
-
-        Observables.getSlot(Observables.getSlot(Observables.constant(d), "obj"), "someSum").addObserver(new Observer() {
-            @Override
-            public void handle(Object value) {
-                System.out.println("someSum = " + value);
-            }
-        });
-        */
 
         /*
         - A first language
         */
 
-        String script =
+        JFrame playground = new JFrame("Reo playground");
+
+        JPanel workspace = new JPanel();
+        workspace.setLayout(null);
+
+        playground.setLayout(new BorderLayout());
+        playground.getContentPane().add(workspace, BorderLayout.CENTER);
+
+        workspace.addMouseListener(new MouseAdapter() {
+            JComponent creation;
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if(creation != null) {
+                    workspace.remove(creation);
+                    creation = null;
+                }
+
+                JPanel creationPanel = new JPanel(new BorderLayout());
+
+                JTextArea textArea = new JTextArea();
+
+                JToolBar toolBar = new JToolBar();
+                toolBar.setFloatable(false);
+                toolBar.add(new AbstractAction("Eval") {
+                    @Override
+                    public void actionPerformed(ActionEvent e2) {
+                        Observable result = eval(universe, textArea, d);
+
+                        JLabel representation = new JLabel();
+
+                        representation.setSize(((ComponentUI) representation.getUI()).getPreferredSize(representation));
+                        representation.setLocation(e.getPoint());
+                        //representation.setSize(100, 30);
+                        workspace.add(representation);
+
+                        result.addObserver(new Observer() {
+                            @Override
+                            public void handle(Object value) {
+                                representation.setText(value.toString());
+                                representation.setSize(((ComponentUI) representation.getUI()).getPreferredSize(representation));
+                                representation.revalidate();
+                                representation.repaint();
+                            }
+
+                            @Override
+                            public void release() {
+                                workspace.remove(representation);
+                            }
+                        });
+
+                        workspace.remove(creation);
+                        workspace.repaint();
+                        workspace.revalidate();
+                    }
+                });
+                toolBar.add(new AbstractAction("Do") {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        eval(universe, textArea, d);
+
+                        workspace.remove(creation);
+                        workspace.repaint();
+                        workspace.revalidate();
+                    }
+                });
+
+                textArea.registerKeyboardAction(e1 -> {
+                    workspace.remove(creation);
+                    workspace.repaint();
+                    workspace.revalidate();
+                }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0, false), JComponent.WHEN_FOCUSED);
+
+                //textArea.setLocation(e.getPoint());
+
+                //textArea.setSize(10, 20);
+                //textArea.setOpaque(false);
+
+                creationPanel.add(textArea, BorderLayout.CENTER);
+                creationPanel.add(toolBar, BorderLayout.SOUTH);
+                creationPanel.setSize(200, 100);
+                creationPanel.setLocation(e.getPoint());
+
+                creation = creationPanel;
+
+                workspace.add(creation);
+                workspace.setComponentZOrder(creation, 0);
+
+                workspace.revalidate();
+                workspace.repaint();
+                textArea.requestFocusInWindow();
+            }
+        });
+
+        playground.setSize(1024, 768);
+        playground.setLocationRelativeTo(null);
+        playground.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        playground.setVisible(true);
+
+        /*String script =
             "test = 1\n" +
             "asdf = y + 1\n" +
             "objectL = #{y = test}\n" +
             "test = 12\n" +
             "someMethod(arg) => test + arg\n" +
-            "test2 = someMethod(5)\n" +
+            "test2 = this.someMethod(5)\n" +
             "";
         Behavior behavior = Parser.parse(script);
         Evaluation evaluation = new Evaluation(universe, behavior.createFrame(null, d, new Observable[0]));
         evaluation.evaluate();
 
-        System.out.println(d);
+        System.out.println(d);*/
 
         /*Frame frame = new Frame(null, new Instruction[] {
             Instructions.load(0),
@@ -240,5 +302,17 @@ public class Main {
         evaluation.evaluate();
         Observable result = evaluation.getFrame().pop();
         System.out.println(result);*/
+    }
+
+    private static Observable eval(Universe universe, JTextComponent script, Object self) {
+        String text = script.getSelectedText();
+        if (text == null)
+            text = script.getText();
+
+        Behavior behavior = Parser.parse(text);
+        Evaluation evaluation = new Evaluation(universe, behavior.createFrame(null, self, new Observable[0]));
+        evaluation.evaluate();
+
+        return evaluation.getFrame().pop();
     }
 }
