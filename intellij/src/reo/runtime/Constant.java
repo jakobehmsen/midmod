@@ -16,4 +16,8 @@ public class Constant extends AbstractObservable {
     public String toString() {
         return value.toString();
     }
+
+    public Object getValue() {
+        return value;
+    }
 }

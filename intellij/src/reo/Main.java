@@ -5,10 +5,7 @@ import reo.lang.Parser;
 import reo.runtime.*;
 
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import javax.swing.plaf.ComponentUI;
-import javax.swing.text.BadLocationException;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -79,18 +76,18 @@ public class Main {
         d.remove("x");*/
 
         Universe universe = new Universe();
-        universe.getIntegerPrototype2().put("+", Observables.constant(new ReducerConstructor() {
+        universe.getIntegerPrototype().put("+/1", Observables.constant(new ReducerConstructor() {
             @Override
             public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
                 return new Reducer(Arrays.asList(new Constant(self), arguments[0]), a ->
                     (int) a[0] + (int) a[1]);
             }
         }));
-        universe.getIntegerPrototype2().put("+/1", Observables.constant(new ReducerConstructor() {
+        universe.getStringPrototype().put("+/1", Observables.constant(new ReducerConstructor() {
             @Override
             public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
                 return new Reducer(Arrays.asList(new Constant(self), arguments[0]), a ->
-                    (int) a[0] + (int) a[1]);
+                    (String) a[0] + (String) a[1]);
             }
         }));
 
@@ -122,7 +119,7 @@ public class Main {
 
                 JToolBar toolBar = new JToolBar();
                 toolBar.setFloatable(false);
-                toolBar.add(new AbstractAction("Eval") {
+                toolBar.add(new AbstractAction("Put") {
                     @Override
                     public void actionPerformed(ActionEvent e2) {
                         Observable result = eval(universe, textArea, d);
