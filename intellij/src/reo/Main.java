@@ -90,6 +90,13 @@ public class Main {
                     (String) a[0] + (String) a[1]);
             }
         }));
+        /*universe.getDictPrototype().put("+/1", Observables.constant(new ReducerConstructor() {
+            @Override
+            public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
+                return new Reducer(Arrays.asList(new Constant(self), arguments[0]), a ->
+                    (String) a[0] + (String) a[1]);
+            }
+        }));*/
 
         /*
         - A first language
@@ -125,6 +132,26 @@ public class Main {
                         Observable result = eval(universe, textArea, d);
 
                         JLabel representation = new JLabel();
+
+                        MouseAdapter mouseAdapter = new MouseAdapter(){
+                            int mouseDownX;
+                            int mouseDownY;
+
+                            @Override
+                            public void mousePressed(MouseEvent e) {
+                                mouseDownX = e.getX();
+                                mouseDownY = e.getY();
+                            }
+
+                            public void mouseDragged(MouseEvent e)
+                            {
+                                int x = e.getX()+representation.getX() - mouseDownX;
+                                int y = e.getY()+representation.getY() - mouseDownY;
+                                representation.setLocation(x, y);
+                            }
+                        };
+                        representation.addMouseListener(mouseAdapter);
+                        representation.addMouseMotionListener(mouseAdapter);
 
                         representation.setSize(((ComponentUI) representation.getUI()).getPreferredSize(representation));
                         representation.setLocation(e.getPoint());

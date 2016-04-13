@@ -54,4 +54,8 @@ public class Frame {
     public void dup() {
         stack.push(stack.peek());
     }
+
+    public void dup2() {
+        stack.add(stack.size() - 2, stack.peek());
+    }
 }

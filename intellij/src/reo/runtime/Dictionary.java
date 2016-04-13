@@ -61,6 +61,11 @@ public class Dictionary extends AbstractObservable {
             this.observable = observable;
             observable.addObserver(this);
         }
+
+        @Override
+        public String toString() {
+            return value.toString();
+        }
     }
 
     private Hashtable<String, Slot> slots = new Hashtable<>();
@@ -161,5 +166,10 @@ public class Dictionary extends AbstractObservable {
     @Override
     protected void sendStateTo(Observer observer) {
         slots.entrySet().forEach(x -> sendChange(new PutSlotChange(x.getKey(), x.getValue())));
+    }
+
+    @Override
+    public String toString() {
+        return "#{...}";
     }
 }

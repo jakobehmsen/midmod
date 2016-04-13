@@ -46,6 +46,17 @@ public class Instructions {
         };
     }
 
+    public static Instruction dup2() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().dup2();
+
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
     public static Instruction load(int ordinal) {
         return new Instruction() {
             @Override

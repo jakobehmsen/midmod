@@ -153,12 +153,12 @@ public class Parser {
 
             @Override
             public Void visitSlotAssignment(ReoParser.SlotAssignmentContext ctx) {
-                parseSlotAssignment(ctx, false);
+                parseSlotAssignment(ctx, false, atTop);
 
                 return null;
             }
 
-            private void parseSlotAssignment(ReoParser.SlotAssignmentContext ctx, boolean hasTarget) {
+            private void parseSlotAssignment(ReoParser.SlotAssignmentContext ctx, boolean hasTarget, boolean atTop) {
                 ctx.getChild(0).accept(new ReoBaseVisitor<Void>() {
                     @Override
                     public Void visitFieldSlotAssignment(ReoParser.FieldSlotAssignmentContext ctx) {
@@ -166,6 +166,8 @@ public class Parser {
 
                         if(!hasTarget && parameters.containsKey(selector)) {
                             parseExpression(ctx.expression(), emitters, parameters, locals, false);
+                            if(!atTop)
+                                emitters.add(instructions -> instructions.add(Instructions.dup()));
                             emitters.add(new Emitter() {
                                 @Override
                                 public void emit(List<Instruction> instructions, Map<String, Integer> parameters, Map<String, Integer> locals) {
@@ -180,12 +182,16 @@ public class Parser {
                             });
                         } else if(!hasTarget && locals.containsKey(selector)) {
                             parseExpression(ctx.expression(), emitters, parameters, locals, false);
+                            if(!atTop)
+                                emitters.add(instructions -> instructions.add(Instructions.dup()));
                             int ordinal = locals.get(selector);
                             emitters.add(instructions -> instructions.add(Instructions.storeLocal(ordinal)));
                         } else {
                             if(!hasTarget)
                                 emitters.add(instructions -> instructions.add(Instructions.load(0)));
                             parseExpression(ctx.expression(), emitters, parameters, locals, false);
+                            if(!atTop)
+                                emitters.add(instructions -> instructions.add(Instructions.dup2()));
                             emitters.add(instructions -> instructions.add(Instructions.storeSlot(selector)));
                         }
 
@@ -217,6 +223,8 @@ public class Parser {
                         //emitters.add(instructions -> instructions.add(Instructions.storeSlot(selector)));
                         if(!hasTarget && parameters.containsKey(selector)) {
                             emitters.add(instructions -> instructions.add(Instructions.newMethod(behavior)));
+                            if(!atTop)
+                                emitters.add(instructions -> instructions.add(Instructions.dup()));
                             emitters.add(new Emitter() {
                                 @Override
                                 public void emit(List<Instruction> instructions, Map<String, Integer> parameters, Map<String, Integer> locals) {
@@ -231,12 +239,16 @@ public class Parser {
                             });
                         } else if(!hasTarget && locals.containsKey(selector)) {
                             emitters.add(instructions -> instructions.add(Instructions.newMethod(behavior)));
+                            if(!atTop)
+                                emitters.add(instructions -> instructions.add(Instructions.dup()));
                             int ordinal = locals.get(selector);
                             emitters.add(instructions -> instructions.add(Instructions.storeLocal(ordinal)));
                         } else {
                             if(!hasTarget)
                                 emitters.add(instructions -> instructions.add(Instructions.load(0)));
                             emitters.add(instructions -> instructions.add(Instructions.newMethod(behavior)));
+                            if(!atTop)
+                                emitters.add(instructions -> instructions.add(Instructions.dup2()));
                             emitters.add(instructions -> instructions.add(Instructions.storeSlot(selector)));
                         }
                         /*if(sendMessage) {
@@ -356,7 +368,7 @@ public class Parser {
                     ctx.expressionTail().expressionTailEnd().accept(new ReoBaseVisitor<Void>() {
                         @Override
                         public Void visitSlotAssignment(ReoParser.SlotAssignmentContext ctx) {
-                            parseSlotAssignment(ctx, true);
+                            parseSlotAssignment(ctx, true, false);
 
                             return null;
                         }
@@ -739,7 +751,7 @@ public class Parser {
                 emitters.add(instructions -> instructions.add(Instructions.newDict()));
                 ctx.slotAssignment().forEach(x -> {
                     emitters.add(instructions -> instructions.add(Instructions.dup()));
-                    parseSlotAssignment(x, true);
+                    parseSlotAssignment(x, true, true);
                 });
 
                 if(atTop)
