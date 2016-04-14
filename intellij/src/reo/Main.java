@@ -15,7 +15,7 @@ import java.util.Arrays;
 
 public class Main {
     public static void main(String[] args) {
-        Dictionary d = new Dictionary();
+        DeltaObject d = new DeltaObject();
 
         /*d.put("asdf", new Constant("sdf"));
 
@@ -78,23 +78,28 @@ public class Main {
         Universe universe = new Universe();
         universe.getIntegerPrototype().put("+/1", Observables.constant(new ReducerConstructor() {
             @Override
-            public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
+            public Observable create(Object self, DeltaObject prototype, Observable[] arguments) {
                 return new Reducer(Arrays.asList(new Constant(self), arguments[0]), a ->
                     (int) a[0] + (int) a[1]);
             }
         }));
         universe.getStringPrototype().put("+/1", Observables.constant(new ReducerConstructor() {
             @Override
-            public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
+            public Observable create(Object self, DeltaObject prototype, Observable[] arguments) {
                 return new Reducer(Arrays.asList(new Constant(self), arguments[0]), a ->
                     (String) a[0] + (String) a[1]);
             }
         }));
-        /*universe.getDictPrototype().put("+/1", Observables.constant(new ReducerConstructor() {
+        // How to associate the slots method to dictionaries?
+        // Have a meta object, that handles creation of dictionaries?
+        // How can delta object inheriance be supported?
+        // - deltaObj = delta || prototype // where || means creates a composite dictionary, that is a projection of delta and prototype
+        // but then || cannot be send to delta, but should be sent to prototype
+        // deltaObj = prototype.delta(delta) // This way, delta can be sent to prototype
+        /*universe.getDictPrototype().put("slots", Observables.constant(new ReducerConstructor() {
             @Override
             public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
-                return new Reducer(Arrays.asList(new Constant(self), arguments[0]), a ->
-                    (String) a[0] + (String) a[1]);
+                return ((Dictionary)self).slots();
             }
         }));*/
 
@@ -237,7 +242,7 @@ public class Main {
 
         /*Frame frame = new Frame(null, new Instruction[] {
             Instructions.load(0),
-            Instructions.newDict(),
+            Instructions.newDeltaObject(),
             Instructions.storeSlot("obj"),
 
             Instructions.load(0),

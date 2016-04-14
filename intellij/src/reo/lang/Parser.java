@@ -748,7 +748,7 @@ public class Parser {
 //
             @Override
             public Void visitObjectLiteral(ReoParser.ObjectLiteralContext ctx) {
-                emitters.add(instructions -> instructions.add(Instructions.newDict()));
+                emitters.add(instructions -> instructions.add(Instructions.newDeltaObject()));
                 ctx.slotAssignment().forEach(x -> {
                     emitters.add(instructions -> instructions.add(Instructions.dup()));
                     parseSlotAssignment(x, true, true);

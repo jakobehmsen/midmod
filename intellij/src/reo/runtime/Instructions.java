@@ -152,11 +152,11 @@ public class Instructions {
         };
     }
 
-    public static Instruction newDict() {
+    public static Instruction newDeltaObject() {
         return new Instruction() {
             @Override
             public void evaluate(Evaluation evaluation) {
-                evaluation.getFrame().push(new Constant(new Dictionary()));
+                evaluation.getFrame().push(new Constant(new DeltaObject()));
 
                 evaluation.getFrame().incrementIP();
             }
