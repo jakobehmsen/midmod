@@ -12,8 +12,8 @@ public class Observables {
             public void handle(Object value) {
                 if(lastDictBinding != null)
                     lastDictBinding.remove();
-                ((Dictionary)value).put(name, valueObs);
-                lastDictBinding = () -> ((Dictionary)value).remove(name);
+                ((DeltaObject)value).put(name, valueObs);
+                lastDictBinding = () -> ((DeltaObject)value).remove(name);
             }
 
             @Override
@@ -31,8 +31,8 @@ public class Observables {
             public void handle(Object value) {
                 if(lastDictBinding != null)
                     lastDictBinding.remove();
-                ((Dictionary)value).remove(name);
-                lastDictBinding = () -> ((Dictionary)value).remove(name);
+                ((DeltaObject)value).remove(name);
+                lastDictBinding = () -> ((DeltaObject)value).remove(name);
             }
 
             @Override
@@ -50,12 +50,12 @@ public class Observables {
             {
                 target.addObserver(new Observer() {
                     @Override
-                    public void handle(Object dictValue) {
+                    public void handle(Object deltaObjectValue) {
                         if(binding != null)
                             binding.remove();
 
-                        Dictionary dictionary = (Dictionary)dictValue;
-                        binding = dictionary.get(name).bind(new Observer() {
+                        DeltaObject deltaObject = (DeltaObject)deltaObjectValue;
+                        binding = deltaObject.get(name).bind(new Observer() {
                             @Override
                             public void handle(Object newValue) {
                                 value = newValue;
@@ -82,7 +82,7 @@ public class Observables {
     public static Observable messageSend(Universe universe, Observable receiverObs, String selector, Observable[] arguments) {
         return new AbstractObservable() {
             private Binding binding;
-            private Dictionary receiverPrototype;
+            private DeltaObject receiverPrototype;
             private Object response;
 
             {
@@ -120,9 +120,9 @@ public class Observables {
                     observer.handle(response);
             }
 
-            private Dictionary getPrototype(Universe universe, Object target) {
-                if(target instanceof Dictionary)
-                    return (Dictionary)target;
+            private DeltaObject getPrototype(Universe universe, Object target) {
+                if(target instanceof DeltaObject)
+                    return (DeltaObject)target;
                 if(target instanceof Integer)
                     return universe.getIntegerPrototype();
                 if(target instanceof String)

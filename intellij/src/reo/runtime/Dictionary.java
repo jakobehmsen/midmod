@@ -1,7 +1,6 @@
 package reo.runtime;
 
 import java.util.Hashtable;
-import java.util.function.Supplier;
 
 public class Dictionary extends AbstractObservable {
     private Observable prototypeObservable;
@@ -266,5 +265,26 @@ public class Dictionary extends AbstractObservable {
     @Override
     public String toString() {
         return "#{...}";
+    }
+
+    public Observable slots() {
+        return new AbstractObservable() {
+            Binding observer = bind(new Observer() {
+                @Override
+                public void handle(Object value) {
+                    sendChange(slots.entrySet());
+                }
+
+                @Override
+                public void release() {
+
+                }
+            });
+
+            @Override
+            protected void sendStateTo(Observer observer) {
+                observer.handle(slots.entrySet());
+            }
+        };
     }
 }
