@@ -1,8 +1,30 @@
 package reo.runtime;
 
 import java.util.Hashtable;
+import java.util.function.Supplier;
 
 public class Dictionary extends AbstractObservable {
+    private Observable prototypeObservable;
+    private Dictionary prototype;
+
+    public Dictionary(Observable prototypeObservable) {
+        this.prototypeObservable = prototypeObservable;
+
+        if(prototypeObservable != null) {
+            prototypeObservable.addObserver(new Observer() {
+                @Override
+                public void handle(Object value) {
+                    prototype = (Dictionary) value;
+                    updatePrototypeForEachSlot();
+                }
+            });
+        }
+    }
+
+    private void updatePrototypeForEachSlot() {
+        slots.entrySet().forEach(x -> x.getValue().updatePrototype());
+    }
+
     public static class SlotChange {
         private String name;
 
@@ -35,8 +57,62 @@ public class Dictionary extends AbstractObservable {
     }
 
     private static class Slot extends AbstractObservable implements Observer {
+        private final int STATE_UNDEFINED = 0;
+        private final int STATE_LOCAL = 1;
+        private final int STATE_INHERITED = 2;
+
+        private int state = STATE_UNDEFINED;
+        private Binding prototypeBinding;
+        private Dictionary dictionary;
+        private String name;
         private Observable observable;
+        private Object valueInherited;
         private Object value;
+
+        public Slot(Dictionary dictionary, String name, Observable initialObservable) {
+            this.dictionary = dictionary;
+            this.name = name;
+
+            if(initialObservable != null)
+                changeObservable(initialObservable);
+
+            bindToPrototype();
+        }
+
+        private void bindToPrototype() {
+            if(dictionary.prototype != null) {
+                prototypeBinding = dictionary.prototype.get(name).bind(new Observer() {
+                    @Override
+                    public void initialize() {
+                        initialize();
+                    }
+
+                    @Override
+                    public void handle(Object value) {
+                        if (state == STATE_LOCAL)
+                            Slot.this.valueInherited = value;
+                        else {
+                            Slot.this.value = value;
+                            state = STATE_INHERITED;
+                            sendChange(Slot.this.value);
+                        }
+                    }
+
+                    @Override
+                    public void release() {
+                        if (state == STATE_INHERITED) {
+
+                            sendRelease();
+                        }
+                    }
+                });
+            }
+        }
+
+        public void updatePrototype() {
+            prototypeBinding.remove();
+            bindToPrototype();
+        }
 
         @Override
         protected void sendStateTo(Observer observer) {
@@ -45,19 +121,36 @@ public class Dictionary extends AbstractObservable {
         }
 
         @Override
+        public void initialize() {
+            sendInitialize();
+        }
+
+        @Override
         public void handle(Object value) {
+            if(this.value == null && value != null)
+                sendInitialize();
             this.value = value;
+            state = STATE_LOCAL;
             sendChange(value);
         }
 
         @Override
         public void release() {
-            sendRelease();
+            if(valueInherited != null) {
+                value = valueInherited;
+                valueInherited = null;
+                state = STATE_INHERITED;
+            } else {
+                state = STATE_UNDEFINED;
+                sendRelease();
+            }
         }
 
         public void changeObservable(Observable observable) {
             if(this.observable != null)
                 observable.removeObserver(this);
+            //if(prototypeBinding != null)
+            //    prototypeBinding.remove();
             this.observable = observable;
             observable.addObserver(this);
         }
@@ -76,8 +169,8 @@ public class Dictionary extends AbstractObservable {
             slot = slots.get(name);
             slot.changeObservable(value);
         } else {
-            slot = new Slot();
-            slot.addObserver(new Observer() {
+            slot = new Slot(this, name, value);
+            /*slot.addObserver(new Observer() {
                 @Override
                 public void handle(Object value) {
 
@@ -87,7 +180,7 @@ public class Dictionary extends AbstractObservable {
                 public void release() {
                     slots.remove(name);
                 }
-            });
+            });*/
             slot.changeObservable(value);
             slots.put(name, slot);
 
@@ -96,7 +189,9 @@ public class Dictionary extends AbstractObservable {
     }
 
     public Observable get(String name) {
-        return slots.get(name);
+        return slots.computeIfAbsent(name, n -> new Slot(this, name, null));
+
+        //return slots.get(name);
     }
 
     public void remove(String name) {

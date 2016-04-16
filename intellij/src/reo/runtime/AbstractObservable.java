@@ -16,6 +16,10 @@ public abstract class AbstractObservable implements Observable {
         observers.remove(observer);
     }
 
+    protected void sendInitialize() {
+        observers.forEach(x -> x.initialize());
+    }
+
     protected void sendChange(Object value) {
         observers.forEach(x -> x.handle(value));
     }

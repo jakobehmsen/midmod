@@ -156,7 +156,9 @@ public class Instructions {
         return new Instruction() {
             @Override
             public void evaluate(Evaluation evaluation) {
-                evaluation.getFrame().push(new Constant(new Dictionary()));
+                Observable prototypeObservable = evaluation.getFrame().pop();
+
+                evaluation.getFrame().push(new Constant(new Dictionary(prototypeObservable)));
 
                 evaluation.getFrame().incrementIP();
             }

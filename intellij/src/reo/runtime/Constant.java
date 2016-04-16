@@ -9,6 +9,7 @@ public class Constant extends AbstractObservable {
 
     @Override
     protected void sendStateTo(Observer observer) {
+        observer.initialize();
         observer.handle(value);
     }
 

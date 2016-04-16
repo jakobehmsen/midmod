@@ -21,15 +21,27 @@ public class Reducer extends AbstractObservable {
         IntStream.range(0, observables.size()).forEach(i -> {
             observables.get(i).bind(new Observer() {
                 @Override
+                public void initialize() {
+
+                }
+
+                @Override
                 public void handle(Object value) {
                     if(arguments[i] == null && value != null)
                         argumentCount++;
                     if(arguments[i] != null && value == null)
                         argumentCount--;
                     arguments[i] = value;
+                    Object reductionBefore = reduction;
                     update();
-                    if(reduction != null)
+                    if(reduction != null) {
+                        if(reductionBefore == null)
+                            sendInitialize();
                         sendChange(reduction);
+                    } else {
+                        if(reductionBefore != null)
+                            sendRelease();
+                    }
                 }
 
                 @Override

@@ -1,9 +1,17 @@
 package reo.runtime;
 
 public class Universe {
-    private Constant integerPrototypeObservable = new Constant(new Dictionary());
-    private Constant nullPrototype = new Constant(new Dictionary());
-    private Constant stringPrototypeObservable = new Constant(new Dictionary());
+    private Constant anyPrototypeObservable;
+    private Constant integerPrototypeObservable;
+    private Constant nullPrototype;
+    private Constant stringPrototypeObservable;
+
+    public Universe(Dictionary anyPrototype) {
+        anyPrototypeObservable = new Constant(anyPrototype);
+        integerPrototypeObservable = new Constant(new Dictionary(anyPrototypeObservable));
+        nullPrototype = new Constant(new Dictionary(anyPrototypeObservable));
+        stringPrototypeObservable = new Constant(new Dictionary(anyPrototypeObservable));
+    }
 
     public Observable getIntegerPrototypeObservable() {
         return integerPrototypeObservable;

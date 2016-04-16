@@ -15,7 +15,7 @@ import java.util.Arrays;
 
 public class Main {
     public static void main(String[] args) {
-        Dictionary d = new Dictionary();
+        Dictionary d = new Dictionary(null);
 
         /*d.put("asdf", new Constant("sdf"));
 
@@ -75,7 +75,7 @@ public class Main {
 
         d.remove("x");*/
 
-        Universe universe = new Universe();
+        Universe universe = new Universe(d);
         universe.getIntegerPrototype().put("+/1", Observables.constant(new ReducerConstructor() {
             @Override
             public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
@@ -155,12 +155,31 @@ public class Main {
 
                         representation.setSize(((ComponentUI) representation.getUI()).getPreferredSize(representation));
                         representation.setLocation(e.getPoint());
+                        representation.setToolTipText(textArea.getText());
                         //representation.setSize(100, 30);
                         workspace.add(representation);
 
                         result.addObserver(new Observer() {
+                            Object theValue;
+
+                            Color b = representation.getForeground();
+
+                            {
+                                handle("<UNDEFINED>");
+                                representation.setForeground(Color.RED);
+                            }
+
+                            @Override
+                            public void initialize() {
+                                representation.setForeground(b);
+                            }
+
                             @Override
                             public void handle(Object value) {
+                                if(theValue == null && value != null) {
+                                    representation.setForeground(b);
+                                } else if(theValue != null && value == null)
+                                    release();
                                 representation.setText(value.toString());
                                 representation.setSize(((ComponentUI) representation.getUI()).getPreferredSize(representation));
                                 representation.revalidate();
@@ -169,7 +188,10 @@ public class Main {
 
                             @Override
                             public void release() {
-                                workspace.remove(representation);
+                                //workspace.remove(representation);
+
+                                handle("<UNDEFINED>");
+                                representation.setForeground(Color.RED);
                             }
                         });
 

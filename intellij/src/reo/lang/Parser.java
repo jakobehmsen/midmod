@@ -748,6 +748,9 @@ public class Parser {
 //
             @Override
             public Void visitObjectLiteral(ReoParser.ObjectLiteralContext ctx) {
+                // Just load self implicitly as prototype
+                emitters.add(instructions -> instructions.add(Instructions.load(0)));
+
                 emitters.add(instructions -> instructions.add(Instructions.newDict()));
                 ctx.slotAssignment().forEach(x -> {
                     emitters.add(instructions -> instructions.add(Instructions.dup()));
