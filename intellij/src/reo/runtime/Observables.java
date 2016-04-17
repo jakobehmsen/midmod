@@ -105,6 +105,7 @@ public class Observables {
             private Object response;
             //private Object slotValue;
             private Object receiver;
+            private Object receiverError;
             private Object[] argumentValues = new Object[arguments.length];
             private Object[] argumentErrors = new Object[arguments.length];
 
@@ -120,6 +121,7 @@ public class Observables {
                             argumentErrors[i] = null;
 
                             update();
+                            send();
                         }
 
                         @Override
@@ -128,6 +130,7 @@ public class Observables {
                             argumentErrors[i] = error;
 
                             update();
+                            send();
                         }
                     });
                 });
@@ -139,8 +142,11 @@ public class Observables {
                             binding.remove();
 
                         receiver = value;
+                        receiverError = null;
 
                         update();
+                        send();
+
                         /*receiverPrototype = getPrototype(universe, value);
 
                         Observable application = receiverPrototype.apply(value, selector, arguments);
@@ -150,12 +156,14 @@ public class Observables {
                                 @Override
                                 public void handle(Object value) {
                                     response = value;
-                                    sendChange(response);
+                                    update();
+                                    send();
                                 }
 
                                 @Override
                                 public void error(Object error) {
-                                    error.toString();
+                                    update();
+                                    send();
                                 }
                             });
 
@@ -169,61 +177,77 @@ public class Observables {
 
                     @Override
                     public void error(Object error) {
-                        error.toString();
+                        receiver = null;
+                        receiverError = error;
+
+                        update();
+                        send();
                     }
                 });
             }
 
             private String mapToError(int index) {
                 if(argumentErrors[index] != null)
-                    return argumentErrors[index].toString();
+                    return "Argument error at " + index + ": " + argumentErrors[index].toString();
                 else if(arguments[index] == null)
                     return "Undefined argument at " + index;
 
                 return null;
             }
 
+            private ArrayList<String> allErrors;
+
             private void update() {
                 // If receiver is resolved and all arguments are resolved, then the message can be sent
-                ArrayList<String> allErrors = new ArrayList<>();
-                if(receiver == null)
+                allErrors = new ArrayList<>();
+                if(receiverError != null)
+                    allErrors.add("Receiver error: " + receiverError);
+                else if(receiver == null)
                     allErrors.add("Receiver is undefined.");
                 List<String> errors =
                     IntStream.range(0, arguments.length).mapToObj(i -> mapToError(i)).filter(x -> x != null).map(x -> x.toString()).collect(Collectors.toList());
                 allErrors.addAll(errors);
+            }
 
+            private void send() {
                 if(allErrors.size() == 0) {
                     receiverPrototype = getPrototype(universe, receiver);
+
                     Observable application = receiverPrototype.apply(receiver, selector, argumentValues);
 
-                    Binding appBinding = application.bind(new Observer() {
-                        @Override
-                        public void handle(Object value) {
-                            response = value;
-                            sendChange(response);
-                        }
-
-                        @Override
-                        public void error(Object error) {
-                            error.toString();
-                        }
-                    });
-
                     binding = new Binding() {
+                        Binding binding = application.bind(new Observer() {
+                            @Override
+                            public void handle(Object value) {
+                                response = value;
+                                sendChange(value);
+                            }
+
+                            @Override
+                            public void error(Object error) {
+                                sendError(error);
+                            }
+                        });
+
                         @Override
                         public void remove() {
                             receiverPrototype.get(selector).removeObserver((Observer)application);
-                            appBinding.remove();
+                            binding.remove();
                         }
                     };
-                } else
+                } else {
                     sendError(allErrors);
+                }
             }
 
             @Override
             protected void sendStateTo(Observer observer) {
-                if(response != null)
-                    observer.handle(response);
+                if(allErrors.size() == 0) {
+                    if (response != null)
+                        observer.handle(response);
+                } else {
+                    observer.error(allErrors);
+                }
             }
 
             private Dictionary getPrototype(Universe universe, Object target) {
