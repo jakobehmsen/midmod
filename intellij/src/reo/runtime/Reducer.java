@@ -11,11 +11,14 @@ public class Reducer extends AbstractObservable {
     private Function<Object[], Object> function;
     private Object[] arguments;
     private int argumentCount;
+    private Object[] argumentErrors;
     private Object reduction;
+    private Object reductionErrors;
 
     public Reducer(List<Observable> observables, Function<Object[], Object> function) {
         this.observables = observables;
         arguments = new Object[observables.size()];
+        argumentErrors = new Object[observables.size()];
         this.function = function;
 
         IntStream.range(0, observables.size()).forEach(i -> {
@@ -32,6 +35,7 @@ public class Reducer extends AbstractObservable {
                     if(arguments[i] != null && value == null)
                         argumentCount--;
                     arguments[i] = value;
+                    argumentErrors[i] = null;
                     Object reductionBefore = reduction;
                     update();
                     if(reduction != null) {
@@ -39,9 +43,15 @@ public class Reducer extends AbstractObservable {
                             sendInitialize();
                         sendChange(reduction);
                     } else {
-                        if(reductionBefore != null)
-                            sendRelease();
+                        /*if(reductionBefore != null)
+                            sendRelease();*/
+                        error(reductionErrors);
                     }
+                }
+
+                @Override
+                public void error(Object error) {
+                    argumentErrors[i] = error;
                 }
 
                 @Override
@@ -52,8 +62,26 @@ public class Reducer extends AbstractObservable {
         });
     }
 
+    private String mapToError(int index) {
+        if(argumentErrors[index] != null)
+            return argumentErrors[index].toString();
+        else if(arguments[index] == null)
+            return "Undefined argument at " + index;
+
+        return null;
+    }
+
     private void update() {
-        if(argumentCount == observables.size()) {
+        reduction = null;
+        reductionErrors = null;
+
+        List<String> errors =
+            IntStream.range(0, observables.size()).mapToObj(i -> mapToError(i)).filter(x -> x != null).map(x -> x.toString()).collect(Collectors.toList());
+        reductionErrors = errors.toString();
+
+        if(errors.size() > 0) {
+            reductionErrors = errors.toString();
+        } else if(argumentCount == observables.size()) {
             reduction = function.apply(arguments);
         } else {
             reduction = null;
@@ -64,6 +92,8 @@ public class Reducer extends AbstractObservable {
     protected void sendStateTo(Observer observer) {
         if(reduction != null)
             observer.handle(reduction);
+        else if(reductionErrors != null)
+            observer.error(reductionErrors);
     }
 
     @Override

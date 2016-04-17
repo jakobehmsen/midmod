@@ -12,6 +12,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Arrays;
+import java.util.function.Function;
 
 public class Main {
     public static void main(String[] args) {
@@ -76,16 +77,18 @@ public class Main {
         d.remove("x");*/
 
         Universe universe = new Universe(d);
-        universe.getIntegerPrototype().put("+/1", Observables.constant(new ReducerConstructor() {
+        universe.getIntegerPrototype().put("+/1", Observables.constant((Function<Object[], Object>) a ->
+            (int) a[0] + (int) a[1]));
+        /*universe.getIntegerPrototype().put("+/1", Observables.constant(new ReducerConstructor() {
             @Override
-            public Observable create(Object self, DeltaObject prototype, Observable[] arguments) {
+            public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
                 return new Reducer(Arrays.asList(new Constant(self), arguments[0]), a ->
                     (int) a[0] + (int) a[1]);
             }
-        }));
+        }));*/
         universe.getStringPrototype().put("+/1", Observables.constant(new ReducerConstructor() {
             @Override
-            public Observable create(Object self, DeltaObject prototype, Observable[] arguments) {
+            public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
                 return new Reducer(Arrays.asList(new Constant(self), arguments[0]), a ->
                     (String) a[0] + (String) a[1]);
             }
@@ -166,12 +169,12 @@ public class Main {
 
                         result.addObserver(new Observer() {
                             Object theValue;
+                            Object theError;
 
                             Color b = representation.getForeground();
 
                             {
-                                handle("<UNDEFINED>");
-                                representation.setForeground(Color.RED);
+                                error("Uninitialized");
                             }
 
                             @Override
@@ -183,9 +186,20 @@ public class Main {
                             public void handle(Object value) {
                                 if(theValue == null && value != null) {
                                     representation.setForeground(b);
+                                    setText(value.toString());
                                 } else if(theValue != null && value == null)
                                     release();
-                                representation.setText(value.toString());
+                            }
+
+                            @Override
+                            public void error(Object error) {
+                                theError = error;
+                                setText(error.toString());
+                                representation.setForeground(Color.RED);
+                            }
+
+                            private void setText(String text) {
+                                representation.setText(text);
                                 representation.setSize(((ComponentUI) representation.getUI()).getPreferredSize(representation));
                                 representation.revalidate();
                                 representation.repaint();
@@ -195,8 +209,7 @@ public class Main {
                             public void release() {
                                 //workspace.remove(representation);
 
-                                handle("<UNDEFINED>");
-                                representation.setForeground(Color.RED);
+                                error("Uninitialized");
                             }
                         });
 

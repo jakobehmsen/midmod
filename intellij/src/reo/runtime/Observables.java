@@ -1,7 +1,11 @@
 package reo.runtime;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Observables {
     public static void setSlot(Observable target, String name, Observable valueObs) {
@@ -12,8 +16,8 @@ public class Observables {
             public void handle(Object value) {
                 if(lastDictBinding != null)
                     lastDictBinding.remove();
-                ((DeltaObject)value).put(name, valueObs);
-                lastDictBinding = () -> ((DeltaObject)value).remove(name);
+                ((Dictionary)value).put(name, valueObs);
+                lastDictBinding = () -> ((Dictionary)value).remove(name);
             }
 
             @Override
@@ -31,8 +35,8 @@ public class Observables {
             public void handle(Object value) {
                 if(lastDictBinding != null)
                     lastDictBinding.remove();
-                ((DeltaObject)value).remove(name);
-                lastDictBinding = () -> ((DeltaObject)value).remove(name);
+                ((Dictionary)value).remove(name);
+                lastDictBinding = () -> ((Dictionary)value).remove(name);
             }
 
             @Override
@@ -46,6 +50,7 @@ public class Observables {
         return new AbstractObservable() {
             private Binding binding;
             private Object value;
+            private Object theError;
 
             {
                 target.addObserver(new Observer() {
@@ -54,14 +59,25 @@ public class Observables {
                         if(binding != null)
                             binding.remove();
 
-                        DeltaObject deltaObject = (DeltaObject)deltaObjectValue;
-                        binding = deltaObject.get(name).bind(new Observer() {
+                        Dictionary dictionary = (Dictionary)deltaObjectValue;
+                        binding = dictionary.get(name).bind(new Observer() {
                             @Override
                             public void handle(Object newValue) {
                                 value = newValue;
                                 sendChange(value);
                             }
+
+                            @Override
+                            public void error(Object error) {
+                                sendError(error);
+                                theError = error;
+                            }
                         });
+                    }
+
+                    @Override
+                    public void error(Object error) {
+                        sendError("Target error: " + error);
                     }
                 });
             }
@@ -70,6 +86,8 @@ public class Observables {
             protected void sendStateTo(Observer observer) {
                 if(value != null)
                     observer.handle(value);
+                else if(theError != null)
+                    observer.error(theError);
             }
 
             @Override
@@ -82,17 +100,49 @@ public class Observables {
     public static Observable messageSend(Universe universe, Observable receiverObs, String selector, Observable[] arguments) {
         return new AbstractObservable() {
             private Binding binding;
-            private DeltaObject receiverPrototype;
+            private Dictionary receiverPrototype;
+            private ReducerConstructor reducerConstructor;
             private Object response;
+            //private Object slotValue;
+            private Object receiver;
+            private Object[] argumentValues = new Object[arguments.length];
+            private Object[] argumentErrors = new Object[arguments.length];
 
             {
+                // Add observers to arguments here and handle these arguments here in the message send (incl. errors) as
+                // currently done in Reducer.
+
+                IntStream.range(0, arguments.length).forEach(i -> {
+                    arguments[i].addObserver(new Observer() {
+                        @Override
+                        public void handle(Object value) {
+                            argumentValues[i] = value;
+                            argumentErrors[i] = null;
+
+                            update();
+                        }
+
+                        @Override
+                        public void error(Object error) {
+                            argumentValues[i] = null;
+                            argumentErrors[i] = error;
+
+                            update();
+                        }
+                    });
+                });
+
                 receiverObs.addObserver(new Observer() {
                     @Override
                     public void handle(Object value) {
                         if(binding != null)
                             binding.remove();
 
-                        receiverPrototype = getPrototype(universe, value);
+                        receiver = value;
+
+                        update();
+                        /*receiverPrototype = getPrototype(universe, value);
+
                         Observable application = receiverPrototype.apply(value, selector, arguments);
 
                         binding = new Binding() {
@@ -102,6 +152,11 @@ public class Observables {
                                     response = value;
                                     sendChange(response);
                                 }
+
+                                @Override
+                                public void error(Object error) {
+                                    error.toString();
+                                }
                             });
 
                             @Override
@@ -109,9 +164,60 @@ public class Observables {
                                 receiverPrototype.get(selector).removeObserver((Observer)application);
                                 binding.remove();
                             }
-                        };
+                        };*/
+                    }
+
+                    @Override
+                    public void error(Object error) {
+                        error.toString();
                     }
                 });
+            }
+
+            private String mapToError(int index) {
+                if(argumentErrors[index] != null)
+                    return argumentErrors[index].toString();
+                else if(arguments[index] == null)
+                    return "Undefined argument at " + index;
+
+                return null;
+            }
+
+            private void update() {
+                // If receiver is resolved and all arguments are resolved, then the message can be sent
+                ArrayList<String> allErrors = new ArrayList<>();
+                if(receiver == null)
+                    allErrors.add("Receiver is undefined.");
+                List<String> errors =
+                    IntStream.range(0, arguments.length).mapToObj(i -> mapToError(i)).filter(x -> x != null).map(x -> x.toString()).collect(Collectors.toList());
+                allErrors.addAll(errors);
+
+                if(allErrors.size() == 0) {
+                    receiverPrototype = getPrototype(universe, receiver);
+                    Observable application = receiverPrototype.apply(receiver, selector, argumentValues);
+
+                    Binding appBinding = application.bind(new Observer() {
+                        @Override
+                        public void handle(Object value) {
+                            response = value;
+                            sendChange(response);
+                        }
+
+                        @Override
+                        public void error(Object error) {
+                            error.toString();
+                        }
+                    });
+
+                    binding = new Binding() {
+                        @Override
+                        public void remove() {
+                            receiverPrototype.get(selector).removeObserver((Observer)application);
+                            appBinding.remove();
+                        }
+                    };
+                } else
+                    sendError(allErrors);
             }
 
             @Override
@@ -120,9 +226,9 @@ public class Observables {
                     observer.handle(response);
             }
 
-            private DeltaObject getPrototype(Universe universe, Object target) {
-                if(target instanceof DeltaObject)
-                    return (DeltaObject)target;
+            private Dictionary getPrototype(Universe universe, Object target) {
+                if(target instanceof Dictionary)
+                    return (Dictionary)target;
                 if(target instanceof Integer)
                     return universe.getIntegerPrototype();
                 if(target instanceof String)

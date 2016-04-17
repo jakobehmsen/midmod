@@ -1,6 +1,7 @@
 package reo.runtime;
 
 import java.util.Hashtable;
+import java.util.function.Function;
 
 public class Dictionary extends AbstractObservable {
     private Observable prototypeObservable;
@@ -117,6 +118,8 @@ public class Dictionary extends AbstractObservable {
         protected void sendStateTo(Observer observer) {
             if(value != null)
                 observer.handle(value);
+            else
+                observer.error("'" + name + "' is undefined.");
         }
 
         @Override
@@ -131,6 +134,11 @@ public class Dictionary extends AbstractObservable {
             this.value = value;
             state = STATE_LOCAL;
             sendChange(value);
+        }
+
+        @Override
+        public void error(Object error) {
+            sendError("Value error for '" + name + "':" + error);
         }
 
         @Override
@@ -237,8 +245,63 @@ public class Dictionary extends AbstractObservable {
         }
     }
 
-    public Observable apply(Object self, String name, Observable[] arguments) {
-        Application application = new Application(self, arguments);
+    public class Application2 extends AbstractObservable implements Observer {
+        private Object self;
+        private String name;
+        private Object[] arguments;
+        private Object value;
+
+        private Application2(Object self, String name, Object[] arguments) {
+            this.self = self;
+            this.name = name;
+            this.arguments = arguments;
+        }
+
+        @Override
+        protected void sendStateTo(Observer observer) {
+            if(value != null)
+                observer.handle(value);
+        }
+
+        @Override
+        public void handle(Object value) {
+            Object[] locals = new Object[arguments.length + 1];
+            locals[0] = self;
+            System.arraycopy(arguments, 0, locals, 1, arguments.length);
+            this.value = ((Function<Object[], Object>)value).apply(locals);
+
+            sendChange(value);
+
+            /*reducer = ((ReducerConstructor)value).create(self, Dictionary.this, arguments);
+            reducer.bind(new Observer() {
+                @Override
+                public void handle(Object value) {
+                    Application.this.value = value;
+                    sendChange(Application.this.value);
+                }
+
+                @Override
+                public void release() {
+                    Application.this.release();
+                }
+            });*/
+        }
+
+        @Override
+        public void error(Object error) {
+            sendError("Error for application of '" + name + "':" + error);
+        }
+
+        @Override
+        public void release() {
+            sendRelease();
+        }
+    }
+
+    public Observable apply(Object self, String name, Object[] arguments) {
+        // Both self and arguments are resolved, but slot value may change
+        // Each time slot value changes, the application should emit a new value
+        Application2 application = new Application2(self, name, arguments);
 
         get(name).addObserver(application);
 

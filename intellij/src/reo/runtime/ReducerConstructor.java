@@ -1,5 +1,5 @@
 package reo.runtime;
 
 public interface ReducerConstructor {
-    Observable create(Object self, DeltaObject prototype, Observable[] arguments);
+    Observable create(Object self, Dictionary prototype, Observable[] arguments);
 }
