@@ -21,7 +21,7 @@ public abstract class AbstractObservable implements Observable {
     }
 
     protected void sendChange(Object value) {
-        observers.forEach(x -> x.handle(value));
+        new ArrayList<>(observers).forEach(x -> x.handle(value));
     }
 
     protected void sendError(Object error) {

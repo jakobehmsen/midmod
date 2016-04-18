@@ -79,7 +79,7 @@ public class Reducer extends AbstractObservable {
             IntStream.range(0, observables.size()).mapToObj(i -> mapToError(i)).filter(x -> x != null).map(x -> x.toString()).collect(Collectors.toList());
         reductionErrors = errors.toString();
 
-        if(errors.size() > 0) {
+        if(false) {//errors.size() > 0) {
             reductionErrors = errors.toString();
         } else if(argumentCount == observables.size()) {
             reduction = function.apply(arguments);

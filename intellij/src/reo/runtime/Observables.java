@@ -106,7 +106,7 @@ public class Observables {
             //private Object slotValue;
             private Object receiver;
             private Object receiverError;
-            private Object[] argumentValues = new Object[arguments.length];
+            //private Object[] argumentValues = new Object[arguments.length];
             private Object[] argumentErrors = new Object[arguments.length];
 
             {
@@ -117,7 +117,7 @@ public class Observables {
                     arguments[i].addObserver(new Observer() {
                         @Override
                         public void handle(Object value) {
-                            argumentValues[i] = value;
+                            //argumentValues[i] = value;
                             argumentErrors[i] = null;
 
                             update();
@@ -126,7 +126,7 @@ public class Observables {
 
                         @Override
                         public void error(Object error) {
-                            argumentValues[i] = null;
+                            //argumentValues[i] = null;
                             argumentErrors[i] = error;
 
                             update();
@@ -213,7 +213,7 @@ public class Observables {
                 if(allErrors.size() == 0) {
                     receiverPrototype = getPrototype(universe, receiver);
 
-                    Observable application = receiverPrototype.apply(receiver, selector, argumentValues);
+                    Observable application = receiverPrototype.apply(receiver, selector, arguments);
 
                     binding = new Binding() {
                         Binding binding = application.bind(new Observer() {

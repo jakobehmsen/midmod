@@ -207,12 +207,14 @@ public class Dictionary extends AbstractObservable {
 
     public class Application extends AbstractObservable implements Observer {
         private Object self;
+        private String name;
         private Observable[] arguments;
         private Observable reducer;
         private Object value;
 
-        private Application(Object self, Observable[] arguments) {
+        private Application(Object self, String name, Observable[] arguments) {
             this.self = self;
+            this.name = name;
             this.arguments = arguments;
         }
 
@@ -243,6 +245,11 @@ public class Dictionary extends AbstractObservable {
         public void release() {
             sendRelease();
         }
+
+        @Override
+        public void error(Object error) {
+            sendError("Error for application of '" + name + "':" + error);
+        }
     }
 
     public class Application2 extends AbstractObservable implements Observer {
@@ -265,12 +272,13 @@ public class Dictionary extends AbstractObservable {
 
         @Override
         public void handle(Object value) {
-            Object[] locals = new Object[arguments.length + 1];
-            locals[0] = self;
-            System.arraycopy(arguments, 0, locals, 1, arguments.length);
-            this.value = ((Function<Object[], Object>)value).apply(locals);
+            //Object[] locals = new Object[arguments.length + 1];
+            //locals[0] = self;
+            //System.arraycopy(arguments, 0, locals, 1, arguments.length);
+            //this.value = ((Function<Object[], Object>)value).apply(locals);
+            //this.value = ((Invokable)value).invoke(self, arguments);
 
-            sendChange(value);
+            //sendChange(value);
 
             /*reducer = ((ReducerConstructor)value).create(self, Dictionary.this, arguments);
             reducer.bind(new Observer() {
@@ -298,7 +306,29 @@ public class Dictionary extends AbstractObservable {
         }
     }
 
-    public Observable apply(Object self, String name, Object[] arguments) {
+
+
+    public Observable apply(Object self, String name, Observable[] arguments) {
+        Application application = new Application(self, name, arguments);
+
+        get(name).addObserver(application);
+
+        return application;
+
+        /*
+        // The values of the slot must be reducer constructors.
+        // A reducer constructor:
+        // - must be able to construct reducers when given arguments and a particular self/dictionary
+        return new AbstractObservable() {
+            @Override
+            protected void sendStateTo(Observer observer) {
+
+            }
+        };
+        */
+    }
+
+    public Observable apply2(Object self, String name, Object[] arguments) {
         // Both self and arguments are resolved, but slot value may change
         // Each time slot value changes, the application should emit a new value
         Application2 application = new Application2(self, name, arguments);
