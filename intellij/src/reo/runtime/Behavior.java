@@ -18,4 +18,12 @@ public class Behavior {
         frame.set(arguments, internalCount);
         return frame;
     }
+
+    public Frame createFrame(Frame outer, Observable self, Observable[] arguments) {
+        Frame frame = new Frame(outer, instructions);
+        frame.allocate(internalCount + externalCount);
+        frame.set(0, self);
+        frame.set(arguments, internalCount);
+        return frame;
+    }
 }

@@ -1,5 +1,6 @@
 package reo.runtime;
 
+import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.function.Function;
 
@@ -276,7 +277,21 @@ public class Dictionary extends AbstractObservable {
             //locals[0] = self;
             //System.arraycopy(arguments, 0, locals, 1, arguments.length);
             //this.value = ((Function<Object[], Object>)value).apply(locals);
-            //this.value = ((Invokable)value).invoke(self, arguments);
+            Observable invokable = ((Invokable)value).invoke(new Constant(self),
+                Arrays.asList(arguments).stream().map(x -> new Constant(x)).toArray(s -> new Observable[s]));
+
+            invokable.bind(new Observer() {
+                @Override
+                public void handle(Object value) {
+                    Application2.this.value = value;
+                    sendChange(Application2.this.value);
+                }
+
+                @Override
+                public void release() {
+                    Application2.this.release();
+                }
+            });
 
             //sendChange(value);
 

@@ -79,13 +79,19 @@ public class Main {
         Universe universe = new Universe(d);
         //universe.getIntegerPrototype().put("+/1", Observables.constant((Invokable) (s, a) ->
         //     (int) s + (int) a[0]));
-        universe.getIntegerPrototype().put("+/1", Observables.constant(new ReducerConstructor() {
+        universe.getIntegerPrototype().put("+/1", Observables.constant(new Method(universe, new Behavior(new Instruction[] {
+            Instructions.load(0),
+            Instructions.load(1),
+            Instructions.addi(),
+            Instructions.ret()
+        }, 1, 1))));
+        /*universe.getIntegerPrototype().put("+/1", Observables.constant(new ReducerConstructor() {
             @Override
             public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
                 return new Reducer(Arrays.asList(new Constant(self), arguments[0]), a ->
                     (int) a[0] + (int) a[1]);
             }
-        }));
+        }));*/
         universe.getStringPrototype().put("+/1", Observables.constant(new ReducerConstructor() {
             @Override
             public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
