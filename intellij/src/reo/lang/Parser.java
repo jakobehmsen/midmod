@@ -16,6 +16,10 @@ import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
 public class Parser {
+    public static Behavior parseGet(String text) {
+        return null;
+    }
+
     private interface Emitter {
         default void emit(List<Instruction> instructions, Map<String, Integer> parameters, Map<String, Integer> locals) {
             emit(instructions);

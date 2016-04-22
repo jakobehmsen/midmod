@@ -1,5 +1,10 @@
 package reo.runtime;
 
+import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -93,6 +98,65 @@ public class Observables {
             @Override
             public String toString() {
                 return target + "." + name;
+            }
+
+            @Override
+            public Getter toGetter() {
+                return new Getter() {
+                    Dictionary dictionary;
+
+                    @Override
+                    public JComponent toComponent() {
+                        JTextField view = new JTextField();
+
+                        view.getDocument().addDocumentListener(new DocumentListener() {
+                            @Override
+                            public void insertUpdate(DocumentEvent e) {
+                                dictionary.put(name, new Constant(view.getText()));
+                            }
+
+                            @Override
+                            public void removeUpdate(DocumentEvent e) {
+                                dictionary.put(name, new Constant(view.getText()));
+                            }
+
+                            @Override
+                            public void changedUpdate(DocumentEvent e) {
+
+                            }
+                        });
+
+                        target.addObserver(new Observer() {
+                            @Override
+                            public void handle(Object deltaObjectValue) {
+                                if(binding != null)
+                                    binding.remove();
+
+                                dictionary = (Dictionary)deltaObjectValue;
+
+                                dictionary.get(name).bind(new Observer() {
+                                    @Override
+                                    public void handle(Object newValue) {
+                                        dictionary.get(name).removeObserver(this);
+                                        view.setText(newValue.toString());
+                                    }
+
+                                    @Override
+                                    public void error(Object error) {
+
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void error(Object error) {
+                                sendError("Target error: " + error);
+                            }
+                        });
+
+                        return view;
+                    }
+                };
             }
         };
     }

@@ -224,6 +224,25 @@ public class Main {
                         workspace.revalidate();
                     }
                 });
+                toolBar.add(new AbstractAction("Get") {
+                    @Override
+                    public void actionPerformed(ActionEvent e2) {
+                        Observable result = eval(universe, textArea, d);
+
+                        Getter getter = result.toGetter();
+
+                        JComponent getterView = getter.toComponent();
+
+                        getterView.setLocation(e.getPoint());
+                        getterView.setSize(200, 30);
+                        getterView.setToolTipText(textArea.getText());
+                        workspace.add(getterView);
+
+                        workspace.remove(creation);
+                        workspace.repaint();
+                        workspace.revalidate();
+                    }
+                });
                 toolBar.add(new AbstractAction("Do") {
                     @Override
                     public void actionPerformed(ActionEvent e) {

@@ -7,4 +7,6 @@ public interface Observable {
         addObserver(observer);
         return () -> removeObserver(observer);
     }
+
+    default Getter toGetter() { return null; }
 }
