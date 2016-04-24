@@ -15,7 +15,7 @@ import java.util.Arrays;
 import java.util.function.Function;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws NoSuchMethodException {
         Dictionary d = new Dictionary(null);
 
         /*d.put("asdf", new Constant("sdf"));
@@ -92,13 +92,19 @@ public class Main {
                     (int) a[0] + (int) a[1]);
             }
         }));*/
-        universe.getStringPrototype().put("+/1", Observables.constant(new ReducerConstructor() {
+        universe.getStringPrototype().put("+/1", Observables.constant(new Method(universe, new Behavior(new Instruction[] {
+            Instructions.load(0),
+            Instructions.load(1),
+            Instructions.javaInvokeInstance(String.class.getMethod("concat", new Class<?>[]{String.class})),
+            Instructions.ret()
+        }, 1, 1))));
+        /*universe.getStringPrototype().put("+/1", Observables.constant(new ReducerConstructor() {
             @Override
             public Observable create(Object self, Dictionary prototype, Observable[] arguments) {
                 return new Reducer(Arrays.asList(new Constant(self), arguments[0]), a ->
                     (String) a[0] + (String) a[1]);
             }
-        }));
+        }));*/
         // How to associate the slots method to dictionaries?
         // Have a meta object, that handles creation of dictionaries?
         // How can delta object inheriance be supported?

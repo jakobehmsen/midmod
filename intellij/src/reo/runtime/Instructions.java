@@ -1,5 +1,7 @@
 package reo.runtime;
 
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.function.Function;
 
@@ -144,6 +146,43 @@ public class Instructions {
                     @Override
                     public String toString() {
                         return "addi";
+                    }
+                }));
+
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction javaInvokeInstance(java.lang.reflect.Method method) {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                ArrayList<Observable> arguments = new ArrayList<>();
+                evaluation.popOperands(method.getParameterCount());
+                Observable receiver = evaluation.getFrame().pop();
+                arguments.add(receiver);
+                arguments.addAll(Arrays.asList(evaluation.getOperands()));
+
+                evaluation.getFrame().push(new Reducer(arguments, new Function<Object[], Object>() {
+                    @Override
+                    public Object apply(Object[] objects) {
+                        Object receiver = objects[0];
+                        Object[] arguments = new Object[objects.length - 1];
+                        System.arraycopy(objects, 1, arguments, 0, arguments.length);
+
+                        try {
+                            return method.invoke(receiver, arguments);
+                        } catch (IllegalAccessException e) {
+                            throw new RuntimeException(e);
+                        } catch (InvocationTargetException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+
+                    @Override
+                    public String toString() {
+                        return "javaInvoke: " + method;
                     }
                 }));
 
