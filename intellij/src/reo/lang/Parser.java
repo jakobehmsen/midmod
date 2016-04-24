@@ -194,9 +194,9 @@ public class Parser {
                             if(!hasTarget)
                                 emitters.add(instructions -> instructions.add(Instructions.load(0)));
                             parseExpression(ctx.expression(), emitters, parameters, locals, false);
-                            if(!atTop)
-                                emitters.add(instructions -> instructions.add(Instructions.dup2()));
                             emitters.add(instructions -> instructions.add(Instructions.storeSlot(selector)));
+                            if(!atTop)
+                                emitters.add(instructions -> instructions.add(Instructions.loadSlot(selector)));
                         }
 
                         /*if(sendMessage) {
@@ -251,9 +251,9 @@ public class Parser {
                             if(!hasTarget)
                                 emitters.add(instructions -> instructions.add(Instructions.load(0)));
                             emitters.add(instructions -> instructions.add(Instructions.newMethod(behavior)));
-                            if(!atTop)
-                                emitters.add(instructions -> instructions.add(Instructions.dup2()));
                             emitters.add(instructions -> instructions.add(Instructions.storeSlot(selector)));
+                            if(!atTop)
+                                emitters.add(instructions -> instructions.add(Instructions.loadSlot(selector)));
                         }
                         /*if(sendMessage) {
                             if(!atTop)
@@ -341,7 +341,7 @@ public class Parser {
 
                         @Override
                         public Void visitMessage(ReoParser.MessageContext ctx) {
-                            ctx.expression().forEach(x ->  parseExpression(x, emitters, parameters, locals, false));
+                            ctx.expression().forEach(x ->  parseExpression(x, emitters, parameters, locals, partAtTop));
                             messageSend(ctx.ID().getText(), ctx.expression().size(), emitters, partAtTop);
 
                             return null;
