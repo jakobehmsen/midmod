@@ -11,10 +11,15 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.util.Arrays;
 import java.util.function.Function;
 
 public class Main {
+    private static void createDecorator() {
+
+    }
+
     public static void main(String[] args) throws NoSuchMethodException {
         Dictionary d = new Dictionary(null);
 
@@ -238,6 +243,71 @@ public class Main {
                         Getter getter = result.toGetter();
 
                         JComponent getterView = getter.toComponent();
+
+                        getterView.addMouseListener(new MouseAdapter() {
+                            Timer timer;
+
+                            @Override
+                            public void mouseEntered(MouseEvent e) {
+                                timer = new Timer(1000, e2 -> {
+                                    synchronized (this) {
+                                        JComponent decorator = new JPanel();
+                                        decorator.setBackground(Color.DARK_GRAY);
+                                        decorator.setBorder(BorderFactory.createRaisedBevelBorder());
+                                        decorator.setSize(getterView.getSize());
+                                        decorator.setLocation(getterView.getLocation());
+                                        workspace.add(decorator);
+                                        workspace.setComponentZOrder(decorator, workspace.getComponentZOrder(getterView));
+                                        workspace.repaint();
+                                        workspace.revalidate();
+
+                                        MouseAdapter mouseAdapter = new MouseAdapter(){
+                                            int mouseDownX;
+                                            int mouseDownY;
+
+                                            @Override
+                                            public void mousePressed(MouseEvent e) {
+                                                mouseDownX = e.getX();
+                                                mouseDownY = e.getY();
+                                            }
+
+                                            public void mouseDragged(MouseEvent e)
+                                            {
+                                                int x = e.getX()+decorator.getX() - mouseDownX;
+                                                int y = e.getY()+decorator.getY() - mouseDownY;
+                                                decorator.setLocation(x, y);
+                                                getterView.setLocation(x, y);
+                                            }
+                                        };
+                                        decorator.addMouseListener(mouseAdapter);
+                                        decorator.addMouseMotionListener(mouseAdapter);
+
+                                        decorator.addMouseListener(new MouseAdapter() {
+                                            @Override
+                                            public void mouseExited(MouseEvent e) {
+                                                workspace.remove(decorator);
+                                                workspace.repaint();
+                                                workspace.revalidate();
+                                            }
+                                        });
+
+                                        timer = null;
+                                    }
+                                });
+                                timer.setRepeats(false);
+                                timer.start();
+                            }
+
+                            @Override
+                            public void mouseExited(MouseEvent e) {
+                                synchronized (this) {
+                                    if (timer != null) {
+                                        timer.stop();
+                                        timer = null;
+                                    }
+                                }
+                            }
+                        });
 
                         getterView.setLocation(e.getPoint());
                         getterView.setSize(200, 30);
