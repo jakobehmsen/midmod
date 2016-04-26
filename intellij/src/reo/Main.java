@@ -16,8 +16,71 @@ import java.util.Arrays;
 import java.util.function.Function;
 
 public class Main {
-    private static void createDecorator() {
+    private static void attachDecorator(JComponent workspace, JComponent componentToDecorate) {
+        componentToDecorate.addMouseListener(new MouseAdapter() {
+            Timer timer;
 
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                timer = new Timer(1000, e2 -> {
+                    synchronized (this) {
+                        JComponent decorator = new JPanel();
+                        decorator.setBackground(Color.DARK_GRAY);
+                        decorator.setBorder(BorderFactory.createRaisedBevelBorder());
+                        decorator.setSize(componentToDecorate.getSize());
+                        decorator.setLocation(componentToDecorate.getLocation());
+                        workspace.add(decorator);
+                        workspace.setComponentZOrder(decorator, workspace.getComponentZOrder(componentToDecorate));
+                        workspace.repaint();
+                        workspace.revalidate();
+
+                        MouseAdapter mouseAdapter = new MouseAdapter(){
+                            int mouseDownX;
+                            int mouseDownY;
+
+                            @Override
+                            public void mousePressed(MouseEvent e) {
+                                mouseDownX = e.getX();
+                                mouseDownY = e.getY();
+                            }
+
+                            public void mouseDragged(MouseEvent e)
+                            {
+                                int x = e.getX()+decorator.getX() - mouseDownX;
+                                int y = e.getY()+decorator.getY() - mouseDownY;
+                                decorator.setLocation(x, y);
+                                componentToDecorate.setLocation(x, y);
+                            }
+                        };
+                        decorator.addMouseListener(mouseAdapter);
+                        decorator.addMouseMotionListener(mouseAdapter);
+
+                        decorator.addMouseListener(new MouseAdapter() {
+                            @Override
+                            public void mouseExited(MouseEvent e) {
+                                workspace.remove(decorator);
+                                workspace.repaint();
+                                workspace.revalidate();
+                            }
+                        });
+
+                        timer = null;
+                    }
+                });
+                timer.setRepeats(false);
+                timer.start();
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                synchronized (this) {
+                    if (timer != null) {
+                        timer.stop();
+                        timer = null;
+                    }
+                }
+            }
+        });
     }
 
     public static void main(String[] args) throws NoSuchMethodException {
@@ -158,7 +221,7 @@ public class Main {
 
                         JLabel representation = new JLabel();
 
-                        MouseAdapter mouseAdapter = new MouseAdapter(){
+                        /*MouseAdapter mouseAdapter = new MouseAdapter(){
                             int mouseDownX;
                             int mouseDownY;
 
@@ -176,7 +239,9 @@ public class Main {
                             }
                         };
                         representation.addMouseListener(mouseAdapter);
-                        representation.addMouseMotionListener(mouseAdapter);
+                        representation.addMouseMotionListener(mouseAdapter);*/
+
+                        attachDecorator(workspace, representation);
 
                         representation.setSize(((ComponentUI) representation.getUI()).getPreferredSize(representation));
                         representation.setLocation(e.getPoint());
@@ -244,7 +309,9 @@ public class Main {
 
                         JComponent getterView = getter.toComponent();
 
-                        getterView.addMouseListener(new MouseAdapter() {
+                        attachDecorator(workspace, getterView);
+
+                        /*getterView.addMouseListener(new MouseAdapter() {
                             Timer timer;
 
                             @Override
@@ -307,7 +374,7 @@ public class Main {
                                     }
                                 }
                             }
-                        });
+                        });*/
 
                         getterView.setLocation(e.getPoint());
                         getterView.setSize(200, 30);
