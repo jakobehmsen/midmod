@@ -24,7 +24,7 @@ public class Main {
             public void mouseEntered(MouseEvent e) {
                 timer = new Timer(1000, e2 -> {
                     synchronized (this) {
-                        JComponent decorator = new JPanel();
+                        JComponent decorator = new JPanel(new BorderLayout());
                         decorator.setBackground(Color.DARK_GRAY);
                         decorator.setBorder(BorderFactory.createRaisedBevelBorder());
                         decorator.setSize(componentToDecorate.getSize());
@@ -33,6 +33,9 @@ public class Main {
                         workspace.setComponentZOrder(decorator, workspace.getComponentZOrder(componentToDecorate));
                         workspace.repaint();
                         workspace.revalidate();
+
+                        JButton removeButton = new JButton("X");
+                        decorator.add(removeButton, BorderLayout.EAST);
 
                         MouseAdapter mouseAdapter = new MouseAdapter(){
                             int mouseDownX;
