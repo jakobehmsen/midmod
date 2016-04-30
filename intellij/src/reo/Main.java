@@ -8,17 +8,14 @@ import javax.swing.*;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionAdapter;
-import java.util.Arrays;
-import java.util.function.Function;
+import java.awt.event.*;
 
 public class Main {
-    private static void attachDecorator(JComponent workspace, JComponent componentToDecorate) {
+    private static void attachDecorator(JComponent workspace, JComponent componentToDecorate, Runnable removeAction) {
         componentToDecorate.addMouseListener(new MouseAdapter() {
+            boolean mouseDown;
             Timer timer;
+            Runnable onHide;
 
             @Override
             public void mouseEntered(MouseEvent e) {
@@ -27,15 +24,55 @@ public class Main {
                         JComponent decorator = new JPanel(new BorderLayout());
                         decorator.setBackground(Color.DARK_GRAY);
                         decorator.setBorder(BorderFactory.createRaisedBevelBorder());
-                        decorator.setSize(componentToDecorate.getSize());
-                        decorator.setLocation(componentToDecorate.getLocation());
+                        JToolBar toolBar = new JToolBar();
+                        toolBar.setFloatable(false);
+                        toolBar.add(new AbstractAction("X") {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                removeAction.run();
+                            }
+                        });
+                        decorator.add(toolBar, BorderLayout.NORTH);
+                        int paddingH = 0;
+                        int paddingTop = 30;
+                        int paddingBottom = 0;
+                        int paddingV = paddingTop + paddingBottom;
+                        decorator.setSize(new Dimension(
+                            paddingH + componentToDecorate.getWidth() + paddingH,
+                            paddingTop + componentToDecorate.getHeight() + paddingBottom
+                        ));
+                        decorator.setBackground(new Color(0,0,0,0));
+                        decorator.setLocation(new Point(
+                            componentToDecorate.getX() - paddingH,
+                            componentToDecorate.getY() - paddingTop
+                        ));
+                        decorator.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createDashedBorder(Color.BLACK),
+                            BorderFactory.createDashedBorder(Color.WHITE)
+                        ));
                         workspace.add(decorator);
                         workspace.setComponentZOrder(decorator, workspace.getComponentZOrder(componentToDecorate));
                         workspace.repaint();
                         workspace.revalidate();
 
                         JButton removeButton = new JButton("X");
-                        decorator.add(removeButton, BorderLayout.EAST);
+                        addMouseExitHandler(removeButton, decorator);
+
+                        ContainerAdapter removeListener = new ContainerAdapter() {
+                            @Override
+                            public void componentRemoved(ContainerEvent e) {
+                                if(e.getChild() == componentToDecorate) {
+                                    hide(decorator);
+                                }
+                            }
+                        };
+
+                        Container componentToDecorateParent = componentToDecorate.getParent();
+                        onHide = () -> {
+                            componentToDecorateParent.removeContainerListener(removeListener);
+                        };
+
+                        componentToDecorate.getParent().addContainerListener(removeListener);
 
                         MouseAdapter mouseAdapter = new MouseAdapter(){
                             int mouseDownX;
@@ -45,33 +82,60 @@ public class Main {
                             public void mousePressed(MouseEvent e) {
                                 mouseDownX = e.getX();
                                 mouseDownY = e.getY();
+                                mouseDown = true;
                             }
 
                             public void mouseDragged(MouseEvent e)
                             {
-                                int x = e.getX()+decorator.getX() - mouseDownX;
-                                int y = e.getY()+decorator.getY() - mouseDownY;
+                                int x = e.getX() + decorator.getX() - mouseDownX;
+                                int y = e.getY() + decorator.getY() - mouseDownY;
                                 decorator.setLocation(x, y);
-                                componentToDecorate.setLocation(x, y);
+                                componentToDecorate.setLocation(paddingH + x, paddingV + y);
+                            }
+
+                            @Override
+                            public void mouseReleased(MouseEvent e) {
+                                mouseDown = false;
                             }
                         };
+
                         decorator.addMouseListener(mouseAdapter);
                         decorator.addMouseMotionListener(mouseAdapter);
 
-                        decorator.addMouseListener(new MouseAdapter() {
-                            @Override
-                            public void mouseExited(MouseEvent e) {
-                                workspace.remove(decorator);
-                                workspace.repaint();
-                                workspace.revalidate();
-                            }
-                        });
+                        addMouseExitHandler(decorator, decorator);
 
                         timer = null;
                     }
                 });
                 timer.setRepeats(false);
                 timer.start();
+            }
+
+            private void addMouseExitHandler(JComponent component, JComponent decorator) {
+                component.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseExited(MouseEvent e) {
+                        if(mouseDown)
+                            return;
+                        // Invoked when hoovering over remove button
+
+                        java.awt.Point p = new java.awt.Point(e.getLocationOnScreen());
+                        SwingUtilities.convertPointFromScreen(p, decorator);
+                        if(decorator.contains(p)) {
+                            return;
+                        }
+
+                        hide(decorator);
+                    }
+                });
+            }
+
+            private void hide(JComponent decorator) {
+                onHide.run();
+
+                workspace.remove(decorator);
+                workspace.repaint();
+                workspace.revalidate();
             }
 
             @Override
@@ -244,15 +308,13 @@ public class Main {
                         representation.addMouseListener(mouseAdapter);
                         representation.addMouseMotionListener(mouseAdapter);*/
 
-                        attachDecorator(workspace, representation);
-
                         representation.setSize(((ComponentUI) representation.getUI()).getPreferredSize(representation));
                         representation.setLocation(e.getPoint());
                         representation.setToolTipText(textArea.getText());
                         //representation.setSize(100, 30);
                         workspace.add(representation);
 
-                        result.addObserver(new Observer() {
+                        Binding binding = result.bind(new Observer() {
                             Object theValue;
                             Object theError;
 
@@ -298,6 +360,14 @@ public class Main {
                             }
                         });
 
+                        attachDecorator(workspace, representation, () -> {
+                            binding.remove();
+
+                            workspace.remove(representation);
+                            workspace.repaint();
+                            workspace.revalidate();
+                        });
+
                         workspace.remove(creation);
                         workspace.repaint();
                         workspace.revalidate();
@@ -312,72 +382,12 @@ public class Main {
 
                         JComponent getterView = getter.toComponent();
 
-                        attachDecorator(workspace, getterView);
-
-                        /*getterView.addMouseListener(new MouseAdapter() {
-                            Timer timer;
-
-                            @Override
-                            public void mouseEntered(MouseEvent e) {
-                                timer = new Timer(1000, e2 -> {
-                                    synchronized (this) {
-                                        JComponent decorator = new JPanel();
-                                        decorator.setBackground(Color.DARK_GRAY);
-                                        decorator.setBorder(BorderFactory.createRaisedBevelBorder());
-                                        decorator.setSize(getterView.getSize());
-                                        decorator.setLocation(getterView.getLocation());
-                                        workspace.add(decorator);
-                                        workspace.setComponentZOrder(decorator, workspace.getComponentZOrder(getterView));
-                                        workspace.repaint();
-                                        workspace.revalidate();
-
-                                        MouseAdapter mouseAdapter = new MouseAdapter(){
-                                            int mouseDownX;
-                                            int mouseDownY;
-
-                                            @Override
-                                            public void mousePressed(MouseEvent e) {
-                                                mouseDownX = e.getX();
-                                                mouseDownY = e.getY();
-                                            }
-
-                                            public void mouseDragged(MouseEvent e)
-                                            {
-                                                int x = e.getX()+decorator.getX() - mouseDownX;
-                                                int y = e.getY()+decorator.getY() - mouseDownY;
-                                                decorator.setLocation(x, y);
-                                                getterView.setLocation(x, y);
-                                            }
-                                        };
-                                        decorator.addMouseListener(mouseAdapter);
-                                        decorator.addMouseMotionListener(mouseAdapter);
-
-                                        decorator.addMouseListener(new MouseAdapter() {
-                                            @Override
-                                            public void mouseExited(MouseEvent e) {
-                                                workspace.remove(decorator);
-                                                workspace.repaint();
-                                                workspace.revalidate();
-                                            }
-                                        });
-
-                                        timer = null;
-                                    }
-                                });
-                                timer.setRepeats(false);
-                                timer.start();
-                            }
-
-                            @Override
-                            public void mouseExited(MouseEvent e) {
-                                synchronized (this) {
-                                    if (timer != null) {
-                                        timer.stop();
-                                        timer = null;
-                                    }
-                                }
-                            }
-                        });*/
+                        attachDecorator(workspace, getterView, () -> {
+                            getter.remove();
+                            workspace.remove(getterView);
+                            workspace.repaint();
+                            workspace.revalidate();
+                        });
 
                         getterView.setLocation(e.getPoint());
                         getterView.setSize(200, 30);

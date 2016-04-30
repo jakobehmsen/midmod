@@ -4,4 +4,6 @@ import javax.swing.*;
 
 public interface Getter {
     JComponent toComponent();
+
+    void remove();
 }

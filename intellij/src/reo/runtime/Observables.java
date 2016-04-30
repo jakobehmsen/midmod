@@ -104,6 +104,7 @@ public class Observables {
             public Getter toGetter() {
                 return new Getter() {
                     Dictionary dictionary;
+                    Binding binding;
 
                     @Override
                     public JComponent toComponent() {
@@ -126,7 +127,7 @@ public class Observables {
                             }
                         });
 
-                        target.addObserver(new Observer() {
+                        binding = target.bind(new Observer() {
                             @Override
                             public void handle(Object deltaObjectValue) {
                                 if(binding != null)
@@ -155,6 +156,11 @@ public class Observables {
                         });
 
                         return view;
+                    }
+
+                    @Override
+                    public void remove() {
+                        binding.remove();
                     }
                 };
             }
