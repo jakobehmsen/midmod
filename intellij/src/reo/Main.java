@@ -5,6 +5,10 @@ import reo.lang.Parser;
 import reo.runtime.*;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
@@ -26,16 +30,16 @@ public class Main {
                         decorator.setBorder(BorderFactory.createRaisedBevelBorder());
                         JToolBar toolBar = new JToolBar();
                         toolBar.setFloatable(false);
-                        toolBar.add(new AbstractAction("X") {
+                        toolBar.add(new AbstractAction("Del") {
                             @Override
                             public void actionPerformed(ActionEvent e) {
                                 removeAction.run();
                             }
                         });
-                        decorator.add(toolBar, BorderLayout.NORTH);
+                        decorator.add(toolBar, BorderLayout.SOUTH);
                         int paddingH = 0;
-                        int paddingTop = 30;
-                        int paddingBottom = 0;
+                        int paddingTop = 0;
+                        int paddingBottom = 30;
                         int paddingV = paddingTop + paddingBottom;
                         decorator.setSize(new Dimension(
                             paddingH + componentToDecorate.getWidth() + paddingH,
@@ -90,7 +94,7 @@ public class Main {
                                 int x = e.getX() + decorator.getX() - mouseDownX;
                                 int y = e.getY() + decorator.getY() - mouseDownY;
                                 decorator.setLocation(x, y);
-                                componentToDecorate.setLocation(paddingH + x, paddingV + y);
+                                componentToDecorate.setLocation(paddingH + x, paddingTop + y);
                             }
 
                             @Override
@@ -140,6 +144,12 @@ public class Main {
 
             @Override
             public void mouseExited(MouseEvent e) {
+                java.awt.Point p = new java.awt.Point(e.getLocationOnScreen());
+                SwingUtilities.convertPointFromScreen(p, componentToDecorate);
+                if(componentToDecorate.contains(p)) {
+                    return;
+                }
+
                 synchronized (this) {
                     if (timer != null) {
                         timer.stop();
@@ -288,26 +298,6 @@ public class Main {
 
                         JLabel representation = new JLabel();
 
-                        /*MouseAdapter mouseAdapter = new MouseAdapter(){
-                            int mouseDownX;
-                            int mouseDownY;
-
-                            @Override
-                            public void mousePressed(MouseEvent e) {
-                                mouseDownX = e.getX();
-                                mouseDownY = e.getY();
-                            }
-
-                            public void mouseDragged(MouseEvent e)
-                            {
-                                int x = e.getX()+representation.getX() - mouseDownX;
-                                int y = e.getY()+representation.getY() - mouseDownY;
-                                representation.setLocation(x, y);
-                            }
-                        };
-                        representation.addMouseListener(mouseAdapter);
-                        representation.addMouseMotionListener(mouseAdapter);*/
-
                         representation.setSize(((ComponentUI) representation.getUI()).getPreferredSize(representation));
                         representation.setLocation(e.getPoint());
                         representation.setToolTipText(textArea.getText());
@@ -354,8 +344,6 @@ public class Main {
 
                             @Override
                             public void release() {
-                                //workspace.remove(representation);
-
                                 error("Uninitialized");
                             }
                         });
@@ -373,14 +361,99 @@ public class Main {
                         workspace.revalidate();
                     }
                 });
-                toolBar.add(new AbstractAction("Get") {
+                toolBar.add(new AbstractAction("Text") {
                     @Override
                     public void actionPerformed(ActionEvent e2) {
                         Observable result = eval(universe, textArea, d);
 
                         Getter getter = result.toGetter();
 
-                        JComponent getterView = getter.toComponent();
+                        JTextField getterView = new JTextField();
+
+                        getter.toView(new AbstractViewAdapter() {
+                            Object value = getterView.getText();
+
+                            {
+                                getterView.getDocument().addDocumentListener(new DocumentListener() {
+                                    @Override
+                                    public void insertUpdate(DocumentEvent e) {
+                                        value = getterView.getText();
+                                        sendChange(value);
+                                    }
+
+                                    @Override
+                                    public void removeUpdate(DocumentEvent e) {
+                                        value = getterView.getText();
+                                        sendChange(value);
+                                    }
+
+                                    @Override
+                                    public void changedUpdate(DocumentEvent e) {
+
+                                    }
+                                });
+                            }
+
+                            @Override
+                            protected void sendStateTo(Observer observer) {
+                                observer.handle(value);
+                            }
+
+                            @Override
+                            public void initialize(Object value) {
+                                getterView.setText(value.toString());
+                            }
+                        });
+
+                        attachDecorator(workspace, getterView, () -> {
+                            getter.remove();
+                            workspace.remove(getterView);
+                            workspace.repaint();
+                            workspace.revalidate();
+                        });
+
+                        getterView.setLocation(e.getPoint());
+                        getterView.setSize(200, 30);
+                        getterView.setToolTipText(textArea.getText());
+                        workspace.add(getterView);
+
+                        workspace.remove(creation);
+                        workspace.repaint();
+                        workspace.revalidate();
+                    }
+                });
+                toolBar.add(new AbstractAction("Number") {
+                    @Override
+                    public void actionPerformed(ActionEvent e2) {
+                        Observable result = eval(universe, textArea, d);
+
+                        Getter getter = result.toGetter();
+
+                        JSpinner getterView = new JSpinner();
+
+                        getter.toView(new AbstractViewAdapter() {
+                            Object value = getterView.getValue();
+
+                            {
+                                getterView.addChangeListener(new ChangeListener() {
+                                    @Override
+                                    public void stateChanged(ChangeEvent e) {
+                                        value = getterView.getValue();
+                                        sendChange(value);
+                                    }
+                                });
+                            }
+
+                            @Override
+                            protected void sendStateTo(Observer observer) {
+                                observer.handle(value);
+                            }
+
+                            @Override
+                            public void initialize(Object value) {
+                                getterView.setValue(value);
+                            }
+                        });
 
                         attachDecorator(workspace, getterView, () -> {
                             getter.remove();

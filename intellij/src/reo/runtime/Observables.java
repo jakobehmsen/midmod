@@ -107,10 +107,10 @@ public class Observables {
                     Binding binding;
 
                     @Override
-                    public JComponent toComponent() {
-                        JTextField view = new JTextField();
+                    public void toView(ViewAdapter viewAdapter) {
+                        //JTextField view = new JTextField();
 
-                        view.getDocument().addDocumentListener(new DocumentListener() {
+                        /*view.getDocument().addDocumentListener(new DocumentListener() {
                             @Override
                             public void insertUpdate(DocumentEvent e) {
                                 dictionary.put(name, new Constant(view.getText()));
@@ -125,7 +125,7 @@ public class Observables {
                             public void changedUpdate(DocumentEvent e) {
 
                             }
-                        });
+                        });*/
 
                         binding = target.bind(new Observer() {
                             @Override
@@ -139,7 +139,8 @@ public class Observables {
                                     @Override
                                     public void handle(Object newValue) {
                                         dictionary.get(name).removeObserver(this);
-                                        view.setText(newValue.toString());
+                                        //view.setText(newValue.toString());
+                                        viewAdapter.initialize(newValue);
                                     }
 
                                     @Override
@@ -155,7 +156,14 @@ public class Observables {
                             }
                         });
 
-                        return view;
+                        viewAdapter.addObserver(new Observer() {
+                            @Override
+                            public void handle(Object value) {
+                                dictionary.put(name, new Constant(value));
+                            }
+                        });
+
+                        //return view;
                     }
 
                     @Override
