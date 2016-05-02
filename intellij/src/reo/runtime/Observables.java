@@ -1,11 +1,5 @@
 package reo.runtime;
 
-import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -105,28 +99,11 @@ public class Observables {
                 return new Getter() {
                     Dictionary dictionary;
                     Binding binding;
+                    Binding slotBinding;
+                    boolean gotValueFromSlot;
 
                     @Override
                     public void toView(ViewAdapter viewAdapter) {
-                        //JTextField view = new JTextField();
-
-                        /*view.getDocument().addDocumentListener(new DocumentListener() {
-                            @Override
-                            public void insertUpdate(DocumentEvent e) {
-                                dictionary.put(name, new Constant(view.getText()));
-                            }
-
-                            @Override
-                            public void removeUpdate(DocumentEvent e) {
-                                dictionary.put(name, new Constant(view.getText()));
-                            }
-
-                            @Override
-                            public void changedUpdate(DocumentEvent e) {
-
-                            }
-                        });*/
-
                         binding = target.bind(new Observer() {
                             @Override
                             public void handle(Object deltaObjectValue) {
@@ -135,11 +112,12 @@ public class Observables {
 
                                 dictionary = (Dictionary)deltaObjectValue;
 
-                                dictionary.get(name).bind(new Observer() {
+                                slotBinding = dictionary.get(name).bind(new Observer() {
                                     @Override
                                     public void handle(Object newValue) {
                                         dictionary.get(name).removeObserver(this);
-                                        //view.setText(newValue.toString());
+                                        gotValueFromSlot = true;
+
                                         viewAdapter.initialize(newValue);
                                     }
 
@@ -148,6 +126,10 @@ public class Observables {
 
                                     }
                                 });
+                                if(gotValueFromSlot) {
+                                    slotBinding = null;
+                                    gotValueFromSlot = false;
+                                }
                             }
 
                             @Override
@@ -156,14 +138,12 @@ public class Observables {
                             }
                         });
 
-                        viewAdapter.addObserver(new Observer() {
-                            @Override
-                            public void handle(Object value) {
-                                dictionary.put(name, new Constant(value));
-                            }
-                        });
+                        if(!gotValueFromSlot && slotBinding != null) {
+                            slotBinding.remove();
+                            slotBinding = null;
+                        }
 
-                        //return view;
+                        dictionary.put(name, viewAdapter);
                     }
 
                     @Override
