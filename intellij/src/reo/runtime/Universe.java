@@ -5,12 +5,14 @@ public class Universe {
     private Constant integerPrototypeObservable;
     private Constant nullPrototype;
     private Constant stringPrototypeObservable;
+    private Observable componentPrototype;
 
     public Universe(Dictionary anyPrototype) {
         anyPrototypeObservable = new Constant(anyPrototype);
         integerPrototypeObservable = new Constant(new Dictionary(anyPrototypeObservable));
         nullPrototype = new Constant(new Dictionary(anyPrototypeObservable));
         stringPrototypeObservable = new Constant(new Dictionary(anyPrototypeObservable));
+        componentPrototype = new Constant(new Dictionary(anyPrototypeObservable));
     }
 
     public Observable getIntegerPrototypeObservable() {
@@ -31,5 +33,9 @@ public class Universe {
 
     public Observable getStringPrototypeObservable() {
         return stringPrototypeObservable;
+    }
+
+    public Observable getComponentPrototype() {
+        return componentPrototype;
     }
 }

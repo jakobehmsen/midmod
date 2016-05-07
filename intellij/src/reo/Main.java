@@ -222,6 +222,12 @@ public class Main {
         d.remove("x");*/
 
         Universe universe = new Universe(d);
+
+        d.put("panel/0", Observables.constant(new Method(universe, new Behavior(new Instruction[] {
+            Instructions.load(0),
+            Instructions.wrapComponent(JPanel.class),
+            Instructions.ret()
+        }, 1, 1))));
         //universe.getIntegerPrototype().put("+/1", Observables.constant((Invokable) (s, a) ->
         //     (int) s + (int) a[0]));
         universe.getIntegerPrototype().put("+/1", Observables.constant(new Method(universe, new Behavior(new Instruction[] {
@@ -241,6 +247,7 @@ public class Main {
             Instructions.load(0),
             Instructions.load(1),
             Instructions.javaInvokeInstance(String.class.getMethod("concat", new Class<?>[]{String.class})),
+            Instructions.wrapComponent(JPanel.class),
             Instructions.ret()
         }, 1, 1))));
         /*universe.getStringPrototype().put("+/1", Observables.constant(new ReducerConstructor() {
@@ -361,6 +368,93 @@ public class Main {
                         workspace.revalidate();
                     }
                 });
+                toolBar.add(new AbstractAction("Put2") {
+                    @Override
+                    public void actionPerformed(ActionEvent e2) {
+                        Observable result = eval(universe, textArea, d);
+
+                        //representation.setSize(((ComponentUI) representation.getUI()).getPreferredSize(representation));
+
+                        Binding binding = result.bind(new Observer() {
+                            Object theValue;
+                            Object theError;
+
+                            //Color b = representation.getForeground();
+
+                            {
+                                error("Uninitialized");
+                            }
+
+                            @Override
+                            public void initialize() {
+                                //representation.setForeground(b);
+                            }
+
+                            private ComponentDictionary cd;
+                            private JComponent representation;
+
+                            @Override
+                            public void handle(Object value) {
+                                // Value may be an update to the current value
+
+                                if(value instanceof ComponentDictionary) {
+                                    cd = ((ComponentDictionary)value);
+                                    representation = cd.getComponent();
+                                    cd.get("background").addObserver(new Observer() {
+                                        @Override
+                                        public void handle(Object value) {
+
+                                        }
+                                    });
+                                    representation.setBackground(Color.BLUE);
+                                    representation.setSize(100, 30);
+                                    representation.setLocation(e.getPoint());
+                                    representation.setToolTipText(textArea.getText());
+                                    workspace.add(representation);
+                                    representation.revalidate();
+                                    representation.repaint();
+
+                                    attachDecorator(workspace, representation, () -> {
+                                        //binding.remove();
+
+                                        workspace.remove(representation);
+                                        workspace.repaint();
+                                        workspace.revalidate();
+                                    });
+                                }
+
+                                if(theValue == null && value != null) {
+                                    //representation.setForeground(b);
+                                    //setText(value.toString());
+                                } else if(theValue != null && value == null)
+                                    release();
+                            }
+
+                            @Override
+                            public void error(Object error) {
+                                theError = error;
+                                setText(error.toString());
+                                //representation.setForeground(Color.RED);
+                            }
+
+                            private void setText(String text) {
+                                /*representation.setText(text);
+                                representation.setSize(((ComponentUI) representation.getUI()).getPreferredSize(representation));
+                                representation.revalidate();
+                                representation.repaint();*/
+                            }
+
+                            @Override
+                            public void release() {
+                                error("Uninitialized");
+                            }
+                        });
+
+                        workspace.remove(creation);
+                        workspace.repaint();
+                        workspace.revalidate();
+                    }
+                });
                 toolBar.add(new AbstractAction("Text") {
                     @Override
                     public void actionPerformed(ActionEvent e2) {
@@ -472,6 +566,44 @@ public class Main {
                         workspace.revalidate();
                     }
                 });
+                toolBar.add(new AbstractAction("Message") {
+                    @Override
+                    public void actionPerformed(ActionEvent e2) {
+                        JLabel view = new JLabel(textArea.getText());
+
+                        view.setFont(new Font(Font.MONOSPACED, Font.ITALIC, 12));
+
+                        view.setLocation(e.getPoint());
+                        view.setSize(((ComponentUI) view.getUI()).getPreferredSize(view));
+
+                        attachDecorator(workspace, view, () -> {
+                            workspace.remove(view);
+                            workspace.repaint();
+                            workspace.revalidate();
+                        });
+                        workspace.add(view);
+
+                        workspace.remove(creation);
+                        workspace.repaint();
+                        workspace.revalidate();
+
+                        /*eval(universe, textArea, d);
+
+                        workspace.remove(creation);
+                        workspace.repaint();
+                        workspace.revalidate();*/
+
+                        /*
+                        Create and put a physical element that can be dragged and dropped upon another object, to which
+                        the message is sent.
+                        The constitutes all of the script, where the dropee is the "this" context.
+
+                        So, a message is a composite "thing" here; it's a parameterized script with "this" being the
+                        parameter.
+                        Thus, another name than "Message" should be considered.
+                        */
+                    }
+                });
                 toolBar.add(new AbstractAction("Do") {
                     @Override
                     public void actionPerformed(ActionEvent e) {
@@ -496,7 +628,7 @@ public class Main {
 
                 creationPanel.add(textArea, BorderLayout.CENTER);
                 creationPanel.add(toolBar, BorderLayout.SOUTH);
-                creationPanel.setSize(200, 100);
+                creationPanel.setSize(300, 100);
                 creationPanel.setLocation(e.getPoint());
 
                 creation = creationPanel;

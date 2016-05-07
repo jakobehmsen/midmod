@@ -22,8 +22,16 @@ public class Dictionary extends AbstractObservable {
         }
     }
 
+    public Observable getPrototypeObservable() {
+        return prototypeObservable;
+    }
+
     private void updatePrototypeForEachSlot() {
         slots.entrySet().forEach(x -> x.getValue().updatePrototype());
+    }
+
+    public void update(Object change) {
+        change.toString();
     }
 
     public static class SlotChange {
