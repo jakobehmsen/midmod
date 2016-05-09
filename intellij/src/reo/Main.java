@@ -400,14 +400,30 @@ public class Main {
                                 if(value instanceof ComponentDictionary) {
                                     cd = ((ComponentDictionary)value);
                                     representation = cd.getComponent();
-                                    cd.get("background").addObserver(new Observer() {
+
+                                    cd.get("background").addObserver(MapAdapter.forColor(color -> {
+                                        representation.setBackground(color);
+                                        representation.revalidate();
+                                        representation.repaint();
+                                    }));
+                                    cd.get("size").addObserver(MapAdapter.forDimension(size -> {
+                                        representation.setSize(size);
+                                        representation.revalidate();
+                                        representation.repaint();
+                                    }));
+
+                                    /*ColorAdapter backgroundAdapter = new ColorAdapter();
+                                    cd.get("background").addObserver(backgroundAdapter);
+                                    backgroundAdapter.addObserver(new Observer() {
                                         @Override
                                         public void handle(Object value) {
-
+                                            representation.setBackground((Color)value);
+                                            representation.revalidate();
+                                            representation.repaint();
                                         }
-                                    });
-                                    representation.setBackground(Color.BLUE);
-                                    representation.setSize(100, 30);
+                                    });*/
+                                    //representation.setBackground(Color.BLUE);
+                                    //representation.setSize(100, 30);
                                     representation.setLocation(e.getPoint());
                                     representation.setToolTipText(textArea.getText());
                                     workspace.add(representation);

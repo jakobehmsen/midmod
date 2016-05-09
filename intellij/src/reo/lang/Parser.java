@@ -372,7 +372,7 @@ public class Parser {
                     ctx.expressionTail().expressionTailEnd().accept(new ReoBaseVisitor<Void>() {
                         @Override
                         public Void visitSlotAssignment(ReoParser.SlotAssignmentContext ctx) {
-                            parseSlotAssignment(ctx, true, false);
+                            parseSlotAssignment(ctx, true, atTop);
 
                             return null;
                         }
@@ -565,6 +565,7 @@ public class Parser {
 
             @Override
             public Void visitSelfSend(ReoParser.SelfSendContext ctx) {
+                emitters.add(instructions -> instructions.add(Instructions.load(0)));
                 ctx.message().expression().forEach(x -> parseExpression(x, emitters, parameters, locals, false));
                 messageSend(ctx.message().ID().getText(), ctx.message().expression().size(), emitters, atTop);
 
