@@ -54,9 +54,7 @@ public class Instructions {
             public void evaluate(Evaluation evaluation) {
                 evaluation.popOperands(arity);
                 Function function = (Function) evaluation.getEnvironment().get(symbol.getCode());
-                function.apply(evaluation, evaluation.getOperands());
-
-                evaluation.getFrame().incrementIP();
+                function.apply(evaluation, evaluation.getOperands(arity));
             }
         };
     }
@@ -68,6 +66,8 @@ public class Instructions {
                 Frame outer = evaluation.getFrame().getOuter();
                 outer.push(evaluation.getFrame().pop());
                 evaluation.setFrame(outer);
+
+                evaluation.getFrame().incrementIP();
             }
         };
     }
@@ -122,6 +122,31 @@ public class Instructions {
             public void evaluate(Evaluation evaluation) {
                 ConsCell value = (ConsCell) evaluation.getFrame().pop();
                 evaluation.getFrame().push(value.getCdr());
+
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction lambda() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.popOperands(2);
+                ConsCell params = (ConsCell) evaluation.getOperand(1);
+                Object body = evaluation.getOperand(0);
+                evaluation.getFrame().push(new Function(params, body));
+
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction load(int ordinal) {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().load(ordinal);
 
                 evaluation.getFrame().incrementIP();
             }

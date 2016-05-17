@@ -47,7 +47,9 @@ public class Evaluation {
         return operands[index];
     }
 
-    public Object[] getOperands() {
+    public Object[] getOperands(int count) {
+        Object[] operands = new Object[count];
+        System.arraycopy(this.operands, 0, operands, 0, count);
         return operands;
     }
 

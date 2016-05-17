@@ -36,4 +36,8 @@ public class Frame {
     public void dup() {
         stack.push(stack.peek());
     }
+
+    public void load(int ordinal) {
+        stack.push(stack.get(ordinal));
+    }
 }
