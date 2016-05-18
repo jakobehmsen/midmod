@@ -20,8 +20,8 @@ public class Main {
             ";(1 2 3)\n" +
             "(set myList (quote (x y z)))\n" +
             "(cdr myList)\n" +*/
-            "(set f (lambda (x) x))\n" +
-            "(f 8)\n" +
+            "(set double-of (lambda (x) (addi x x)))\n" +
+            "(double-of 8)\n" +
             "";
         Object value = Parser.parse(sourceCode);
         Object result = Evaluation.evaluate(Function.compile(new Hashtable<>(), value, instructions -> instructions.add(Instructions.halt())));

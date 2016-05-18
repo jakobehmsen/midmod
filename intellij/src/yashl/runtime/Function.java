@@ -126,6 +126,13 @@ public class Function {
                 }
             });
         });
+        specialForms.put(Symbol.get("addi").getCode(), (emitters, listValue, asExpression) -> {
+            compileOperands2(emitters, listValue, runtimeOperand(), runtimeOperand(), (Object lhs, Object rhs) -> {
+                if (asExpression) {
+                    emitters.add((l, instructions) -> instructions.add(Instructions.addi()));
+                }
+            });
+        });
     }
 
     private interface OperandCompiler<T> {

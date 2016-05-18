@@ -135,7 +135,7 @@ public class Instructions {
                 evaluation.popOperands(2);
                 ConsCell params = (ConsCell) evaluation.getOperand(1);
                 Object body = evaluation.getOperand(0);
-                evaluation.getFrame().push(new Function(params, body));
+                evaluation.getFrame().push(new Function(params, new ConsCell(body, null)));
 
                 evaluation.getFrame().incrementIP();
             }
@@ -147,6 +147,20 @@ public class Instructions {
             @Override
             public void evaluate(Evaluation evaluation) {
                 evaluation.getFrame().load(ordinal);
+
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction addi() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.popOperands(2);
+                Number lhs = (Number)evaluation.getOperand(1);
+                Number rhs = (Number)evaluation.getOperand(0);
+                evaluation.getFrame().push(lhs.intValue() + rhs.intValue());
 
                 evaluation.getFrame().incrementIP();
             }
