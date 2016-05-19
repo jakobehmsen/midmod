@@ -1,5 +1,8 @@
 package yashl.runtime;
 
+import yashl.function.QuadConsumer;
+import yashl.function.TriConsumer;
+
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -23,9 +26,10 @@ public class Function {
         this.value = value;
     }
 
-    public void apply(Evaluation evaluation, Object[] arguments) {
+    public void apply(Evaluation evaluation, Environment environment, Object[] arguments) {
         ensureCompiled();
         Frame callFrame = new Frame(evaluation.getFrame(), instructions);
+        callFrame.push(environment);
         for(int i = 0; i < arguments.length; i++)
             callFrame.push(arguments[i]);
         evaluation.setFrame(callFrame);
@@ -34,6 +38,7 @@ public class Function {
     private void ensureCompiled() {
         if(instructions == null) {
             parametersAsSymbols = new Hashtable<>();
+            parametersAsSymbols.put(Symbol.get("this"), 0);
             ConsCell currentParam = parameters;
             while(currentParam != null) {
                 parametersAsSymbols.put((Symbol) currentParam.getCar(), parametersAsSymbols.size());
@@ -74,11 +79,18 @@ public class Function {
 
     static {
         specialForms.put(Symbol.get("set").getCode(), (emitters, listValue, asExpression) -> {
-            compileOperands2(emitters, listValue, compileTimeOperand(), runtimeOperand(), (Symbol id, Object valueForId) -> {
+            compileOperands3(emitters, listValue, runtimeOperand(), compileTimeOperand(), runtimeOperand(), (Object environment, Symbol id, Object valueForId) -> {
                 if(asExpression)
-                    emitters.add((l, instructions) -> instructions.add(Instructions.dup()));
+                    emitters.add((l, instructions) -> instructions.add(Instructions.dup2()));
                 emitters.add((l, instructions) -> instructions.add(Instructions.setEnvironment(id)));
             });
+        });
+        specialForms.put(Symbol.get("get").getCode(), (emitters, listValue, asExpression) -> {
+            if(asExpression) {
+                compileOperands2(emitters, listValue, runtimeOperand(), compileTimeOperand(), (Object environment, Symbol id) -> {
+                    emitters.add((l, instructions) -> instructions.add(Instructions.getEnvironment(id)));
+                });
+            }
         });
         specialForms.put(Symbol.get("let").getCode(), (emitters, listValue, asExpression) -> {
             compileOperands2(emitters, listValue, compileTimeOperand(), runtimeOperand(), (Symbol id, Object valueForId) -> {
@@ -126,12 +138,31 @@ public class Function {
                 }
             });
         });
+        specialForms.put(Symbol.get("apply").getCode(), (emitters, listValue, asExpression) -> {
+            compileTo(listValue.getCdr().getCar(), emitters, true);
+            compileTo(listValue.getCdr().getCdr().getCar(), emitters, true);
+
+            int arityTmp = 0;
+            ConsCell argCell = listValue.getCdr().getCdr().getCdr();
+            while(argCell != null) {
+                compileTo(argCell.getCar(), emitters, true);
+                argCell = argCell.getCdr();
+                arityTmp++;
+            }
+
+            int arity = arityTmp;
+
+            emitters.add((l, instructions) -> instructions.add(Instructions.apply(arity)));
+
+            if (!asExpression)
+                emitters.add((l, instructions) -> instructions.add(Instructions.pop()));
+        });
         specialForms.put(Symbol.get("addi").getCode(), (emitters, listValue, asExpression) -> {
-            compileOperands2(emitters, listValue, runtimeOperand(), runtimeOperand(), (Object lhs, Object rhs) -> {
-                if (asExpression) {
+            if (asExpression) {
+                compileOperands2(emitters, listValue, runtimeOperand(), runtimeOperand(), (Object lhs, Object rhs) -> {
                     emitters.add((l, instructions) -> instructions.add(Instructions.addi()));
-                }
-            });
+                });
+            }
         });
     }
 
@@ -168,6 +199,20 @@ public class Function {
         formCompiler.accept(operand0, operand1);
     }
 
+    private static <T0, T1, T2> void compileOperands3(List<Emitter> emitters, ConsCell form,
+                                                  OperandCompiler<T0> operand0Compiler,
+                                                  OperandCompiler<T1> operand1Compiler,
+                                                  OperandCompiler<T2> operand2Compiler,
+                                                  TriConsumer<T0, T1, T2> formCompiler) {
+        operand0Compiler.compileTo(emitters, form.getCdr().getCar());
+        T0 operand0 = (T0) form.getCdr().getCar();
+        operand1Compiler.compileTo(emitters, form.getCdr().getCdr().getCar());
+        T1 operand1 = (T1) form.getCdr().getCdr().getCar();
+        operand2Compiler.compileTo(emitters, form.getCdr().getCdr().getCdr().getCar());
+        T2 operand2 = (T2) form.getCdr().getCdr().getCdr().getCar();
+        formCompiler.accept(operand0, operand1, operand2);
+    }
+
     public static void compileTo(Object value, List<Emitter> emitters, boolean asExpression) {
         if(!(value instanceof ConsCell)) {
             if(asExpression) {
@@ -199,6 +244,9 @@ public class Function {
             if(specialForm != null) {
                 specialForm.compileTo(emitters, listValue, asExpression);
             } else {
+                // Forward environment stored at 0
+                emitters.add((locals, instructions) -> instructions.add(Instructions.load(0)));
+
                 compileTo(firstValue, emitters, true);
 
                 int arityTmp = 0;

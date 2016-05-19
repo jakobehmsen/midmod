@@ -4,6 +4,7 @@ import yashl.runtime.Instructions;
 import yashl.lang.Parser;
 import yashl.runtime.Evaluation;
 import yashl.runtime.Function;
+import yashl.runtime.Symbol;
 
 import java.io.IOException;
 import java.util.Hashtable;
@@ -20,11 +21,14 @@ public class Main {
             ";(1 2 3)\n" +
             "(set myList (quote (x y z)))\n" +
             "(cdr myList)\n" +*/
-            "(set double-of (lambda (x) (addi x x)))\n" +
-            "(double-of 8)\n" +
+            "(set this double-of (lambda (x) (addi x x)))\n" +
+            //"(apply this (get this double-of) 8)\n" +
+            "((get this double-of) 8)\n" +
             "";
         Object value = Parser.parse(sourceCode);
-        Object result = Evaluation.evaluate(Function.compile(new Hashtable<>(), value, instructions -> instructions.add(Instructions.halt())));
+        Hashtable<Symbol, Integer> locals = new Hashtable<>();
+        locals.put(Symbol.get("this"), 0);
+        Object result = Evaluation.evaluate(Function.compile(locals, value, instructions -> instructions.add(Instructions.halt())));
         System.out.println(result);
     }
 }

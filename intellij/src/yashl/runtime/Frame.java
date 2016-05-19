@@ -37,6 +37,10 @@ public class Frame {
         stack.push(stack.peek());
     }
 
+    public void dup2() {
+        stack.add(stack.size() - 2, stack.peek());
+    }
+
     public void load(int ordinal) {
         stack.push(stack.get(ordinal));
     }

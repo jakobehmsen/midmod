@@ -1,7 +1,6 @@
 package yashl.runtime;
 
 public class Evaluation {
-    private Environment environment = new Environment();
     private Frame frame;
     private boolean running;
 
@@ -17,10 +16,6 @@ public class Evaluation {
         this.frame = frame;
     }
 
-    public Environment getEnvironment() {
-        return environment;
-    }
-
     public void evaluate() {
         running = true;
         while(running) {
@@ -30,6 +25,8 @@ public class Evaluation {
 
     public static Object evaluate(Instruction[] instructions) {
         Evaluation evaluation = new Evaluation(new Frame(null, instructions));
+        Environment environment = new Environment();
+        evaluation.getFrame().push(environment);
         evaluation.evaluate();
         return evaluation.getFrame().pop();
     }

@@ -52,9 +52,10 @@ public class Instructions {
         return new Instruction() {
             @Override
             public void evaluate(Evaluation evaluation) {
-                evaluation.popOperands(arity + 1);
+                evaluation.popOperands(arity + 2);
                 Function function = (Function) evaluation.getOperand(arity);
-                function.apply(evaluation, evaluation.getOperands(arity));
+                Environment environment = (Environment) evaluation.getOperand(arity + 1);
+                function.apply(evaluation, environment, evaluation.getOperands(arity));
             }
         };
     }
@@ -85,7 +86,9 @@ public class Instructions {
         return new Instruction() {
             @Override
             public void evaluate(Evaluation evaluation) {
-                evaluation.getFrame().push(evaluation.getEnvironment().get(symbol.getCode()));
+                Environment environment = (Environment) evaluation.getFrame().pop();
+
+                evaluation.getFrame().push(environment.get(symbol.getCode()));
 
                 evaluation.getFrame().incrementIP();
             }
@@ -96,8 +99,11 @@ public class Instructions {
         return new Instruction() {
             @Override
             public void evaluate(Evaluation evaluation) {
-                Object value = evaluation.getFrame().pop();
-                evaluation.getEnvironment().set(symbol.getCode(), value);
+                evaluation.popOperands(2);
+                Environment environment = (Environment) evaluation.getOperand(1);
+                Object value = evaluation.getOperand(0);
+
+                environment.set(symbol.getCode(), value);
 
                 evaluation.getFrame().incrementIP();
             }
@@ -161,6 +167,17 @@ public class Instructions {
                 Number lhs = (Number)evaluation.getOperand(1);
                 Number rhs = (Number)evaluation.getOperand(0);
                 evaluation.getFrame().push(lhs.intValue() + rhs.intValue());
+
+                evaluation.getFrame().incrementIP();
+            }
+        };
+    }
+
+    public static Instruction dup2() {
+        return new Instruction() {
+            @Override
+            public void evaluate(Evaluation evaluation) {
+                evaluation.getFrame().dup2();
 
                 evaluation.getFrame().incrementIP();
             }
