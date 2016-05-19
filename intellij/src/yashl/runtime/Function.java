@@ -186,41 +186,34 @@ public class Function {
             }
         } else {
             ConsCell listValue = (ConsCell) value;
+
             Object firstValue = listValue.getCar();
+
+            SpecialForm specialForm = null;
+
             if(firstValue instanceof Symbol) {
                 Symbol symbolFirstValue = (Symbol) firstValue;
-                SpecialForm specialForm = specialForms.get(symbolFirstValue.getCode());
+                specialForm = specialForms.get(symbolFirstValue.getCode());
+            }
 
-                if(specialForm != null) {
-                    specialForm.compileTo(emitters, listValue, asExpression);
-                } else {
-                    int arityTmp = 0;
-                    ConsCell currentCell = listValue.getCdr();
-                    while(currentCell != null) {
-                        compileTo(currentCell.getCar(), emitters, true);
-                        currentCell = currentCell.getCdr();
-                        arityTmp++;
-                    }
-                    int arity = arityTmp;
-
-                    emitters.add((locals, instructions) -> instructions.add(Instructions.call(symbolFirstValue, arity)));
-                    if(!asExpression)
-                        emitters.add((locals, instructions) -> instructions.add(Instructions.pop()));
-                }
+            if(specialForm != null) {
+                specialForm.compileTo(emitters, listValue, asExpression);
             } else {
-                compileCons(listValue, emitters);
+                compileTo(firstValue, emitters, true);
+
+                int arityTmp = 0;
+                ConsCell currentCell = listValue.getCdr();
+                while(currentCell != null) {
+                    compileTo(currentCell.getCar(), emitters, true);
+                    currentCell = currentCell.getCdr();
+                    arityTmp++;
+                }
+                int arity = arityTmp;
+
+                emitters.add((locals, instructions) -> instructions.add(Instructions.apply(arity)));
                 if(!asExpression)
                     emitters.add((locals, instructions) -> instructions.add(Instructions.pop()));
             }
         }
-    }
-
-    private static void compileCons(ConsCell listValue, List<Emitter> emitters) {
-        compileTo(listValue.getCar(), emitters, true);
-        if(listValue.getCdr() == null)
-            emitters.add((locals, instructions) -> instructions.add(Instructions.loadConst(null)));
-        else
-            compileCons(listValue.getCdr(), emitters);
-        emitters.add((locals, instructions) -> instructions.add(Instructions.cons()));
     }
 }

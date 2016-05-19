@@ -48,12 +48,12 @@ public class Instructions {
         };
     }
 
-    public static Instruction call(Symbol symbol, int arity) {
+    public static Instruction apply(int arity) {
         return new Instruction() {
             @Override
             public void evaluate(Evaluation evaluation) {
-                evaluation.popOperands(arity);
-                Function function = (Function) evaluation.getEnvironment().get(symbol.getCode());
+                evaluation.popOperands(arity + 1);
+                Function function = (Function) evaluation.getOperand(arity);
                 function.apply(evaluation, evaluation.getOperands(arity));
             }
         };
