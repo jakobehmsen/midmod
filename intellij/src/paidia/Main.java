@@ -21,17 +21,47 @@ public class Main {
         contentPane.setLayout(null);
 
         MouseAdapter mouseAdapter = new MouseAdapter() {
-            JComponent currentConstructor;
+            //JComponent currentConstructor;
+            ConstructorCell currentConstructor;
 
             @Override
             public void mouseClicked(MouseEvent e) {
                 if(currentConstructor != null) {
+                    currentConstructor.unbind();
+
                     contentPane.remove(currentConstructor);
                     contentPane.revalidate();
                     contentPane.repaint();
                 }
 
-                JPanel panel = new JPanel(new BorderLayout());
+                currentConstructor = new ConstructorCell();
+
+                currentConstructor.bindTo(new Parameter() {
+                    @Override
+                    public void removeValue() {
+                        contentPane.remove(currentConstructor);
+                        contentPane.revalidate();
+                        contentPane.repaint();
+                    }
+
+                    @Override
+                    public void replaceValue(Value value) {
+                        ((JComponent)value).setLocation(currentConstructor.getLocation());
+                        contentPane.add(((JComponent)value));
+                        contentPane.revalidate();
+                        contentPane.repaint();
+
+                        currentConstructor = null;
+                    }
+                });
+
+                currentConstructor.setLocation(e.getPoint());
+                //currentConstructor.setSize(200, currentConstructor.getHeight());
+
+                //currentConstructor.setSize(currentConstructor.getPreferredSize());
+
+                /*JPanel panel = new JPanel(new BorderLayout());
+
                 JTextArea constructor = new JTextArea();
 
                 panel.add(constructor, BorderLayout.CENTER);
@@ -106,9 +136,15 @@ public class Main {
                 contentPane.add(panel);
                 panel.revalidate();
                 panel.repaint();
+                // TODO: Why is focus not gained?
                 panel.requestFocusInWindow();
 
-                currentConstructor = panel;
+                currentConstructor = panel;*/
+
+                contentPane.add(currentConstructor);
+                currentConstructor.revalidate();
+                currentConstructor.repaint();
+                currentConstructor.requestFocusInWindow();
             }
         };
         contentPane.addMouseListener(mouseAdapter);

@@ -6,6 +6,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 
 import javax.swing.*;
 import javax.swing.plaf.ComponentUI;
+import java.util.Arrays;
 import java.util.List;
 
 public class ComponentParser {
@@ -19,6 +20,12 @@ public class ComponentParser {
 
         if(block.selector() != null) {
             if(block.selector().ADD_OP() != null || block.selector().MUL_OP() != null) {
+                return new CompositeValue(Arrays.asList("lhs", "rhs"), Arrays.asList(new ConstructorCell(), new ConstructorCell()), block.selector().getText(), args -> {
+                    return null;
+                });
+
+                /*
+                // TODO: Should decicated special cell/constructor views be added as lhs and rhs?
                 JTextField lhsView = new JTextField("lhs");
                 lhsView.setSize(((ComponentUI) lhsView.getUI()).getPreferredSize(lhsView));
                 JLabel selectorView = new JLabel(block.selector().getText());
@@ -38,6 +45,7 @@ public class ComponentParser {
                 //view.setSize(((ComponentUI) view.getUI()).getPreferredSize(view));
 
                 return view;
+                */
             }
 
             JLabel view = new JLabel(block.selector().getText());
