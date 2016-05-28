@@ -11,22 +11,124 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.function.Consumer;
 
 public class Main {
     public static void main(String[] args) {
         JFrame frame = new JFrame("Paidia");
 
+        frame.setContentPane(new JPanel() {
+            @Override
+            public boolean isOptimizedDrawingEnabled() {
+                return false;
+            }
+        });
         JComponent contentPane = (JComponent) frame.getContentPane();
 
         contentPane.setLayout(null);
 
         MouseAdapter mouseAdapter = new MouseAdapter() {
-            //JComponent currentConstructor;
             ConstructorCell currentConstructor;
+
+            private void constructDialog(Point location, Parameter valueConsumer) {
+                if(currentConstructor != null) {
+                    //currentConstructor.unbind();
+
+                    contentPane.remove(currentConstructor);
+                    contentPane.revalidate();
+                    contentPane.repaint();
+                }
+
+                currentConstructor = new ConstructorCell(text -> {
+                    return ComponentParser.parse(new Workspace() {
+                        @Override
+                        public void construct(Value target, Parameter valueConsumer) {
+                            Point p = SwingUtilities.convertPoint((JComponent)target, ((JComponent)target).getLocation(), contentPane);
+                            constructDialog(p, new Parameter() {
+                                @Override
+                                public void removeValue() {
+                                    contentPane.remove(currentConstructor);
+                                    contentPane.revalidate();
+                                    contentPane.repaint();
+
+                                    currentConstructor = null;
+                                }
+
+                                @Override
+                                public void replaceValue(Value value) {
+                                    contentPane.remove(currentConstructor);
+
+                                    currentConstructor = null;
+
+                                    valueConsumer.replaceValue(value);
+
+                                    contentPane.revalidate();
+                                    contentPane.repaint();
+                                }
+                            });
+                            contentPane.setComponentZOrder(currentConstructor, 0);
+                        }
+                    }, text);
+                });
+
+                currentConstructor.bindTo(valueConsumer);
+
+                /*currentConstructor.bindTo(new Parameter() {
+                    @Override
+                    public void removeValue() {
+                        contentPane.remove(currentConstructor);
+                        contentPane.revalidate();
+                        contentPane.repaint();
+
+                        //valueConsumer.removeValue();
+                    }
+
+                    @Override
+                    public void replaceValue(Value value) {
+                        ((JComponent)value).setLocation(currentConstructor.getLocation());
+                        contentPane.add(((JComponent)value));
+                        contentPane.revalidate();
+                        contentPane.repaint();
+
+                        currentConstructor = null;
+
+                        valueConsumer.replaceValue(value);
+                    }
+                });*/
+
+                currentConstructor.setLocation(location);
+
+                contentPane.add(currentConstructor);
+                currentConstructor.revalidate();
+                currentConstructor.repaint();
+                currentConstructor.requestFocusInWindow();
+            }
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                if(currentConstructor != null) {
+                constructDialog(e.getPoint(), new Parameter() {
+                    @Override
+                    public void removeValue() {
+                        contentPane.remove(currentConstructor);
+                        contentPane.revalidate();
+                        contentPane.repaint();
+
+                        currentConstructor = null;
+                    }
+
+                    @Override
+                    public void replaceValue(Value value) {
+                        contentPane.remove(currentConstructor);
+                        ((JComponent)value).setLocation(currentConstructor.getLocation());
+                        contentPane.add(((JComponent)value));
+                        contentPane.revalidate();
+                        contentPane.repaint();
+
+                        currentConstructor = null;
+                    }
+                });
+
+                /*if(currentConstructor != null) {
                     currentConstructor.unbind();
 
                     contentPane.remove(currentConstructor);
@@ -34,7 +136,14 @@ public class Main {
                     contentPane.repaint();
                 }
 
-                currentConstructor = new ConstructorCell();
+                currentConstructor = new ConstructorCell(text -> {
+                    return ComponentParser.parse(new Workspace() {
+                        @Override
+                        public void construct(Value target, Consumer<Value> valueConsumer) {
+                            target.toString();
+                        }
+                    }, text);
+                });
 
                 currentConstructor.bindTo(new Parameter() {
                     @Override
@@ -56,95 +165,11 @@ public class Main {
                 });
 
                 currentConstructor.setLocation(e.getPoint());
-                //currentConstructor.setSize(200, currentConstructor.getHeight());
-
-                //currentConstructor.setSize(currentConstructor.getPreferredSize());
-
-                /*JPanel panel = new JPanel(new BorderLayout());
-
-                JTextArea constructor = new JTextArea();
-
-                panel.add(constructor, BorderLayout.CENTER);
-
-                int height = constructor.getFontMetrics(constructor.getFont()).getHeight();
-                panel.setLocation(e.getPoint());
-                panel.setSize(200, height);
-
-                constructor.registerKeyboardAction(e1 -> {
-                    String text = constructor.getText();
-
-                    JComponent view = ComponentParser.parse(text);
-
-                    contentPane.remove(panel);
-                    view.setLocation(panel.getLocation());
-                    contentPane.add(view);
-                    contentPane.revalidate();
-                    contentPane.repaint();
-
-                    currentConstructor = null;
-                }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
-
-                constructor.registerKeyboardAction(e1 -> {
-                    contentPane.remove(panel);
-                    contentPane.revalidate();
-                    contentPane.repaint();
-
-                    currentConstructor = null;
-                }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_FOCUSED);
-
-                constructor.registerKeyboardAction(e1 -> {
-                    try {
-                        constructor.getDocument().insertString(constructor.getDocument().getLength(), "\n", null);
-                    } catch (BadLocationException e2) {
-                        e2.printStackTrace();
-                    }
-                }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.MODIFIER_ALT), JComponent.WHEN_FOCUSED);
-
-                constructor.getDocument().addDocumentListener(new DocumentListener() {
-                    @Override
-                    public void insertUpdate(DocumentEvent e) {
-                        try {
-                            String text = e.getDocument().getText(e.getOffset(), e.getLength());
-                            if(text.matches("\r\n|\r|\n")) {
-                                int additionalHeight = text.equals("\n") ? 1 : text.split("\r\n|\r|\n").length;
-                                panel.setSize(200, panel.getHeight() + additionalHeight * height);
-                            }
-                        } catch (BadLocationException e1) {
-                            e1.printStackTrace();
-                        }
-                    }
-
-                    @Override
-                    public void removeUpdate(DocumentEvent e) {
-                        try {
-                            String text = e.getDocument().getText(e.getOffset(), e.getLength());
-                            if(text.matches("\r\n|\r|\n")) {
-                                int additionalHeight = text.equals("\n") ? 1 : text.split("\r\n|\r|\n").length;
-                                panel.setSize(200, panel.getHeight() - additionalHeight * height);
-                            }
-                        } catch (BadLocationException e1) {
-                            e1.printStackTrace();
-                        }
-                    }
-
-                    @Override
-                    public void changedUpdate(DocumentEvent e) {
-
-                    }
-                });
-
-                contentPane.add(panel);
-                panel.revalidate();
-                panel.repaint();
-                // TODO: Why is focus not gained?
-                panel.requestFocusInWindow();
-
-                currentConstructor = panel;*/
 
                 contentPane.add(currentConstructor);
                 currentConstructor.revalidate();
                 currentConstructor.repaint();
-                currentConstructor.requestFocusInWindow();
+                currentConstructor.requestFocusInWindow();*/
             }
         };
         contentPane.addMouseListener(mouseAdapter);

@@ -10,7 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class ComponentParser {
-    public static JComponent parse(String text) {
+    public static JComponent parse(Workspace workspace, String text) {
         CharStream charStream = new ANTLRInputStream(text);
         PaidiaLexer lexer = new PaidiaLexer(charStream);
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
@@ -20,7 +20,7 @@ public class ComponentParser {
 
         if(block.selector() != null) {
             if(block.selector().ADD_OP() != null || block.selector().MUL_OP() != null) {
-                return new CompositeValue(Arrays.asList("lhs", "rhs"), Arrays.asList(new ConstructorCell(), new ConstructorCell()), block.selector().getText(), args -> {
+                return new CompositeValue(Arrays.asList("lhs", "rhs"), Arrays.asList(new ParameterCell(workspace), new ParameterCell(workspace)), block.selector().getText(), args -> {
                     return null;
                 });
 

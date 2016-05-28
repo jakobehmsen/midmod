@@ -9,12 +9,14 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.BadLocationException;
 import java.awt.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class ConstructorCell extends JPanel implements Value {
     private Parameter parameter;
     private JTextArea constructor;
 
-    public ConstructorCell() {
+    public ConstructorCell(Function<String, JComponent> componentParser) {
         super(new BorderLayout());
         constructor = new JTextArea();
 
@@ -27,9 +29,9 @@ public class ConstructorCell extends JPanel implements Value {
         constructor.registerKeyboardAction(e1 -> {
             String text = constructor.getText();
 
-            JComponent view = ComponentParser.parse(text);
+            JComponent view = componentParser.apply(text);
 
-            parameter.removeValue();
+            //parameter.removeValue();
             parameter.replaceValue((Value)view);
             parameter = null;
         }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
@@ -93,7 +95,9 @@ public class ConstructorCell extends JPanel implements Value {
 
     @Override
     public void unbind() {
-        parameter.removeValue();
-        parameter = null;
+        if(parameter != null) {
+            parameter.removeValue();
+            parameter = null;
+        }
     }
 }
