@@ -78,6 +78,9 @@ public class CompositeValue extends JPanel implements Value {
                 public void componentResized(ComponentEvent e) {
                     setPreferredSize(getLayout().preferredLayoutSize(CompositeValue.this));
                     setSize(getPreferredSize());
+
+                    revalidate();
+                    repaint();
                 }
             };
             ((JComponent)values.get(theI)).addComponentListener(componentAdapter);
