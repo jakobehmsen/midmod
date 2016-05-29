@@ -2,6 +2,8 @@ package paidia;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
@@ -20,18 +22,53 @@ public class Main {
         contentPane.setLayout(null);
 
         MouseAdapter mouseAdapter = new MouseAdapter() {
-            ConstructorCell currentConstructor;
+            ViewBinding currentConstructor;
 
             private void constructDialog(Point location, Parameter valueConsumer) {
                 if(currentConstructor != null) {
                     //currentConstructor.unbind();
 
-                    contentPane.remove(currentConstructor);
+                    contentPane.remove(currentConstructor.getView());
+                    currentConstructor.release();
                     contentPane.revalidate();
                     contentPane.repaint();
                 }
 
-                currentConstructor = new ConstructorCell(text -> {
+                ConstructorCell constructorCell = new ConstructorCell(text -> {
+                    return ComponentParser.parse(new Workspace() {
+                        @Override
+                        public void construct(Value target, Parameter valueConsumer) {
+                            Point p = SwingUtilities.convertPoint((JComponent)target, ((JComponent)target).getLocation(), contentPane);
+                            constructDialog(p, new Parameter() {
+                                @Override
+                                public void removeValue() {
+                                    contentPane.remove(currentConstructor.getView());
+                                    contentPane.revalidate();
+                                    contentPane.repaint();
+
+                                    currentConstructor = null;
+                                }
+
+                                @Override
+                                public void replaceValue(Value value) {
+                                    contentPane.remove(currentConstructor.getView());
+
+                                    currentConstructor = null;
+
+                                    valueConsumer.replaceValue(value);
+
+                                    contentPane.revalidate();
+                                    contentPane.repaint();
+                                }
+                            });
+                            contentPane.setComponentZOrder(currentConstructor.getView(), 0);
+                        }
+                    }, text);
+                });
+
+                currentConstructor = constructorCell.toComponent();
+
+                /*currentConstructor = new ConstructorCell(text -> {
                     return ComponentParser.parse(new Workspace() {
                         @Override
                         public void construct(Value target, Parameter valueConsumer) {
@@ -61,16 +98,16 @@ public class Main {
                             contentPane.setComponentZOrder(currentConstructor, 0);
                         }
                     }, text);
-                });
+                });*/
 
-                currentConstructor.bindTo(valueConsumer);
+                constructorCell.bindTo(valueConsumer);
 
-                currentConstructor.setLocation(location);
+                currentConstructor.getView().setLocation(location);
 
-                contentPane.add(currentConstructor);
-                currentConstructor.revalidate();
-                currentConstructor.repaint();
-                currentConstructor.requestFocusInWindow();
+                contentPane.add(currentConstructor.getView());
+                currentConstructor.getView().revalidate();
+                currentConstructor.getView().repaint();
+                currentConstructor.getView().requestFocusInWindow();
             }
 
             @Override
@@ -78,7 +115,7 @@ public class Main {
                 constructDialog(e.getPoint(), new Parameter() {
                     @Override
                     public void removeValue() {
-                        contentPane.remove(currentConstructor);
+                        contentPane.remove(currentConstructor.getView());
                         contentPane.revalidate();
                         contentPane.repaint();
 
@@ -87,9 +124,20 @@ public class Main {
 
                     @Override
                     public void replaceValue(Value value) {
-                        contentPane.remove(currentConstructor);
-                        ((JComponent)value).setLocation(currentConstructor.getLocation());
-                        contentPane.add(((JComponent)value));
+                        // Use prefered size; listen for size changes
+                        contentPane.remove(currentConstructor.getView());
+                        JComponent valueAsComponent = value.toComponent().getView();
+
+                        valueAsComponent.addComponentListener(new ComponentAdapter() {
+                            @Override
+                            public void componentResized(ComponentEvent e) {
+                                e.getComponent().revalidate();
+                                e.getComponent().repaint();
+                            }
+                        });
+
+                        valueAsComponent.setLocation(currentConstructor.getView().getLocation());
+                        contentPane.add(valueAsComponent);
                         contentPane.revalidate();
                         contentPane.repaint();
 
