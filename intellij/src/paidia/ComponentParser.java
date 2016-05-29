@@ -23,29 +23,6 @@ public class ComponentParser {
                 return new CompositeValue(Arrays.asList("lhs", "rhs"), Arrays.asList(new ParameterCell(workspace), new ParameterCell(workspace)), block.selector().getText(), args -> {
                     return null;
                 });
-
-                /*
-                // TODO: Should decicated special cell/constructor views be added as lhs and rhs?
-                JTextField lhsView = new JTextField("lhs");
-                lhsView.setSize(((ComponentUI) lhsView.getUI()).getPreferredSize(lhsView));
-                JLabel selectorView = new JLabel(block.selector().getText());
-                selectorView.setSize(((ComponentUI) selectorView.getUI()).getPreferredSize(selectorView));
-                JTextField rhsView = new JTextField("rhs");
-                rhsView.setSize(((ComponentUI) rhsView.getUI()).getPreferredSize(rhsView));
-
-                JPanel view = new JPanel();
-
-                view.add(lhsView);
-                view.add(selectorView);
-                view.add(rhsView);
-
-                view.setSize(lhsView.getWidth() + selectorView.getWidth() + rhsView.getWidth() + 25, 30);
-                view.setBorder(BorderFactory.createRaisedSoftBevelBorder());
-
-                //view.setSize(((ComponentUI) view.getUI()).getPreferredSize(view));
-
-                return view;
-                */
             }
 
             JLabel view = new JLabel(block.selector().getText());
