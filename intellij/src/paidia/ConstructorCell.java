@@ -14,12 +14,14 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class ConstructorCell implements Value {
+    private String initialSource;
     private Parameter parameter;
     private Function<String, Value> componentParser;
 
-    public ConstructorCell(Function<String, Value> componentParser) {
+    public ConstructorCell(String initialSource, Function<String, Value> componentParser) {
         //constructor = new JTextArea();
 
+        this.initialSource = initialSource;
         this.componentParser = componentParser;
 
         /*add(constructor, BorderLayout.CENTER);
@@ -108,7 +110,7 @@ public class ConstructorCell implements Value {
 
     @Override
     public ViewBinding toComponent() {
-        JTextArea constructor = new JTextArea();
+        JTextArea constructor = new JTextArea(initialSource);
 
         JPanel view = new JPanel(new BorderLayout()) {
             @Override

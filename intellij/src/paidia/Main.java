@@ -34,7 +34,7 @@ public class Main {
                     contentPane.repaint();
                 }
 
-                ConstructorCell constructorCell = new ConstructorCell(text -> {
+                ConstructorCell constructorCell = new ConstructorCell("", text -> {
                     return ComponentParser.parse(new Workspace() {
                         @Override
                         public void construct(Value target, Parameter valueConsumer) {
@@ -113,9 +113,17 @@ public class Main {
             @Override
             public void mouseClicked(MouseEvent e) {
                 constructDialog(e.getPoint(), new Parameter() {
+                    ViewBinding viewBinding;
+
+                    private ViewBinding getViewBinding() {
+                        if(viewBinding == null)
+                            return currentConstructor;
+                        return viewBinding;
+                    }
+
                     @Override
                     public void removeValue() {
-                        contentPane.remove(currentConstructor.getView());
+                        contentPane.remove(getViewBinding().getView());
                         contentPane.revalidate();
                         contentPane.repaint();
 
@@ -125,8 +133,9 @@ public class Main {
                     @Override
                     public void replaceValue(Value value) {
                         // Use prefered size; listen for size changes
-                        contentPane.remove(currentConstructor.getView());
-                        JComponent valueAsComponent = value.toComponent().getView();
+                        contentPane.remove(getViewBinding().getView());
+                        ViewBinding newViewBinding = value.toComponent();
+                        JComponent valueAsComponent = newViewBinding.getView();
 
                         valueAsComponent.addComponentListener(new ComponentAdapter() {
                             @Override
@@ -136,12 +145,17 @@ public class Main {
                             }
                         });
 
-                        valueAsComponent.setLocation(currentConstructor.getView().getLocation());
+                        valueAsComponent.setLocation(getViewBinding().getView().getLocation());
                         contentPane.add(valueAsComponent);
                         contentPane.revalidate();
                         contentPane.repaint();
 
-                        currentConstructor = null;
+                        value.bindTo(this);
+
+                        if(getViewBinding() == currentConstructor)
+                            currentConstructor = null;
+
+                        viewBinding = newViewBinding;
                     }
                 });
             }

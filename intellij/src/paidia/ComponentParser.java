@@ -4,8 +4,6 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 
-import javax.swing.*;
-import javax.swing.plaf.ComponentUI;
 import java.util.Arrays;
 import java.util.List;
 
@@ -31,15 +29,15 @@ public class ComponentParser {
 
             return null;
         } else {
-            return parseBlockParts(block.blockPart());
+            return parseBlockParts(workspace, block.blockPart());
         }
     }
 
-    private static Value parseBlockParts(List<PaidiaParser.BlockPartContext> blockPartContexts) {
+    private static Value parseBlockParts(Workspace workspace, List<PaidiaParser.BlockPartContext> blockPartContexts) {
         if (blockPartContexts.size() == 0)
             return null;
         else if (blockPartContexts.size() == 1) {
-            return parseBlockPart(blockPartContexts.get(0));
+            return parseBlockPart(workspace, blockPartContexts.get(0));
         } else {
             // Multiple parts.
 
@@ -47,7 +45,7 @@ public class ComponentParser {
         }
     }
 
-    private static Value parseBlockPart(PaidiaParser.BlockPartContext blockPartContext) {
+    private static Value parseBlockPart(Workspace workspace, PaidiaParser.BlockPartContext blockPartContext) {
         return blockPartContext.accept(new PaidiaBaseVisitor<Value>() {
             @Override
             public Value visitNumber(PaidiaParser.NumberContext ctx) {
@@ -59,7 +57,7 @@ public class ComponentParser {
                     number = Double.parseDouble(ctx.getText());
                 }
 
-                return new NumberValue(number);
+                return new AtomValue(workspace, ctx.getText(), number);
             }
         });
     }

@@ -36,7 +36,7 @@ public class ParameterCell implements Value {
         view.addActionListener(e -> {
             //workspace.construct(this, parameter);
 
-            ConstructorCell constructorCell = new ConstructorCell(c -> ComponentParser.parse(workspace, c));
+            ConstructorCell constructorCell = new ConstructorCell("", c -> ComponentParser.parse(workspace, c));
             parameter.replaceValue(constructorCell);
             //constructorCell.requestFocusInWindow();
         });
