@@ -7,7 +7,10 @@ import javax.swing.event.AncestorEvent;
 import javax.swing.event.AncestorListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.function.Consumer;
@@ -151,14 +154,40 @@ public class ConstructorCell implements Value {
             }
         }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.MODIFIER_ALT), JComponent.WHEN_FOCUSED);
 
-        constructor.getDocument().addDocumentListener(new DocumentListener() {
+        ((AbstractDocument)constructor.getDocument()).setDocumentFilter(new DocumentFilter() {
+            @Override
+            public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
+                String text = string;
+                if(text.matches("\r\n|\r|\n")) {
+                    int additionalHeight = text.equals("\n") ? 1 : text.split("\r\n|\r|\n").length;
+                    view.setPreferredSize(new Dimension(200, view.getHeight() + additionalHeight * height));
+                    view.setSize(view.getPreferredSize());
+                }
+
+                super.insertString(fb, offset, string, attr);
+            }
+
+            @Override
+            public void remove(FilterBypass fb, int offset, int length) throws BadLocationException {
+                String text = fb.getDocument().getText(offset, length);
+                if(text.matches("\r\n|\r|\n")) {
+                    int additionalHeight = text.equals("\n") ? 1 : text.split("\r\n|\r|\n").length;
+                    view.setPreferredSize(new Dimension(200, view.getHeight() - additionalHeight * height));
+                    view.setSize(view.getPreferredSize());
+                }
+
+                super.remove(fb, offset, length);
+            }
+        });
+        /*constructor.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
                 try {
                     String text = e.getDocument().getText(e.getOffset(), e.getLength());
                     if(text.matches("\r\n|\r|\n")) {
                         int additionalHeight = text.equals("\n") ? 1 : text.split("\r\n|\r|\n").length;
-                        view.setSize(200, view.getHeight() + additionalHeight * height);
+                        view.setPreferredSize(new Dimension(200, view.getHeight() + additionalHeight * height));
+                        view.setSize(view.getPreferredSize());
                     }
                 } catch (BadLocationException e1) {
                     e1.printStackTrace();
@@ -182,7 +211,7 @@ public class ConstructorCell implements Value {
             public void changedUpdate(DocumentEvent e) {
 
             }
-        });
+        });*/
 
         return new ViewBinding() {
             @Override
