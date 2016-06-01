@@ -113,4 +113,9 @@ public class AtomValue implements Value {
             }
         };*/
     }
+
+    @Override
+    public String toSource() {
+        return source;
+    }
 }

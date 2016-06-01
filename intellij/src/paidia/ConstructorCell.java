@@ -22,78 +22,9 @@ public class ConstructorCell implements Value {
     private Function<String, Value> componentParser;
 
     public ConstructorCell(String initialSource, Function<String, Value> componentParser) {
-        //constructor = new JTextArea();
-
         this.initialSource = initialSource;
         this.componentParser = componentParser;
-
-        /*add(constructor, BorderLayout.CENTER);
-
-        int height = constructor.getFontMetrics(constructor.getFont()).getHeight();
-        setSize(200, height);
-        setPreferredSize(getSize());
-
-        constructor.registerKeyboardAction(e1 -> {
-            String text = constructor.getText();
-
-            Value view = componentParser.apply(text);
-
-            //parameter.removeValue();
-            parameter.replaceValue((Value)view);
-            parameter = null;
-        }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
-
-        constructor.registerKeyboardAction(e1 -> {
-            parameter.removeValue();
-            parameter = null;
-        }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_FOCUSED);
-
-        constructor.registerKeyboardAction(e1 -> {
-            try {
-                constructor.getDocument().insertString(constructor.getDocument().getLength(), "\n", null);
-            } catch (BadLocationException e2) {
-                e2.printStackTrace();
-            }
-        }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.MODIFIER_ALT), JComponent.WHEN_FOCUSED);
-
-        constructor.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                try {
-                    String text = e.getDocument().getText(e.getOffset(), e.getLength());
-                    if(text.matches("\r\n|\r|\n")) {
-                        int additionalHeight = text.equals("\n") ? 1 : text.split("\r\n|\r|\n").length;
-                        setSize(200, getHeight() + additionalHeight * height);
-                    }
-                } catch (BadLocationException e1) {
-                    e1.printStackTrace();
-                }
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                try {
-                    String text = e.getDocument().getText(e.getOffset(), e.getLength());
-                    if(text.matches("\r\n|\r|\n")) {
-                        int additionalHeight = text.equals("\n") ? 1 : text.split("\r\n|\r|\n").length;
-                        setSize(200, getHeight() - additionalHeight * height);
-                    }
-                } catch (BadLocationException e1) {
-                    e1.printStackTrace();
-                }
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-
-            }
-        });*/
     }
-
-    /*@Override
-    public boolean requestFocusInWindow() {
-        return constructor.requestFocusInWindow();
-    }*/
 
     private ArrayList<Runnable> wasBoundListeners = new ArrayList<>();
 
@@ -128,7 +59,8 @@ public class ConstructorCell implements Value {
         view.add(constructor, BorderLayout.CENTER);
 
         int height = constructor.getFontMetrics(constructor.getFont()).getHeight();
-        view.setSize(200, height);
+        int theHeight = height * initialSource.split("\r\n|\r|\n").length;
+        view.setSize(200, theHeight);
         view.setPreferredSize(view.getSize());
 
         constructor.registerKeyboardAction(e1 -> {
@@ -148,7 +80,8 @@ public class ConstructorCell implements Value {
 
         constructor.registerKeyboardAction(e1 -> {
             try {
-                constructor.getDocument().insertString(constructor.getDocument().getLength(), "\n", null);
+                int index = constructor.getCaretPosition();
+                constructor.getDocument().insertString(index, "\n", null);
             } catch (BadLocationException e2) {
                 e2.printStackTrace();
             }
@@ -224,5 +157,11 @@ public class ConstructorCell implements Value {
                 wasBoundListeners.remove(listener);
             }
         };
+    }
+
+    @Override
+    public String toSource() {
+        // Should be the current text instead of an immutable?
+        return initialSource;
     }
 }

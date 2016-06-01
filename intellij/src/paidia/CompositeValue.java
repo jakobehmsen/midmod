@@ -4,20 +4,29 @@ import javax.swing.*;
 import javax.swing.plaf.ComponentUI;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 
 public class CompositeValue implements Value {
     private List<String> parameters;
     private String operationName;
     private Function<Object[], Object> reducer;
     private List<Value> values;
+    private Workspace workspace;
+    private String source;
 
-    public CompositeValue(List<String> parameters, List<Value> values, String operationName, Function<Object[], Object> reducer) {
+    public CompositeValue(List<String> parameters, List<Value> values, String operationName, Function<Object[], Object> reducer, Workspace workspace, String source) {
         this.parameters = parameters;
         this.operationName = operationName;
         this.reducer = reducer;
         this.values = values;
+        this.workspace = workspace;
+        this.source = source;
 
         /*int operationNameIndex = 1;
 
@@ -82,21 +91,23 @@ public class CompositeValue implements Value {
         setSize(getPreferredSize());*/
     }
 
+    private Parameter parameter;
+
     @Override
     public void bindTo(Parameter parameter) {
-
+        this.parameter = parameter;
     }
 
     @Override
     public void unbind() {
-
+        parameter = null;
     }
+
+    private int operationNameIndex = 1;
 
     @Override
     public ViewBinding toComponent() {
         JPanel view = new JPanel();
-
-        int operationNameIndex = 1;
 
         int zIndex = 0;
         for(int i = 0; i < parameters.size(); i++) {
@@ -160,6 +171,18 @@ public class CompositeValue implements Value {
             zIndex++;
         }
 
+        view.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if(e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() == 2) {
+                    String initialSource = toSource();
+
+                    ConstructorCell constructorCell = new ConstructorCell(initialSource, c -> ComponentParser.parse(workspace, c));
+                    parameter.replaceValue(constructorCell);
+                }
+            }
+        });
+
         view.setBorder(BorderFactory.createRaisedSoftBevelBorder());
         view.setSize(view.getPreferredSize());
 
@@ -175,5 +198,23 @@ public class CompositeValue implements Value {
 
             }
         };
+    }
+
+    @Override
+    public String toSource() {
+        String allSource = "";
+
+        for(int i = 0; i < values.size(); i++) {
+            if(i == operationNameIndex)
+                allSource += source;
+            allSource += values.get(i).toSource();
+        }
+
+        // Combine source with parameters
+        // - what if not all parameters are set?
+        // - have special syntax for this?
+        //   - e.g.: ? + ?
+
+        return allSource;
     }
 }
