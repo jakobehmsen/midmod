@@ -1,20 +1,14 @@
 package paidia;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 
-public class AtomValue implements Value {
+public class AtomValue extends AbstractValue {
     private Workspace workspace;
     private String source;
     private Object number;
-    private Parameter parameter;
+    //private Parameter parameter;
 
     public AtomValue(Workspace workspace, String source, Object number) {
         this.workspace = workspace;
@@ -23,16 +17,6 @@ public class AtomValue implements Value {
         //setValue(number);
 
         //setSize(getPreferredSize());
-    }
-
-    @Override
-    public void bindTo(Parameter parameter) {
-        this.parameter = parameter;
-    }
-
-    @Override
-    public void unbind() {
-        parameter = null;
     }
 
     @Override
@@ -46,7 +30,8 @@ public class AtomValue implements Value {
             public void mouseClicked(MouseEvent e) {
                 if(e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() == 2) {
                     ConstructorCell constructorCell = new ConstructorCell(source, c -> ComponentParser.parse(workspace, c));
-                    parameter.replaceValue(constructorCell);
+                    //parameter.replaceValue(constructorCell);
+                    sendReplaceValue(constructorCell);
                 }
             }
         });

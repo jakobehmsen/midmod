@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
-public class CompositeValue implements Value {
+public class CompositeValue extends AbstractValue {
     private List<String> parameters;
     private String operationName;
     private Function<Object[], Object> reducer;
@@ -91,18 +91,6 @@ public class CompositeValue implements Value {
         setSize(getPreferredSize());*/
     }
 
-    private Parameter parameter;
-
-    @Override
-    public void bindTo(Parameter parameter) {
-        this.parameter = parameter;
-    }
-
-    @Override
-    public void unbind() {
-        parameter = null;
-    }
-
     private int operationNameIndex = 1;
 
     @Override
@@ -135,7 +123,38 @@ public class CompositeValue implements Value {
             };
             parameterView.getView().addComponentListener(componentAdapter);
 
-            values.get(i).bindTo(new Parameter() {
+            values.get(i).addUsage(new Usage() {
+                ViewBinding valueView = parameterView;
+
+                @Override
+                public void removeValue() {
+
+                }
+
+                @Override
+                public void replaceValue(Value value) {
+                    if(valueView != null) {
+                        valueView.getView().removeComponentListener(componentAdapter);
+                        valueView.release();
+                    }
+
+                    ViewBinding valueAsComponent = value.toComponent();
+
+                    valueAsComponent.getView().addComponentListener(componentAdapter);
+
+                    view.remove(theZIndex);
+                    view.add(valueAsComponent.getView(), theZIndex);
+                    view.setPreferredSize(view.getLayout().preferredLayoutSize(view));
+                    view.setSize(view.getPreferredSize());
+
+                    values.set(theI, value);
+                    value.addUsage(this);
+
+                    valueView = valueAsComponent;
+                }
+            });
+
+            /*values.get(i).bindTo(new Parameter() {
                 ViewBinding valueView = parameterView;
 
                 @Override
@@ -166,7 +185,7 @@ public class CompositeValue implements Value {
 
                     valueView = valueAsComponent;
                 }
-            });
+            });*/
             view.add(parameterView.getView());
             zIndex++;
         }
@@ -178,7 +197,8 @@ public class CompositeValue implements Value {
                     String initialSource = toSource();
 
                     ConstructorCell constructorCell = new ConstructorCell(initialSource, c -> ComponentParser.parse(workspace, c));
-                    parameter.replaceValue(constructorCell);
+                    //parameter.replaceValue(constructorCell);
+                    sendReplaceValue(constructorCell);
                 }
             }
         });

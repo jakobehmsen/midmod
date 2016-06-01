@@ -1,6 +1,6 @@
 package paidia;
 
-public interface Parameter {
+public interface Usage {
     void removeValue();
     void replaceValue(Value value);
 }

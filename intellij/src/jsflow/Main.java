@@ -503,7 +503,7 @@ public class Main {
 
                         @Override
                         public void remove() {
-                            sendRemove();
+                            sendRemoveValue();
                         }
                     });
                     observable.sendState();

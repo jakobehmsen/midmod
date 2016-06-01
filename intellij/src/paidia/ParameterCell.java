@@ -2,8 +2,8 @@ package paidia;
 
 import javax.swing.*;
 
-public class ParameterCell implements Value {
-    private Parameter parameter;
+public class ParameterCell extends AbstractValue {
+    //private Parameter parameter;
     private Workspace workspace;
 
     public ParameterCell(Workspace workspace) {
@@ -20,16 +20,6 @@ public class ParameterCell implements Value {
     }
 
     @Override
-    public void bindTo(Parameter parameter) {
-        this.parameter = parameter;
-    }
-
-    @Override
-    public void unbind() {
-        parameter = null;
-    }
-
-    @Override
     public ViewBinding toComponent() {
         JButton view = new JButton("?");
 
@@ -37,7 +27,8 @@ public class ParameterCell implements Value {
             //workspace.construct(this, parameter);
 
             ConstructorCell constructorCell = new ConstructorCell("", c -> ComponentParser.parse(workspace, c));
-            parameter.replaceValue(constructorCell);
+            //parameter.replaceValue(constructorCell);
+            sendReplaceValue(constructorCell);
             //constructorCell.requestFocusInWindow();
         });
 

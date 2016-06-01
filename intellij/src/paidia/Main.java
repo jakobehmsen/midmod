@@ -24,7 +24,7 @@ public class Main {
         MouseAdapter mouseAdapter = new MouseAdapter() {
             ViewBinding currentConstructor;
 
-            private void constructDialog(Point location, Parameter valueConsumer) {
+            private void constructDialog(Point location, Usage usage) {
                 if(currentConstructor != null) {
                     //currentConstructor.unbind();
 
@@ -36,33 +36,7 @@ public class Main {
 
                 ConstructorCell constructorCell = new ConstructorCell("", text -> {
                     return ComponentParser.parse(new Workspace() {
-                        @Override
-                        public void construct(Value target, Parameter valueConsumer) {
-                            Point p = SwingUtilities.convertPoint((JComponent)target, ((JComponent)target).getLocation(), contentPane);
-                            constructDialog(p, new Parameter() {
-                                @Override
-                                public void removeValue() {
-                                    contentPane.remove(currentConstructor.getView());
-                                    contentPane.revalidate();
-                                    contentPane.repaint();
 
-                                    currentConstructor = null;
-                                }
-
-                                @Override
-                                public void replaceValue(Value value) {
-                                    contentPane.remove(currentConstructor.getView());
-
-                                    currentConstructor = null;
-
-                                    valueConsumer.replaceValue(value);
-
-                                    contentPane.revalidate();
-                                    contentPane.repaint();
-                                }
-                            });
-                            contentPane.setComponentZOrder(currentConstructor.getView(), 0);
-                        }
                     }, text);
                 });
 
@@ -100,7 +74,8 @@ public class Main {
                     }, text);
                 });*/
 
-                constructorCell.bindTo(valueConsumer);
+                //constructorCell.bindTo(usage);
+                constructorCell.addUsage(usage);
 
                 currentConstructor.getView().setLocation(location);
 
@@ -112,7 +87,7 @@ public class Main {
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                constructDialog(e.getPoint(), new Parameter() {
+                constructDialog(e.getPoint(), new Usage() {
                     ViewBinding viewBinding;
 
                     private ViewBinding getViewBinding() {
@@ -150,7 +125,8 @@ public class Main {
                         contentPane.revalidate();
                         contentPane.repaint();
 
-                        value.bindTo(this);
+                        //value.bindTo(this);
+                        value.addUsage(this);
 
                         if(getViewBinding() == currentConstructor)
                             currentConstructor = null;

@@ -3,22 +3,17 @@ package paidia;
 import com.sun.glass.events.KeyEvent;
 
 import javax.swing.*;
-import javax.swing.event.AncestorEvent;
-import javax.swing.event.AncestorListener;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class ConstructorCell implements Value {
+public class ConstructorCell extends AbstractValue {
     private String initialSource;
-    private Parameter parameter;
+    //private Parameter parameter;
     private Function<String, Value> componentParser;
 
     public ConstructorCell(String initialSource, Function<String, Value> componentParser) {
@@ -29,17 +24,9 @@ public class ConstructorCell implements Value {
     private ArrayList<Runnable> wasBoundListeners = new ArrayList<>();
 
     @Override
-    public void bindTo(Parameter parameter) {
-        this.parameter = parameter;
+    public void addUsage(Usage usage) {
+        super.addUsage(usage);
         wasBoundListeners.forEach(x -> x.run());
-    }
-
-    @Override
-    public void unbind() {
-        if(parameter != null) {
-            parameter.removeValue();
-            parameter = null;
-        }
     }
 
     @Override
@@ -69,13 +56,15 @@ public class ConstructorCell implements Value {
             Value value = componentParser.apply(text);
 
             //parameter.removeValue();
-            parameter.replaceValue(value);
-            parameter = null;
+            //parameter.replaceValue(value);
+            //parameter = null;
+            sendReplaceValue(value);
         }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
 
         constructor.registerKeyboardAction(e1 -> {
-            parameter.removeValue();
-            parameter = null;
+            //parameter.removeValue();
+            //parameter = null;
+            sendRemoveValue();
         }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_FOCUSED);
 
         constructor.registerKeyboardAction(e1 -> {
