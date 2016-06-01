@@ -26,10 +26,6 @@ public class ComponentParser {
                 }, workspace, block.selector().getText());
             }
 
-            /*JLabel view = new JLabel(block.selector().getText());
-            view.setSize(((ComponentUI) view.getUI()).getPreferredSize(view));
-            return view;*/
-
             return null;
         } else {
             return parseBlockParts(workspace, block.blockPart());

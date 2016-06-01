@@ -13,7 +13,6 @@ import java.util.function.Function;
 
 public class ConstructorCell extends AbstractValue {
     private String initialSource;
-    //private Parameter parameter;
     private Function<String, Value> componentParser;
 
     public ConstructorCell(String initialSource, Function<String, Value> componentParser) {
@@ -55,15 +54,10 @@ public class ConstructorCell extends AbstractValue {
 
             Value value = componentParser.apply(text);
 
-            //parameter.removeValue();
-            //parameter.replaceValue(value);
-            //parameter = null;
             sendReplaceValue(value);
         }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
 
         constructor.registerKeyboardAction(e1 -> {
-            //parameter.removeValue();
-            //parameter = null;
             sendRemoveValue();
         }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_FOCUSED);
 
@@ -101,39 +95,6 @@ public class ConstructorCell extends AbstractValue {
                 super.remove(fb, offset, length);
             }
         });
-        /*constructor.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                try {
-                    String text = e.getDocument().getText(e.getOffset(), e.getLength());
-                    if(text.matches("\r\n|\r|\n")) {
-                        int additionalHeight = text.equals("\n") ? 1 : text.split("\r\n|\r|\n").length;
-                        view.setPreferredSize(new Dimension(200, view.getHeight() + additionalHeight * height));
-                        view.setSize(view.getPreferredSize());
-                    }
-                } catch (BadLocationException e1) {
-                    e1.printStackTrace();
-                }
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                try {
-                    String text = e.getDocument().getText(e.getOffset(), e.getLength());
-                    if(text.matches("\r\n|\r|\n")) {
-                        int additionalHeight = text.equals("\n") ? 1 : text.split("\r\n|\r|\n").length;
-                        view.setSize(200, view.getHeight() - additionalHeight * height);
-                    }
-                } catch (BadLocationException e1) {
-                    e1.printStackTrace();
-                }
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-
-            }
-        });*/
 
         return new ViewBinding() {
             @Override

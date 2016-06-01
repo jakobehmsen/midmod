@@ -1,7 +1,5 @@
 package paidia;
 
-import javax.swing.*;
-
 public interface Value {
     ViewBinding toComponent();
     String toSource();

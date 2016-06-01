@@ -26,7 +26,6 @@ public class Main {
 
             private void constructDialog(Point location, Usage usage) {
                 if(currentConstructor != null) {
-                    //currentConstructor.unbind();
 
                     contentPane.remove(currentConstructor.getView());
                     currentConstructor.release();
@@ -42,39 +41,6 @@ public class Main {
 
                 currentConstructor = constructorCell.toComponent();
 
-                /*currentConstructor = new ConstructorCell(text -> {
-                    return ComponentParser.parse(new Workspace() {
-                        @Override
-                        public void construct(Value target, Parameter valueConsumer) {
-                            Point p = SwingUtilities.convertPoint((JComponent)target, ((JComponent)target).getLocation(), contentPane);
-                            constructDialog(p, new Parameter() {
-                                @Override
-                                public void removeValue() {
-                                    contentPane.remove(currentConstructor);
-                                    contentPane.revalidate();
-                                    contentPane.repaint();
-
-                                    currentConstructor = null;
-                                }
-
-                                @Override
-                                public void replaceValue(Value value) {
-                                    contentPane.remove(currentConstructor);
-
-                                    currentConstructor = null;
-
-                                    valueConsumer.replaceValue(value);
-
-                                    contentPane.revalidate();
-                                    contentPane.repaint();
-                                }
-                            });
-                            contentPane.setComponentZOrder(currentConstructor, 0);
-                        }
-                    }, text);
-                });*/
-
-                //constructorCell.bindTo(usage);
                 constructorCell.addUsage(usage);
 
                 currentConstructor.getView().setLocation(location);
@@ -125,7 +91,6 @@ public class Main {
                         contentPane.revalidate();
                         contentPane.repaint();
 
-                        //value.bindTo(this);
                         value.addUsage(this);
 
                         if(getViewBinding() == currentConstructor)
