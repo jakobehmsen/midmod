@@ -60,8 +60,6 @@ public class Main {
                                 private JComponent selection;
                                 private int mousePressX;
                                 private int mousePressY;
-                                private int moveLastX;
-                                private int moveLastY;
                                 private boolean moving;
 
                                 @Override
@@ -83,13 +81,11 @@ public class Main {
                                         selection.revalidate();
                                     } else if(e.getButton() == MouseEvent.BUTTON1) {
                                         moving = true;
+                                        view.getParent().setComponentZOrder(view, 0);
                                         int cursorType = Cursor.MOVE_CURSOR;
                                         Component glassPane = ((RootPaneContainer)contentPane.getTopLevelAncestor()).getGlassPane();
                                         glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
                                         glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
-
-                                        moveLastX = e.getX();
-                                        moveLastY = e.getY();
 
                                         mousePressX = e.getX();
                                         mousePressY = e.getY();
@@ -99,22 +95,10 @@ public class Main {
                                 @Override
                                 public void mouseDragged(MouseEvent e) {
                                     if(moving) {
-
                                         int deltaX = e.getX() - mousePressX;
                                         int deltaY = e.getY() - mousePressY;
 
-                                        System.out.println("e.getX()=" + e.getX());
-                                        System.out.println("e.getY()=" + e.getY());
-
-                                        System.out.println("deltaX=" + deltaX);
-                                        System.out.println("deltaY=" + deltaY);
-
-                                        moveLastX = e.getX();
-                                        moveLastY = e.getY();
-
                                         view.setLocation(view.getX() + deltaX, view.getY() + deltaY);
-                                        //view.repaint();
-                                        //view.revalidate();
                                     }
                                 }
 
@@ -135,16 +119,6 @@ public class Main {
                                         Component glassPane = ((RootPaneContainer)contentPane.getTopLevelAncestor()).getGlassPane();
                                         glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
                                         glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
-
-                                        int deltaX = e.getX() - mousePressX;
-                                        int deltaY = e.getY() - mousePressY;
-
-                                        moveLastX = e.getX();
-                                        moveLastY = e.getY();
-
-                                        view.setLocation(view.getX() + deltaX, view.getY() + deltaY);
-                                        //view.repaint();
-                                        //view.revalidate();
                                     }
                                 }
                             };
