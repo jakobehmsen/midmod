@@ -21,15 +21,7 @@ public class AtomValue extends AbstractValue {
 
         view.setSize(view.getPreferredSize());
 
-        view.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if(e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() == 2) {
-                    ConstructorCell constructorCell = new ConstructorCell(source, c -> ComponentParser.parse(workspace, c));
-                    sendReplaceValue(constructorCell);
-                }
-            }
-        });
+        workspace.setupView(view, () -> source, newValue -> sendReplaceValue(newValue));
 
         return new ViewBinding() {
             @Override

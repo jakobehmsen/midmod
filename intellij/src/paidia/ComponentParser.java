@@ -21,6 +21,7 @@ public class ComponentParser {
 
         if(block.selector() != null) {
             if(block.selector().ADD_OP() != null || block.selector().MUL_OP() != null) {
+                // Use ConstructorCell instead of ParameterCell?
                 return new CompositeValue(Arrays.asList("lhs", "rhs"), Arrays.asList(new ParameterCell(workspace), new ParameterCell(workspace)), block.selector().getText(), args -> {
                     return null;
                 }, workspace, block.selector().getText());

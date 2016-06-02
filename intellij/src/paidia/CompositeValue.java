@@ -90,17 +90,7 @@ public class CompositeValue extends AbstractValue {
             zIndex++;
         }
 
-        view.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if(e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() == 2) {
-                    String initialSource = toSource();
-
-                    ConstructorCell constructorCell = new ConstructorCell(initialSource, c -> ComponentParser.parse(workspace, c));
-                    sendReplaceValue(constructorCell);
-                }
-            }
-        });
+        workspace.setupView(view, () -> toSource(), newValue -> sendReplaceValue(newValue));
 
         view.setBorder(BorderFactory.createRaisedSoftBevelBorder());
         view.setSize(view.getPreferredSize());
