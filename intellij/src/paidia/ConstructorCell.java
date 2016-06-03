@@ -29,6 +29,11 @@ public class ConstructorCell extends AbstractValue {
     }
 
     @Override
+    public Value reduce() {
+        return null;
+    }
+
+    @Override
     public ViewBinding toComponent() {
         JTextArea constructor = new JTextArea(initialSource);
 
@@ -105,6 +110,16 @@ public class ConstructorCell extends AbstractValue {
             @Override
             public void release() {
                 wasBoundListeners.remove(listener);
+            }
+
+            @Override
+            public boolean isCompatibleWith(Value value) {
+                return false;
+            }
+
+            @Override
+            public void updateFrom(Value value) {
+
             }
         };
     }

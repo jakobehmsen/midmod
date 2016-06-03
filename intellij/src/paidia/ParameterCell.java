@@ -28,11 +28,26 @@ public class ParameterCell extends AbstractValue {
             public void release() {
 
             }
+
+            @Override
+            public boolean isCompatibleWith(Value value) {
+                return false;
+            }
+
+            @Override
+            public void updateFrom(Value value) {
+
+            }
         };
     }
 
     @Override
     public String toSource() {
         return "?";
+    }
+
+    @Override
+    public Value reduce() {
+        return null;
     }
 }

@@ -1,13 +1,11 @@
 package paidia;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.ArrayList;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -40,14 +38,9 @@ public class Main {
                 ConstructorCell constructorCell = new ConstructorCell("", text -> {
                     return ComponentParser.parse(new Workspace() {
                         Workspace self = this;
-                        ArrayList<JComponent> sdgf;
-
-                        public void destroyView(JComponent view) {
-
-                        }
 
                         @Override
-                        public void setupView(JComponent view, Supplier<String> sourceGetter, Consumer<Value> valueReplacer) {
+                        public void setupView(Supplier<Value> value, JComponent view, Supplier<String> sourceGetter, Consumer<Value> valueReplacer) {
                             MouseAdapter mouseAdapter1 = new MouseAdapter() {
                                 @Override
                                 public void mouseClicked(MouseEvent e) {
@@ -60,11 +53,16 @@ public class Main {
                                 private JComponent selection;
                                 private int mousePressX;
                                 private int mousePressY;
+                                private boolean linking;
                                 private boolean moving;
 
                                 @Override
                                 public void mousePressed(MouseEvent e) {
                                     if(e.getButton() == MouseEvent.BUTTON3) {
+                                        if(view.getParent() != contentPane)
+                                            return;
+
+                                        linking = true;
                                         int cursorType = Cursor.HAND_CURSOR;
                                         Component glassPane = ((RootPaneContainer)contentPane.getTopLevelAncestor()).getGlassPane();
                                         glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
@@ -80,6 +78,9 @@ public class Main {
                                         selection.repaint();
                                         selection.revalidate();
                                     } else if(e.getButton() == MouseEvent.BUTTON1) {
+                                        if(view.getParent() != contentPane)
+                                            return;
+
                                         moving = true;
                                         view.getParent().setComponentZOrder(view, 0);
                                         int cursorType = Cursor.MOVE_CURSOR;
@@ -94,7 +95,9 @@ public class Main {
 
                                 @Override
                                 public void mouseDragged(MouseEvent e) {
-                                    if(moving) {
+                                    if(linking) {
+
+                                    } else if(moving) {
                                         int deltaX = e.getX() - mousePressX;
                                         int deltaY = e.getY() - mousePressY;
 
@@ -104,7 +107,8 @@ public class Main {
 
                                 @Override
                                 public void mouseReleased(MouseEvent e) {
-                                    if(e.getButton() == MouseEvent.BUTTON3) {
+                                    if(e.getButton() == MouseEvent.BUTTON3 && linking) {
+                                        linking = false;
                                         int cursorType = Cursor.DEFAULT_CURSOR;
                                         Component glassPane = ((RootPaneContainer)contentPane.getTopLevelAncestor()).getGlassPane();
                                         glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
@@ -113,7 +117,45 @@ public class Main {
                                         contentPane.remove(selection);
                                         contentPane.repaint(selection.getBounds());
                                         contentPane.revalidate();
-                                    } else if(e.getButton() == MouseEvent.BUTTON1) {
+
+                                        Point pointInContentPane = SwingUtilities.convertPoint(view, e.getPoint(), contentPane);
+                                        JComponent targetComponent = (JComponent) contentPane.findComponentAt(pointInContentPane);
+                                        Point pointInTargetComponent = SwingUtilities.convertPoint(contentPane, pointInContentPane, targetComponent);
+                                        if(targetComponent != view) {
+                                            // Target must support dumping a value on it
+                                            Value projection = new Reduction(value.get());
+
+                                            //Value projection = value.get().createProjection();
+                                            ViewBinding projectionView = projection.toComponent();
+                                            projectionView.getView().setLocation(pointInTargetComponent);
+                                            targetComponent.add(projectionView.getView());
+
+                                            projection.addUsage(new Usage() {
+                                                ViewBinding origProjectionView = projectionView;
+
+                                                @Override
+                                                public void removeValue() {
+
+                                                }
+
+                                                @Override
+                                                public void replaceValue(Value value) {
+                                                    if(origProjectionView.isCompatibleWith(value)) {
+                                                        origProjectionView.updateFrom(value);
+                                                        return;
+                                                    }
+
+                                                    ViewBinding projectionView = value.toComponent();
+                                                    Point location = origProjectionView.getView().getLocation();
+                                                    targetComponent.remove(origProjectionView.getView());
+                                                    projectionView.getView().setLocation(location);
+                                                    targetComponent.add(projectionView.getView());
+                                                    origProjectionView = projectionView;
+                                                }
+                                            });
+                                        }
+
+                                    } else if(e.getButton() == MouseEvent.BUTTON1 && moving) {
                                         moving = false;
                                         int cursorType = Cursor.DEFAULT_CURSOR;
                                         Component glassPane = ((RootPaneContainer)contentPane.getTopLevelAncestor()).getGlassPane();
@@ -145,6 +187,7 @@ public class Main {
             public void mouseClicked(MouseEvent e) {
                 constructDialog(e.getPoint(), new Usage() {
                     ViewBinding viewBinding;
+                    Value currentValue;
 
                     private ViewBinding getViewBinding() {
                         if(viewBinding == null)
@@ -163,6 +206,11 @@ public class Main {
 
                     @Override
                     public void replaceValue(Value value) {
+                        if(currentValue == value)
+                            return;
+
+                        currentValue = value;
+
                         // Use prefered size; listen for size changes
                         contentPane.remove(getViewBinding().getView());
                         ViewBinding newViewBinding = value.toComponent();

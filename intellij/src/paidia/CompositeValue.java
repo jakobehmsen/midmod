@@ -4,26 +4,27 @@ import javax.swing.*;
 import javax.swing.plaf.ComponentUI;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
 public class CompositeValue extends AbstractValue {
     private List<String> parameters;
     private String operationName;
-    private Function<Object[], Object> reducer;
+    private Function<Value[], Value> reducer;
     private List<Value> values;
     private Workspace workspace;
     private String source;
+    private Function<String, String> sourceWrapper;
 
-    public CompositeValue(List<String> parameters, List<Value> values, String operationName, Function<Object[], Object> reducer, Workspace workspace, String source) {
+    public CompositeValue(List<String> parameters, List<Value> values, String operationName, Function<Value[], Value> reducer, Workspace workspace, String source, Function<String, String> sourceWrapper) {
         this.parameters = parameters;
         this.operationName = operationName;
         this.reducer = reducer;
         this.values = values;
         this.workspace = workspace;
         this.source = source;
+        this.sourceWrapper = sourceWrapper;
     }
 
     private int operationNameIndex = 1;
@@ -83,6 +84,8 @@ public class CompositeValue extends AbstractValue {
                     value.addUsage(this);
 
                     valueView = valueAsComponent;
+
+                    sendReplaceValue(CompositeValue.this);
                 }
             });
 
@@ -90,7 +93,7 @@ public class CompositeValue extends AbstractValue {
             zIndex++;
         }
 
-        workspace.setupView(view, () -> toSource(), newValue -> sendReplaceValue(newValue));
+        workspace.setupView(() -> this, view, () -> toSource(), newValue -> sendReplaceValue(newValue));
 
         view.setBorder(BorderFactory.createRaisedSoftBevelBorder());
         view.setSize(view.getPreferredSize());
@@ -104,6 +107,16 @@ public class CompositeValue extends AbstractValue {
 
             @Override
             public void release() {
+
+            }
+
+            @Override
+            public boolean isCompatibleWith(Value value) {
+                return false;
+            }
+
+            @Override
+            public void updateFrom(Value value) {
 
             }
         };
@@ -124,6 +137,56 @@ public class CompositeValue extends AbstractValue {
         // - have special syntax for this?
         //   - e.g.: ? + ?
 
-        return allSource;
+        return sourceWrapper.apply(allSource);
+    }
+
+    @Override
+    public Value reduce() {
+        Value[] reductions = values.stream().map(x -> x.reduce()).toArray(s -> new Value[s]);
+        return reducer.apply(reductions);
+
+        /*return new AbstractValue() {
+            Value[] reductions = values.stream().map(x -> x.createProjection()).toArray(s -> new Value[s]);
+            Value theValue = reducer.apply(reductions);
+
+            {
+                CompositeValue.this.addUsage(new Usage() {
+                    @Override
+                    public void removeValue() {
+
+                    }
+
+                    @Override
+                    public void replaceValue(Value value) {
+                        if(value == CompositeValue.this) {
+                            reductions = values.stream().map(x -> x.createProjection()).toArray(s -> new Value[s]);
+                            try {
+                                theValue = reducer.apply(reductions);
+                                sendReplaceValue(theValue);
+                            } catch(Exception e) {
+                                // Don't indicate value replacement; perhaps an error should be indicated?
+                                //sendReplaceValue(new AtomValue(workspace, "\"" + e.getMessage() + "\"", e.getMessage()));
+                            }
+                        } else
+                            sendReplaceValue(value.createProjection());
+                    }
+                });
+            }
+
+            @Override
+            public ViewBinding toComponent() {
+                return theValue.toComponent();
+            }
+
+            @Override
+            public String toSource() {
+                return theValue.toSource();
+            }
+
+            @Override
+            public Value createProjection() {
+                return this;
+            }
+        };*/
     }
 }

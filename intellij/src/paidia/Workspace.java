@@ -5,5 +5,5 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public interface Workspace {
-    void setupView(JComponent view, Supplier<String> sourceGetter, Consumer<Value> valueReplacer);
+    void setupView(Supplier<Value> value, JComponent view, Supplier<String> sourceGetter, Consumer<Value> valueReplacer);
 }

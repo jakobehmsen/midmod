@@ -10,4 +10,6 @@ public interface Value {
 
         return () -> removeUsage(usage);
     }
+
+    Value reduce();
 }
