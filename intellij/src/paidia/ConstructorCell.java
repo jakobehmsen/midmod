@@ -20,6 +20,14 @@ public class ConstructorCell extends AbstractValue {
         this.componentParser = componentParser;
     }
 
+    public Function<String, Value> getParser() {
+        return componentParser;
+    }
+
+    public void setParser(Function<String, Value> componentParser) {
+        this.componentParser = componentParser;
+    }
+
     private ArrayList<Runnable> wasBoundListeners = new ArrayList<>();
 
     @Override

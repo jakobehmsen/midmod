@@ -24,8 +24,9 @@ public class ComponentParser {
         if(block.selector() != null) {
             if(block.selector().ADD_OP() != null || block.selector().MUL_OP() != null) {
                 // Use ConstructorCell instead of ParameterCell?
+                TerminalNode operator = block.selector().ADD_OP() != null ? block.selector().ADD_OP() : block.selector().MUL_OP();
                 return new CompositeValue(Arrays.asList("lhs", "rhs"), Arrays.asList(new ParameterCell(workspace), new ParameterCell(workspace)), block.selector().getText(), args -> {
-                    return null;
+                    return reduce(workspace, args, operator);
                 }, workspace, block.selector().getText(), s -> s);
             }
 
@@ -33,6 +34,24 @@ public class ComponentParser {
         } else {
             return parseBlockParts(workspace, block.blockPart());
         }
+    }
+
+    private static Value reduce(Workspace workspace, Value[] args, TerminalNode operator) {
+        if(operator.getText().equals("+")) {
+            Object result = (long)((AtomValue)args[0]).getValue() + (long)((AtomValue)args[1]).getValue();
+            return new AtomValue(workspace, result.toString(), result.toString(), result);
+        } else if(operator.getText().equals("-")) {
+            Object result = (long)((AtomValue)args[0]).getValue() - (long)((AtomValue)args[1]).getValue();
+            return new AtomValue(workspace, result.toString(), result.toString(), result);
+        } else if(operator.getText().equals("*")) {
+            Object result = (long)((AtomValue)args[0]).getValue() * (long)((AtomValue)args[1]).getValue();
+            return new AtomValue(workspace, result.toString(), result.toString(), result);
+        } else if(operator.getText().equals("/")) {
+            Object result = (long)((AtomValue)args[0]).getValue() / (long)((AtomValue)args[1]).getValue();
+            return new AtomValue(workspace, result.toString(), result.toString(), result);
+        }
+
+        return null;
     }
 
     private static Value parseBlockParts(Workspace workspace, List<PaidiaParser.BlockPartContext> blockPartContexts) {
@@ -74,7 +93,9 @@ public class ComponentParser {
             @Override
             public Value visitAddExpression(PaidiaParser.AddExpressionContext ctx) {
                 return visitBinaryExpression(ctx.lhs, ctx.addExpressionOp(), o -> o.ADD_OP().getText(), o -> o.mulExpression(), (o, args) -> {
-                    if(o.ADD_OP().getText().equals("+")) {
+                    return reduce(workspace, args, o.ADD_OP());
+
+                    /*if(o.ADD_OP().getText().equals("+")) {
                         Object result = (long)((AtomValue)args[0]).getValue() + (long)((AtomValue)args[1]).getValue();
                         return new AtomValue(workspace, result.toString(), result.toString(), result);
                     } else if(o.ADD_OP().getText().equals("-")) {
@@ -82,14 +103,16 @@ public class ComponentParser {
                         return new AtomValue(workspace, result.toString(), result.toString(), result);
                     }
 
-                    return null;
+                    return null;*/
                 });
             }
 
             @Override
             public Value visitMulExpression(PaidiaParser.MulExpressionContext ctx) {
                 return visitBinaryExpression(ctx.lhs, ctx.mulExpressionOp(), o -> o.MUL_OP().getText(), o -> o.chainedExpression(), (o, args) -> {
-                    if(o.MUL_OP().getText().equals("*")) {
+                    return reduce(workspace, args, o.MUL_OP());
+
+                    /*if(o.MUL_OP().getText().equals("*")) {
                         Object result = (long)((AtomValue)args[0]).getValue() * (long)((AtomValue)args[1]).getValue();
                         return new AtomValue(workspace, result.toString(), result.toString(), result);
                     } else if(o.MUL_OP().getText().equals("/")) {
@@ -97,7 +120,7 @@ public class ComponentParser {
                         return new AtomValue(workspace, result.toString(), result.toString(), result);
                     }
 
-                    return null;
+                    return null;*/
                 });
             }
 
@@ -111,7 +134,9 @@ public class ComponentParser {
                     ((ParserRuleContext) ctx.getChild(1)).stop.getStopIndex() + 1,
                     ((TerminalNode) ctx.getChild(2)).getSymbol().getStopIndex()
                 ));
-                return parseBlockPart(workspace, ctx.embeddedExpressionContent(), s -> prefix + s + suffix);
+                Value value = parseBlockPart(workspace, ctx.embeddedExpressionContent(), s -> s);
+                return new EmbeddedValue(prefix, suffix, value);
+                //return parseBlockPart(workspace, ctx.embeddedExpressionContent(), s -> prefix + s + suffix);
             }
 
             @Override

@@ -7,4 +7,10 @@ public interface ViewBinding {
     void release();
     boolean isCompatibleWith(Value value);
     void updateFrom(Value value);
+    default void setupEditor(ConstructorCell editor) {
+
+    }
+    default void setupWorkspace(Workspace workspace) {
+
+    }
 }

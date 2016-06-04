@@ -31,7 +31,7 @@ public class AtomValue extends AbstractValue {
             AtomValue theValue = AtomValue.this;
 
             {
-                workspace.setupView(() -> theValue, view, () -> theValue.toSource(), newValue -> theValue.sendReplaceValue(newValue));
+                //workspace.setupView(() -> theValue, this, () -> theValue.toSource(), newValue -> theValue.sendReplaceValue(newValue));
             }
 
             @Override
@@ -54,6 +54,11 @@ public class AtomValue extends AbstractValue {
                 view.setText(((AtomValue)value).text);
                 theValue = (AtomValue)value;
                 view.setSize(view.getPreferredSize());
+            }
+
+            @Override
+            public void setupWorkspace(Workspace workspace) {
+                workspace.setupView(() -> theValue, this, () -> theValue.toSource(), newValue -> theValue.sendReplaceValue(newValue));
             }
         };
     }
