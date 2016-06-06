@@ -4,6 +4,7 @@ import javax.swing.*;
 import javax.swing.plaf.ComponentUI;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
@@ -32,6 +33,7 @@ public class CompositeValue extends AbstractValue {
     @Override
     public ViewBinding toComponent() {
         JPanel view = new JPanel();
+        ArrayList<ViewBinding> views = new ArrayList<>();
 
         int zIndex = 0;
         for(int i = 0; i < parameters.size(); i++) {
@@ -54,7 +56,37 @@ public class CompositeValue extends AbstractValue {
                     view.setSize(view.getPreferredSize());
                 }
             };
+            /*parameterView = new EditableViewBinding(parameter, workspace,
+                (newValue, newViewBinding) -> {
+                    if(!values.get(theI).equals(newValue)) {
+                        if (valueView != null) {
+                            valueView.getView().removeComponentListener(componentAdapter);
+                            valueView.release();
+                        }
+
+                        ViewBinding valueAsComponent = newValue.toComponent();
+                        views.set(theI, valueAsComponent);
+
+                        valueAsComponent.setupWorkspace(workspace);
+
+                        valueAsComponent.getView().addComponentListener(componentAdapter);
+
+                        view.remove(theZIndex);
+                        view.add(valueAsComponent.getView(), theZIndex);
+                        view.setPreferredSize(view.getLayout().preferredLayoutSize(view));
+                        view.setSize(view.getPreferredSize());
+
+                        values.set(theI, newValue);
+                        newValue.addUsage(this);
+
+                        valueView = valueAsComponent;
+                    }
+
+                    sendReplaceValue(CompositeValue.this);
+                },
+                newView -> {});*/
             parameterView.getView().addComponentListener(componentAdapter);
+            views.add(parameterView);
 
             parameterView.setupWorkspace(workspace);
 
@@ -75,6 +107,7 @@ public class CompositeValue extends AbstractValue {
                         }
 
                         ViewBinding valueAsComponent = value.toComponent();
+                        views.set(theI, valueAsComponent);
 
                         valueAsComponent.setupWorkspace(workspace);
 
@@ -130,6 +163,11 @@ public class CompositeValue extends AbstractValue {
             @Override
             public void setupWorkspace(Workspace workspace) {
                 workspace.setupView(() -> CompositeValue.this, this, () -> toSource(), newValue -> sendReplaceValue(newValue));
+            }
+
+            @Override
+            public List<ViewBinding> getViews() {
+                return views;
             }
         };
     }

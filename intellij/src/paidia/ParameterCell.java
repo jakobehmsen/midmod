@@ -1,6 +1,7 @@
 package paidia;
 
 import javax.swing.*;
+import java.awt.*;
 
 public class ParameterCell extends AbstractValue {
     private Workspace workspace;
@@ -37,6 +38,16 @@ public class ParameterCell extends AbstractValue {
             @Override
             public void updateFrom(Value value) {
 
+            }
+
+            @Override
+            public boolean canDrop() {
+                return true;
+            }
+
+            @Override
+            public void drop(Value value, Point location) {
+                sendReplaceValue(value);
             }
         };
     }

@@ -6,11 +6,33 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class Main {
     public static void main(String[] args) {
+        JFrame f = new JFrame("Paidia");
+
+        PlaygroundView playgroundView = new PlaygroundView();
+
+        BinaryView binaryView = new BinaryView();
+        binaryView.setup(playgroundView);
+        binaryView.setLocation(300, 300);
+        playgroundView.add(binaryView);
+
+        f.setContentPane(playgroundView);
+
+        f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        f.setSize(1024, 768);
+        f.setLocationRelativeTo(null);
+        f.setVisible(true);
+
+        if(1 != 2)
+            return;
+
+
         JFrame frame = new JFrame("Paidia");
 
         frame.setContentPane(new JPanel() {
@@ -25,6 +47,63 @@ public class Main {
 
         MouseAdapter mouseAdapter = new MouseAdapter() {
             ViewBinding currentConstructor;
+
+            private ArrayList<ViewBinding> views = new ArrayList<>();
+
+            private void addView(ViewBinding viewBinding) {
+                contentPane.add(viewBinding.getView());
+                views.add(viewBinding);
+            }
+
+            private void removeView(ViewBinding viewBinding) {
+                contentPane.remove(viewBinding.getView());
+                views.remove(viewBinding);
+            }
+
+            private ViewBinding findView(Point location) {
+                Optional<ViewBinding> foundView = views.stream()
+                    .sorted((x, y) -> x.getView().getParent().getComponentZOrder(x.getView()) - y.getView().getParent().getComponentZOrder(y.getView()))
+                    .filter(x -> x.getView().getBounds().contains(location))
+                    .findFirst();
+
+                if(foundView.isPresent()) {
+                    location.translate(-foundView.get().getView().getX(), -foundView.get().getView().getY());
+                    return foundView.get().findView(location);
+                } else {
+                    return new ViewBinding() {
+                        @Override
+                        public JComponent getView() {
+                            return contentPane;
+                        }
+
+                        @Override
+                        public void release() {
+
+                        }
+
+                        @Override
+                        public boolean isCompatibleWith(Value value) {
+                            return false;
+                        }
+
+                        @Override
+                        public void updateFrom(Value value) {
+
+                        }
+
+                        @Override
+                        public boolean canDrop() {
+                            return true;
+                        }
+
+                        @Override
+                        public void drop(Value value, Point location) {
+                            Usage usage = createUsage(false, location);
+                            usage.replaceValue(value);
+                        }
+                    };
+                }
+            }
 
             Workspace workspace = new Workspace() {
                 Workspace self = this;
@@ -111,7 +190,8 @@ public class Main {
                                 contentPane.revalidate();
 
                                 Point pointInContentPane = SwingUtilities.convertPoint(view, e.getPoint(), contentPane);
-                                JComponent targetComponent = (JComponent) contentPane.findComponentAt(pointInContentPane);
+                                ViewBinding targetView = findView(pointInContentPane);
+                                JComponent targetComponent = targetView.getView();//(JComponent) contentPane.findComponentAt(pointInContentPane);
                                 Point pointInTargetComponent = SwingUtilities.convertPoint(contentPane, pointInContentPane, targetComponent);
                                 if(targetComponent != view) {
                                     // Target must support dumping a value on it
@@ -121,7 +201,8 @@ public class Main {
                                     ViewBinding projectionView = projection.toComponent();
                                     projectionView.setupWorkspace(workspace);
                                     projectionView.getView().setLocation(pointInTargetComponent);
-                                    targetComponent.add(projectionView.getView());
+                                    targetView.drop(projection, pointInTargetComponent);
+                                    //targetComponent.add(projectionView.getView());
 
                                     projection.addUsage(new Usage() {
                                         ViewBinding origProjectionView = projectionView;
@@ -141,9 +222,165 @@ public class Main {
                                             ViewBinding projectionView = value.toComponent();
                                             projectionView.setupWorkspace(workspace);
                                             Point location = origProjectionView.getView().getLocation();
-                                            targetComponent.remove(origProjectionView.getView());
+
+                                            origProjectionView.drop(value, location);
+
+                                            //targetComponent.remove(origProjectionView.getView());
                                             projectionView.getView().setLocation(location);
-                                            targetComponent.add(projectionView.getView());
+                                            //targetComponent.add(projectionView.getView());
+                                            //targetView.drop(projection);
+                                            origProjectionView = projectionView;
+                                        }
+                                    });
+                                }
+
+                            } else if(e.getButton() == MouseEvent.BUTTON1 && moving) {
+                                moving = false;
+                                int cursorType = Cursor.DEFAULT_CURSOR;
+                                Component glassPane = ((RootPaneContainer)contentPane.getTopLevelAncestor()).getGlassPane();
+                                glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                                glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+                            }
+                        }
+                    };
+
+                    view.addMouseListener(mouseAdapter1);
+                    view.addMouseMotionListener(mouseAdapter1);
+                };
+
+                @Override
+                public void setupView(Supplier<Value> value, ViewBinding viewBinding, Supplier<String> sourceGetter, Consumer<Value> valueReplacer, Consumer<JComponent> viewReplacer) {
+                    JComponent view = viewBinding.getView();
+                    MouseAdapter mouseAdapter1 = new MouseAdapter() {
+                        @Override
+                        public void mouseClicked(MouseEvent e) {
+                            if(e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() == 2) {
+                                ConstructorCell constructorCell = new ConstructorCell(sourceGetter.get(), c -> ComponentParser.parse(self, c));
+                                viewBinding.setupEditor(constructorCell);
+                                viewReplacer.accept(constructorCell.toComponent().getView());
+                                constructorCell.addUsage(new Usage() {
+                                    @Override
+                                    public void removeValue() {
+                                        viewReplacer.accept(viewBinding.getView());
+                                    }
+
+                                    @Override
+                                    public void replaceValue(Value value) {
+                                        valueReplacer.accept(value);
+                                    }
+                                });
+                                //valueReplacer.accept(constructorCell);
+                            }
+                        }
+
+                        private JComponent selection;
+                        private int mousePressX;
+                        private int mousePressY;
+                        private boolean linking;
+                        private boolean moving;
+
+                        @Override
+                        public void mousePressed(MouseEvent e) {
+                            if(e.getButton() == MouseEvent.BUTTON3) {
+                                if(view.getParent() != contentPane)
+                                    return;
+
+                                linking = true;
+                                int cursorType = Cursor.HAND_CURSOR;
+                                Component glassPane = ((RootPaneContainer)contentPane.getTopLevelAncestor()).getGlassPane();
+                                glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                                glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+
+                                selection = new JPanel();
+                                selection.setBorder(BorderFactory.createDashedBorder(Color.BLACK));
+                                Point point = SwingUtilities.convertPoint(view.getParent(), view.getLocation(), contentPane);
+                                selection.setSize(view.getSize());
+                                selection.setLocation(point);
+                                selection.setOpaque(false);
+                                contentPane.add(selection, 0);
+                                selection.repaint();
+                                selection.revalidate();
+                            } else if(e.getButton() == MouseEvent.BUTTON1) {
+                                if(view.getParent() != contentPane)
+                                    return;
+
+                                moving = true;
+                                view.getParent().setComponentZOrder(view, 0);
+                                int cursorType = Cursor.MOVE_CURSOR;
+                                Component glassPane = ((RootPaneContainer)contentPane.getTopLevelAncestor()).getGlassPane();
+                                glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                                glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+
+                                mousePressX = e.getX();
+                                mousePressY = e.getY();
+                            }
+                        }
+
+                        @Override
+                        public void mouseDragged(MouseEvent e) {
+                            if(linking) {
+
+                            } else if(moving) {
+                                int deltaX = e.getX() - mousePressX;
+                                int deltaY = e.getY() - mousePressY;
+
+                                view.setLocation(view.getX() + deltaX, view.getY() + deltaY);
+                            }
+                        }
+
+                        @Override
+                        public void mouseReleased(MouseEvent e) {
+                            if(e.getButton() == MouseEvent.BUTTON3 && linking) {
+                                linking = false;
+                                int cursorType = Cursor.DEFAULT_CURSOR;
+                                Component glassPane = ((RootPaneContainer)contentPane.getTopLevelAncestor()).getGlassPane();
+                                glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                                glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+
+                                contentPane.remove(selection);
+                                contentPane.repaint(selection.getBounds());
+                                contentPane.revalidate();
+
+                                Point pointInContentPane = SwingUtilities.convertPoint(view, e.getPoint(), contentPane);
+                                ViewBinding targetView = findView(pointInContentPane);
+                                JComponent targetComponent = targetView.getView();//(JComponent) contentPane.findComponentAt(pointInContentPane);
+                                Point pointInTargetComponent = SwingUtilities.convertPoint(contentPane, pointInContentPane, targetComponent);
+                                if(targetComponent != view) {
+                                    // Target must support dumping a value on it
+                                    Value projection = new Reduction(value.get());
+
+                                    //Value projection = value.get().createProjection();
+                                    ViewBinding projectionView = projection.toComponent();
+                                    projectionView.setupWorkspace(workspace);
+                                    projectionView.getView().setLocation(pointInTargetComponent);
+                                    targetView.drop(projection, pointInTargetComponent);
+                                    //targetComponent.add(projectionView.getView());
+
+                                    projection.addUsage(new Usage() {
+                                        ViewBinding origProjectionView = projectionView;
+
+                                        @Override
+                                        public void removeValue() {
+
+                                        }
+
+                                        @Override
+                                        public void replaceValue(Value value) {
+                                            if(origProjectionView.isCompatibleWith(value)) {
+                                                origProjectionView.updateFrom(value);
+                                                return;
+                                            }
+
+                                            ViewBinding projectionView = value.toComponent();
+                                            projectionView.setupWorkspace(workspace);
+                                            Point location = origProjectionView.getView().getLocation();
+
+                                            origProjectionView.drop(value, location);
+
+                                            //targetComponent.remove(origProjectionView.getView());
+                                            projectionView.getView().setLocation(location);
+                                            //targetComponent.add(projectionView.getView());
+                                            //targetView.drop(projection);
                                             origProjectionView = projectionView;
                                         }
                                     });
@@ -167,7 +404,8 @@ public class Main {
             private void constructDialog(Point location, Usage usage) {
                 if(currentConstructor != null) {
 
-                    contentPane.remove(currentConstructor.getView());
+                    //contentPane.remove(currentConstructor.getView());
+                    removeView(currentConstructor);
                     currentConstructor.release();
                     contentPane.revalidate();
                     contentPane.repaint();
@@ -183,27 +421,28 @@ public class Main {
 
                 currentConstructor.getView().setLocation(location);
 
-                contentPane.add(currentConstructor.getView());
+                //contentPane.add(currentConstructor.getView());
+                addView(currentConstructor);
                 currentConstructor.getView().revalidate();
                 currentConstructor.getView().repaint();
                 currentConstructor.getView().requestFocusInWindow();
             }
 
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                constructDialog(e.getPoint(), new Usage() {
+            private Usage createUsage(boolean isConstructor, Point initialLocation) {
+                return new Usage() {
                     ViewBinding viewBinding;
                     Value currentValue;
 
                     private ViewBinding getViewBinding() {
-                        if(viewBinding == null)
+                        if(viewBinding == null && isConstructor)
                             return currentConstructor;
                         return viewBinding;
                     }
 
                     @Override
                     public void removeValue() {
-                        contentPane.remove(getViewBinding().getView());
+                        //contentPane.remove(getViewBinding().getView());
+                        removeView(getViewBinding());
                         contentPane.revalidate();
                         contentPane.repaint();
 
@@ -218,7 +457,10 @@ public class Main {
                         currentValue = value;
 
                         // Use prefered size; listen for size changes
-                        contentPane.remove(getViewBinding().getView());
+                        //contentPane.remove(getViewBinding().getView());
+                        if(getViewBinding() != null)
+                            removeView(getViewBinding());
+
                         ViewBinding newViewBinding = value.toComponent();
                         newViewBinding.setupWorkspace(workspace);
                         JComponent valueAsComponent = newViewBinding.getView();
@@ -231,8 +473,10 @@ public class Main {
                             }
                         });
 
-                        valueAsComponent.setLocation(getViewBinding().getView().getLocation());
+                        Point location = getViewBinding() != null ? getViewBinding().getView().getLocation() : initialLocation;
+                        valueAsComponent.setLocation(location);
                         contentPane.add(valueAsComponent);
+                        addView(newViewBinding);
                         contentPane.revalidate();
                         contentPane.repaint();
 
@@ -243,7 +487,12 @@ public class Main {
 
                         viewBinding = newViewBinding;
                     }
-                });
+                };
+            }
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                constructDialog(e.getPoint(), createUsage(true, null));
             }
         };
         contentPane.addMouseListener(mouseAdapter);
