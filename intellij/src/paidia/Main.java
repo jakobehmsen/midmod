@@ -17,11 +17,6 @@ public class Main {
 
         PlaygroundView playgroundView = new PlaygroundView();
 
-        BinaryView binaryView = new BinaryView();
-        binaryView.setup(playgroundView);
-        binaryView.setLocation(300, 300);
-        playgroundView.add(binaryView);
-
         f.setContentPane(playgroundView);
 
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

@@ -1,95 +1,125 @@
 package paidia;
 
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ContainerAdapter;
+import java.awt.event.ContainerEvent;
 
-public class BinaryView extends JPanel {
-    public void setup(PlaygroundView playgroundView) {
-        JLabel valueViewLhs = new JLabel("lhs");
-        EditableView lhsView = playgroundView.createEditableView(new Editor() {
-            @Override
-            public String getText() {
-                return valueViewLhs.getText();
-            }
+public class BinaryView extends JPanel implements ValueView {
+    private Text operator;
+    private TextContext textOperator;
+    private Argument lhs;
+    private Argument rhs;
 
-            @Override
-            public void beginEdit(JComponent editorComponent) {
-                editorComponent.setPreferredSize(valueViewLhs.getPreferredSize());
-                remove(0);
-                add(editorComponent, 0);
-                setSize(getPreferredSize());
+    public BinaryView(Text operator, TextContext textOperator, JComponent lhsView, JComponent rhsView) {
+        this.operator = operator;
+        this.textOperator = textOperator;
 
-                repaint();
-                revalidate();
-            }
-
-            @Override
-            public void endEdit(String text) {
-                valueViewLhs.setText(text);
-                remove(0);
-                add(valueViewLhs, 0);
-                setSize(getPreferredSize());
-
-                repaint();
-                revalidate();
-            }
-
-            @Override
-            public void cancelEdit() {
-                remove(0);
-                add(valueViewLhs, 0);
-                setSize(getPreferredSize());
-
-                repaint();
-                revalidate();
-            }
-        });
-        add(valueViewLhs, 0);
-        playgroundView.makeEditableByMouse(lhsView, valueViewLhs);
-
-        JLabel valueViewRhs = new JLabel("rhs");
-        EditableView rhsView = playgroundView.createEditableView(new Editor() {
-            @Override
-            public String getText() {
-                return valueViewLhs.getText();
-            }
-
-            @Override
-            public void beginEdit(JComponent editorComponent) {
-                editorComponent.setPreferredSize(valueViewRhs.getPreferredSize());
-                remove(1);
-                add(editorComponent, 1);
-                setSize(getPreferredSize());
-
-                repaint();
-                revalidate();
-            }
-
-            @Override
-            public void endEdit(String text) {
-                valueViewRhs.setText(text);
-                remove(1);
-                add(valueViewRhs, 1);
-                setSize(getPreferredSize());
-
-                repaint();
-                revalidate();
-            }
-
-            @Override
-            public void cancelEdit() {
-                remove(1);
-                add(valueViewRhs, 1);
-                setSize(getPreferredSize());
-
-                repaint();
-                revalidate();
-            }
-        });
-        add(valueViewRhs, 1);
-        playgroundView.makeEditableByMouse(rhsView, valueViewRhs);
+        lhs = createArgument(0, lhsView);
+        add(new JLabel(operator.getFormatted()), 1);
+        rhs = createArgument(2, rhsView);
 
         setBorder(BorderFactory.createRaisedSoftBevelBorder());
 
         setSize(getPreferredSize());
+
+        addContainerListener(new ContainerAdapter() {
+            ComponentAdapter componentAdapter;
+
+            @Override
+            public void componentAdded(ContainerEvent e) {
+                componentAdapter = new ComponentAdapter() {
+                    @Override
+                    public void componentResized(ComponentEvent e) {
+                        setSize(getPreferredSize());
+                    }
+                };
+
+                e.getChild().addComponentListener(componentAdapter);
+            }
+
+            @Override
+            public void componentRemoved(ContainerEvent e) {
+                e.getChild().removeComponentListener(componentAdapter);
+            }
+        });
+    }
+
+    @Override
+    public void setup(PlaygroundView playgroundView) {
+        setupArgument(playgroundView, 0, lhs);
+        setupArgument(playgroundView, 2, rhs);
+    }
+
+    private static class Argument {
+        private JComponent valueView;
+        private EditableView editableView;
+    }
+
+
+    private Argument createArgument(int index, JComponent valueView) {
+        Argument argument = new Argument();
+        argument.valueView = valueView;
+        add(argument.valueView, index);
+        return argument;
+    }
+
+    private void setupArgument(PlaygroundView playgroundView, int index, Argument argument) {
+        argument.editableView = playgroundView.createEditableView(new ParsingEditor() {
+            @Override
+            public String getText() {
+                return ((ValueView)argument.valueView).getText(new DefaultTextContext());
+            }
+
+            @Override
+            public void beginEdit(JComponent editorComponent) {
+                editorComponent.setPreferredSize(argument.valueView.getPreferredSize());
+                remove(index);
+                add(editorComponent, index);
+                setSize(getPreferredSize());
+
+                repaint();
+                revalidate();
+            }
+
+            @Override
+            protected void endEdit(JComponent parsedComponent) {
+                remove(index);
+                add(parsedComponent, index);
+                argument.valueView = parsedComponent;
+                playgroundView.makeEditableByMouse(() -> argument.editableView, argument.valueView);
+                ((ValueView)argument.valueView).setup(playgroundView);
+                setSize(getPreferredSize());
+
+                repaint();
+                revalidate();
+            }
+
+            @Override
+            public void cancelEdit() {
+                remove(index);
+                add(argument.valueView, index);
+                setSize(getPreferredSize());
+
+                repaint();
+                revalidate();
+            }
+        });
+        playgroundView.makeEditableByMouse(() -> argument.editableView, argument.valueView);
+        ((ValueView)argument.valueView).setup(playgroundView);
+    }
+
+    @Override
+    public String getText(TextContext textContext) {
+        String text = ((ValueView)lhs.valueView).getText(textOperator) + operator.getRaw() + ((ValueView)rhs.valueView).getText(textOperator);
+
+        return textOperator.getText(textContext, text);
+    }
+
+    @Override
+    public void setText(String text) {
+
     }
 }
