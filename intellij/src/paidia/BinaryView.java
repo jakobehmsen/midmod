@@ -17,14 +17,6 @@ public class BinaryView extends JPanel implements ValueView {
         this.operator = operator;
         this.textOperator = textOperator;
 
-        lhs = createArgument(0, lhsView);
-        add(new JLabel(operator.getFormatted()), 1);
-        rhs = createArgument(2, rhsView);
-
-        setBorder(BorderFactory.createRaisedSoftBevelBorder());
-
-        setSize(getPreferredSize());
-
         addContainerListener(new ContainerAdapter() {
             ComponentAdapter componentAdapter;
 
@@ -45,6 +37,15 @@ public class BinaryView extends JPanel implements ValueView {
                 e.getChild().removeComponentListener(componentAdapter);
             }
         });
+
+        lhs = createArgument(0, lhsView);
+        add(new JLabel(operator.getFormatted()), 1);
+        rhs = createArgument(2, rhsView);
+
+        //setBorder(BorderFactory.createRaisedSoftBevelBorder());
+        setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+
+        setSize(getPreferredSize());
     }
 
     @Override

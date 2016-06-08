@@ -68,7 +68,7 @@ public class PlaygroundView extends JPanel {
             public void mouseClicked(MouseEvent e) {
                 EditableView editableView = createRootEditableView(() -> "", editorComponent -> {
                     editorComponent.setLocation(e.getPoint());
-                    editorComponent.setSize(150, 15);
+                    editorComponent.setSize(80, 15);
                 }, () -> { }, () -> { });
 
                 editableView.beginEdit();

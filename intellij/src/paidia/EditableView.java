@@ -40,8 +40,9 @@ public class EditableView {
                 Dimension preferredSize = editorComponent.getUI().getPreferredSize(editorComponent);
                 if(editorComponent.getSize().width < preferredSize.width ||
                     editorComponent.getSize().height < preferredSize.height) {
-                    int caretWidth = 2;
-                    preferredSize.setSize(preferredSize.width + caretWidth, preferredSize.height);
+                    preferredSize.setSize(preferredSize.width * 1.5, preferredSize.height);
+                    //int caretWidth = 2;
+                    //preferredSize.setSize(preferredSize.width + caretWidth, preferredSize.height);
                     editorComponent.setPreferredSize(preferredSize);
                     editorComponent.setSize(preferredSize);
                 }
@@ -49,7 +50,7 @@ public class EditableView {
 
             @Override
             public void removeUpdate(DocumentEvent e) {
-                Dimension preferredSize = editorComponent.getUI().getPreferredSize(editorComponent);
+                /*Dimension preferredSize = editorComponent.getUI().getPreferredSize(editorComponent);
                 if(editorComponent.getSize().width > preferredSize.width ||
                     editorComponent.getSize().height > preferredSize.height) {
                     int caretWidth = 2;
@@ -58,7 +59,7 @@ public class EditableView {
                     int height = Math.max(15, preferredSize.height);
                     editorComponent.setPreferredSize(preferredSize);
                     editorComponent.setSize(width, height);
-                }
+                }*/
             }
 
             @Override
