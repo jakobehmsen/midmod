@@ -10,6 +10,7 @@ import java.awt.event.*;
 import java.awt.geom.Area;
 import java.awt.geom.GeneralPath;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -19,6 +20,7 @@ import java.util.stream.StreamSupport;
 public class PlaygroundView extends JPanel {
     private EditableView currentEditableView;
     private JComponent childBeingEdited;
+    private Hashtable<JComponent, EditableView> viewToEditable = new Hashtable<>();
 
     public PlaygroundView() {
         setLayout(null);
@@ -44,18 +46,33 @@ public class PlaygroundView extends JPanel {
                 if(e.getChild() instanceof ValueView && e.getChild() != childBeingEdited) {
                     ((ValueView) e.getChild()).setup(PlaygroundView.this);
                     TextContext rootTextContext = new DefaultTextContext();
+                    JComponent[] valueViewHolder = new JComponent[1];
+                    valueViewHolder[0] = (JComponent) e.getChild();
+                    EditableView[] editableViewHolder = new EditableView[1];
+                    EditableView editableView;
+                    if(childBeingEdited != null)
+                        editableView = viewToEditable.get(childBeingEdited);
+                    else {
+                        editableView = createRootEditableView(() -> ((ValueView)valueViewHolder[0]).getText(rootTextContext),
+                            editorComponent -> {
+                                remove(valueViewHolder[0]);
+                                childBeingEdited = valueViewHolder[0];
+                                editorComponent.setBounds(valueViewHolder[0].getBounds());
+                            }, newValueView -> {
+                                valueViewHolder[0].removeContainerListener(this);
+                                viewToEditable.remove(valueViewHolder[0]);
+                                valueViewHolder[0] = newValueView;
+                                viewToEditable.put(newValueView, editableViewHolder[0]);
+                                childBeingEdited = null;
+                            }, () -> {
+                                add(valueViewHolder[0]);
+                                childBeingEdited = null;
+                            });
+                        viewToEditable.put((JComponent) e.getChild(), editableView);
+                    }
+                    editableViewHolder[0] = editableView;
 
-                    makeEditableByMouse(() -> createRootEditableView(() -> ((ValueView) e.getChild()).getText(rootTextContext),
-                        editorComponent -> {
-                        remove(e.getChild());
-                        childBeingEdited = (JComponent) e.getChild();
-                        editorComponent.setBounds(e.getChild().getBounds());
-                    }, () -> {
-                        childBeingEdited = null;
-                    }, () -> {
-                        add(e.getChild());
-                        childBeingEdited = null;
-                    }), (JComponent) e.getChild());
+                    makeEditableByMouse(() -> editableView, (JComponent) e.getChild());
                 }
             }
 
@@ -66,9 +83,10 @@ public class PlaygroundView extends JPanel {
 
                 e.getChild().removeComponentListener(componentAdapter);
 
-                if(e.getChild() instanceof ValueView) {
+                /*if(e.getChild() instanceof ValueView) {
                     ((Container)e.getChild()).removeContainerListener(this);
-                }
+                    viewToEditable.remove(e.getChild());
+                }*/
             }
         });
 
@@ -78,7 +96,7 @@ public class PlaygroundView extends JPanel {
                 EditableView editableView = createRootEditableView(() -> "", editorComponent -> {
                     editorComponent.setLocation(e.getPoint());
                     editorComponent.setSize(80, 15);
-                }, () -> { }, () -> { });
+                }, newValueView -> { }, () -> { });
 
                 editableView.beginEdit();
             }
@@ -87,7 +105,7 @@ public class PlaygroundView extends JPanel {
         addMouseListener(mouseAdapter);
     }
 
-    private EditableView createRootEditableView(Supplier<String> textSupplier, Consumer<JComponent> beginEdit, Runnable endEdit, Runnable cancelEdit) {
+    private EditableView createRootEditableView(Supplier<String> textSupplier, Consumer<JComponent> beginEdit, Consumer<JComponent> endEdit, Runnable cancelEdit) {
         return createEditableView(new ParsingEditor() {
             JComponent editorComponent;
 
@@ -108,11 +126,13 @@ public class PlaygroundView extends JPanel {
             }
 
             @Override
-            protected void endEdit(JComponent parsedComponent) {
+            public void endEdit(JComponent parsedComponent) {
                 remove(editorComponent);
 
                 parsedComponent.setLocation(editorComponent.getLocation());
                 add(parsedComponent);
+
+                endEdit.accept(parsedComponent);
 
                 repaint();
                 revalidate();
@@ -151,11 +171,18 @@ public class PlaygroundView extends JPanel {
             }
 
             @Override
+            public void endEdit(JComponent parsedComponent) {
+                editor.endEdit(parsedComponent);
+
+                currentEditableView = null;
+            }
+
+            /*@Override
             public void endEdit(String text) {
                 editor.endEdit(text);
 
                 currentEditableView = null;
-            }
+            }*/
 
             @Override
             public void cancelEdit() {
@@ -191,14 +218,14 @@ public class PlaygroundView extends JPanel {
             @Override
             public void mousePressed(MouseEvent e) {
                 if(e.getButton() == MouseEvent.BUTTON3) {
-                    if(valueView.getParent() != PlaygroundView.this)
-                        return;
+                    /*if(valueView.getParent() != PlaygroundView.this)
+                        return;*/
 
                     linking = true;
-                    int cursorType = Cursor.HAND_CURSOR;
+                    /*int cursorType = Cursor.HAND_CURSOR;
                     Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
                     glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
-                    glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+                    glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);*/
 
                     selection = new JPanel();
                     selection.setBorder(BorderFactory.createDashedBorder(Color.BLACK));
@@ -230,7 +257,12 @@ public class PlaygroundView extends JPanel {
             @Override
             public void mouseDragged(MouseEvent e) {
                 if(linking) {
-
+                    if(!hasDragged) {
+                        int cursorType = Cursor.HAND_CURSOR;
+                        Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
+                        glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                        glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+                    }
                 } else if(moving) {
                     if(!hasDragged) {
                         int cursorType = Cursor.MOVE_CURSOR;
@@ -251,7 +283,7 @@ public class PlaygroundView extends JPanel {
                 hasDragged = false;
 
                 if(e.getButton() == MouseEvent.BUTTON3 && linking) {
-                    /*linking = false;
+                    linking = false;
                     int cursorType = Cursor.DEFAULT_CURSOR;
                     Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
                     glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
@@ -262,21 +294,41 @@ public class PlaygroundView extends JPanel {
                     revalidate();
 
                     Point pointInContentPane = SwingUtilities.convertPoint(valueView, e.getPoint(), PlaygroundView.this);
-                    ViewBinding targetView = findView(pointInContentPane);
-                    JComponent targetComponent = targetView.getView();//(JComponent) contentPane.findComponentAt(pointInContentPane);
+                    //ViewBinding targetView = findView(pointInContentPane);
+                    //JComponent targetComponent = targetView.getView();//(JComponent) contentPane.findComponentAt(pointInContentPane);
+                    JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
                     Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
                     if(targetComponent != valueView) {
                         // Target must support dumping a value on it
-                        Value projection = new Reduction(value.get());
+                        ReductionView projection = new ReductionView(valueView);
+
+                        if(valueView.getParent() == PlaygroundView.this) {
+                            // Should be called "Variable" instead of EditableView?
+                            EditableView editableView = viewToEditable.get(valueView);
+                            // TODO: When to remove change listener?
+                            editableView.addChangeListener(newValueView ->
+                                 projection.setValueView((JComponent)newValueView));
+                        }
 
                         //Value projection = value.get().createProjection();
-                        ViewBinding projectionView = projection.toComponent();
-                        projectionView.setupWorkspace(workspace);
-                        projectionView.getView().setLocation(pointInTargetComponent);
-                        targetView.drop(projection, pointInTargetComponent);
+                        //ViewBinding projectionView = projection.toComponent();
+                        //projectionView.setupWorkspace(workspace);
+                        //projectionView.getView().setLocation(pointInTargetComponent);
+
+                        makeEditableByMouse(() -> null, projection);
+                        projection.setup(PlaygroundView.this);
+
+                        if(targetComponent == PlaygroundView.this) {
+                            projection.setLocation(pointInTargetComponent);
+                            add(projection);
+                        } else {
+                            JComponent targetComponentParent = (JComponent) targetComponent.getParent();
+                            ((ValueView) targetComponentParent).drop(projection, targetComponent);
+                        }
+                        //targetView.drop(projection, pointInTargetComponent);
                         //targetComponent.add(projectionView.getView());
 
-                        projection.addUsage(new Usage() {
+                        /*projection.addUsage(new Usage() {
                             ViewBinding origProjectionView = projectionView;
 
                             @Override
@@ -303,8 +355,8 @@ public class PlaygroundView extends JPanel {
                                 //targetView.drop(projection);
                                 origProjectionView = projectionView;
                             }
-                        });
-                    }*/
+                        });*/
+                    }
 
                 } else if(e.getButton() == MouseEvent.BUTTON1 && moving) {
                     moving = false;

@@ -233,8 +233,30 @@ public class ComponentParser {
                             }
                         };
 
+                    BiFunction<Number, Number, Number> numberReducer;
+
+                    switch (operator) {
+                        case "+":
+                            numberReducer = (x, y) -> x.longValue() + y.longValue();
+                            break;
+                        case "-":
+                            numberReducer = (x, y) -> x.longValue() - y.longValue();
+                            break;
+                        case "*":
+                            numberReducer = (x, y) -> x.longValue() * y.longValue();
+                            break;
+                        case "/":
+                            numberReducer = (x, y) -> x.longValue() / y.longValue();
+                            break;
+                        default:
+                            numberReducer = null;
+                    }
+
                     //value = new BinaryView(new Text(source, operator), textOperator, lhs, rhs);
-                    value = new BinaryView(new Text(operator, operator), textOperator, lhs, rhs);
+                    value = new BinaryView(new Text(operator, operator), textOperator, lhs, rhs, args -> {
+                        Number result = numberReducer.apply(((Number)((AtomView)args[0]).getValue()), ((Number)((AtomView)args[1]).getValue()));
+                        return new AtomView(result.toString(), result);
+                    });
                     start = operand.stop.getStopIndex();
                 }
 
@@ -305,7 +327,7 @@ public class ComponentParser {
                     number = Double.parseDouble(ctx.getText());
                 }
 
-                return new AtomView(number.toString());
+                return new AtomView(ctx.getText(), number);
                 //return new AtomValue(workspace, sourceWrapper.apply(ctx.getText()), ctx.getText(), number);
             }
 

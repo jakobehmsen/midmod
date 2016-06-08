@@ -7,6 +7,8 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.DefaultCaret;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.function.Consumer;
 
 public class EditableView {
     private Editor editor;
@@ -14,6 +16,10 @@ public class EditableView {
 
     public EditableView(Editor editor) {
         this.editor = editor;
+    }
+
+    public Editor getEditor() {
+        return editor;
     }
 
     public void beginEdit() {
@@ -26,8 +32,9 @@ public class EditableView {
 
         editorComponent.registerKeyboardAction(e1 -> {
             String text = editorComponent.getText();
-
-            editor.endEdit(text);
+            JComponent parsedComponent = ComponentParser.parseComponent(text);
+            editor.endEdit(parsedComponent);
+            listeners.forEach(x -> x.accept((ValueView)parsedComponent));
         }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
 
         editorComponent.registerKeyboardAction(e1 -> {
@@ -71,5 +78,11 @@ public class EditableView {
 
     public void cancelEdit() {
         editor.cancelEdit();
+    }
+
+    private ArrayList<Consumer<ValueView>> listeners = new ArrayList<>();
+
+    public void addChangeListener(Consumer<ValueView> listener) {
+        listeners.add(listener);
     }
 }

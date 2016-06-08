@@ -6,16 +6,20 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ContainerAdapter;
 import java.awt.event.ContainerEvent;
+import java.util.ArrayList;
+import java.util.function.Function;
 
 public class BinaryView extends JPanel implements ValueView {
     private Text operator;
     private TextContext textOperator;
     private Argument lhs;
     private Argument rhs;
+    private Function<ValueView[], ValueView> reducer;
 
-    public BinaryView(Text operator, TextContext textOperator, JComponent lhsView, JComponent rhsView) {
+    public BinaryView(Text operator, TextContext textOperator, JComponent lhsView, JComponent rhsView, Function<ValueView[], ValueView> reducer) {
         this.operator = operator;
         this.textOperator = textOperator;
+        this.reducer = reducer;
 
         addContainerListener(new ContainerAdapter() {
             ComponentAdapter componentAdapter;
@@ -54,9 +58,32 @@ public class BinaryView extends JPanel implements ValueView {
         setupArgument(playgroundView, 2, rhs);
     }
 
+    @Override
+    public ValueView reduce() {
+        return reducer.apply(new ValueView[]{((ValueView)lhs.valueView).reduce(), ((ValueView)rhs.valueView).reduce()});
+    }
+
+    private ArrayList<ValueViewObserver> observers = new ArrayList<>();
+
+    @Override
+    public void addObserver(ValueViewObserver observer) {
+        observers.add(observer);
+    }
+
+    @Override
+    public void removeObserver(ValueViewObserver observer) {
+        observers.remove(observer);
+    }
+
+    @Override
+    public void release() {
+
+    }
+
     private static class Argument {
         private JComponent valueView;
         private EditableView editableView;
+        private ValueViewObserver observer;
     }
 
 
@@ -64,6 +91,14 @@ public class BinaryView extends JPanel implements ValueView {
         Argument argument = new Argument();
         argument.valueView = valueView;
         add(argument.valueView, index);
+        argument.observer = new ValueViewObserver() {
+            @Override
+            public void updated() {
+                observers.forEach(x -> x.updated());
+            }
+        };
+
+        ((ValueView)argument.valueView).addObserver(argument.observer);
         return argument;
     }
 
@@ -86,16 +121,28 @@ public class BinaryView extends JPanel implements ValueView {
             }
 
             @Override
-            protected void endEdit(JComponent parsedComponent) {
-                remove(index);
-                add(parsedComponent, index);
-                argument.valueView = parsedComponent;
+            public void endEdit(JComponent parsedComponent) {
+                changeArgument(index, argument, parsedComponent);
+
                 playgroundView.makeEditableByMouse(() -> argument.editableView, argument.valueView);
                 ((ValueView)argument.valueView).setup(playgroundView);
                 setSize(getPreferredSize());
 
                 repaint();
                 revalidate();
+
+                /*remove(index);
+                add(parsedComponent, index);
+                ((ValueView)argument.valueView).removeObserver(argument.observer);
+                ((ValueView)argument.valueView).release();
+                argument.valueView = parsedComponent;
+                ((ValueView)argument.valueView).addObserver(argument.observer);
+                playgroundView.makeEditableByMouse(() -> argument.editableView, argument.valueView);
+                ((ValueView)argument.valueView).setup(playgroundView);
+                setSize(getPreferredSize());
+
+                repaint();
+                revalidate();*/
             }
 
             @Override
@@ -122,5 +169,29 @@ public class BinaryView extends JPanel implements ValueView {
     @Override
     public void setText(String text) {
 
+    }
+
+    @Override
+    public void drop(JComponent dropped, JComponent target) {
+        int index = getComponentZOrder(target);
+        Argument argument = index == 0 ? lhs : rhs;
+
+        changeArgument(index, argument, dropped);
+
+        setSize(getPreferredSize());
+
+        repaint();
+        revalidate();
+    }
+
+    private void changeArgument(int index, Argument argument, JComponent valueView) {
+        remove(index);
+        add(valueView, index);
+        ((ValueView)argument.valueView).removeObserver(argument.observer);
+        ((ValueView)argument.valueView).release();
+        argument.valueView = valueView;
+        ((ValueView)argument.valueView).addObserver(argument.observer);
+
+        observers.forEach(x -> x.updated());
     }
 }
