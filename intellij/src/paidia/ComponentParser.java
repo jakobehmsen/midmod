@@ -8,6 +8,8 @@ import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import javax.swing.*;
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -233,20 +235,20 @@ public class ComponentParser {
                             }
                         };
 
-                    BiFunction<Number, Number, Number> numberReducer;
+                    BiFunction<BigDecimal, BigDecimal, BigDecimal> numberReducer;
 
                     switch (operator) {
                         case "+":
-                            numberReducer = (x, y) -> x.longValue() + y.longValue();
+                            numberReducer = (x, y) -> x.add(y);
                             break;
                         case "-":
-                            numberReducer = (x, y) -> x.longValue() - y.longValue();
+                            numberReducer = (x, y) -> x.subtract(y);
                             break;
                         case "*":
-                            numberReducer = (x, y) -> x.longValue() * y.longValue();
+                            numberReducer = (x, y) -> x.multiply(y);
                             break;
                         case "/":
-                            numberReducer = (x, y) -> x.longValue() / y.longValue();
+                            numberReducer = (x, y) -> x.divide(y, MathContext.DECIMAL128);
                             break;
                         default:
                             numberReducer = null;
@@ -254,7 +256,7 @@ public class ComponentParser {
 
                     //value = new BinaryView(new Text(source, operator), textOperator, lhs, rhs);
                     value = new BinaryView(new Text(operator, operator), textOperator, lhs, rhs, args -> {
-                        Number result = numberReducer.apply(((Number)((AtomView)args[0]).getValue()), ((Number)((AtomView)args[1]).getValue()));
+                        Number result = numberReducer.apply(((BigDecimal)((AtomView)args[0]).getValue()), ((BigDecimal)((AtomView)args[1]).getValue()));
                         return new AtomView(result.toString(), result);
                     });
                     start = operand.stop.getStopIndex();
@@ -319,12 +321,12 @@ public class ComponentParser {
 
             @Override
             public JComponent visitNumber(PaidiaParser.NumberContext ctx) {
-                Number number;
+                BigDecimal number;
 
                 try {
-                    number = Long.parseLong(ctx.getText());
+                    number = BigDecimal.valueOf(Long.parseLong(ctx.getText()));
                 } catch (NumberFormatException e) {
-                    number = Double.parseDouble(ctx.getText());
+                    number = BigDecimal.valueOf(Double.parseDouble(ctx.getText()));
                 }
 
                 return new AtomView(ctx.getText(), number);

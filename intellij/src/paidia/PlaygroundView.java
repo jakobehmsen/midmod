@@ -271,22 +271,22 @@ public class PlaygroundView extends JPanel {
                     JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
                     Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
                     if(targetComponent != valueView) {
-                        ReductionView projection = new ReductionView(valueView);
+                        ReductionView reduction = new ReductionView(valueView);
 
                         if(valueView.getParent() == PlaygroundView.this) {
                             // Should be called "Variable" instead of EditableView?
                             EditableView editableView = viewToEditable.get(valueView);
                             // TODO: When to remove change listener?
                             editableView.addChangeListener(newValueView ->
-                                 projection.setValueView((JComponent)newValueView));
+                                 reduction.setValueView((JComponent)newValueView));
                         }
 
                         if(targetComponent == PlaygroundView.this) {
-                            projection.setLocation(pointInTargetComponent);
-                            add(projection);
+                            reduction.setLocation(pointInTargetComponent);
+                            add(reduction);
                         } else {
                             JComponent targetComponentParent = (JComponent) targetComponent.getParent();
-                            ((ValueView) targetComponentParent).drop(PlaygroundView.this, projection, targetComponent);
+                            ((ValueView) targetComponentParent).drop(PlaygroundView.this, reduction, targetComponent);
                         }
                     }
 
