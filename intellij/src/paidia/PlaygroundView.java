@@ -3,18 +3,49 @@ package paidia;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+import java.util.List;
 
 public class PlaygroundView extends JPanel {
     private EditableView currentEditableView;
     private JComponent childBeingEdited;
     private Hashtable<JComponent, EditableView> viewToEditable = new Hashtable<>();
 
+    private MouseAdapter currentMouseTool;
+    private JPopupMenu mouseToolSelector;
+    private MouseAdapter currentMouseToolWrapper;
+
     public PlaygroundView() {
         setLayout(null);
+
+        currentMouseTool = new MouseAdapter() { };
+
+        mouseToolSelector = new JPopupMenu();
+        mouseToolSelector.add(new AbstractAction("Put") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                currentMouseTool = createPutMouseTool();
+            }
+        });
+        mouseToolSelector.add(new AbstractAction("Move") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                currentMouseTool = createMoveMouseTool();
+            }
+        });
+        mouseToolSelector.add(new AbstractAction("Reduce") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                currentMouseTool = createReduceMouseTool();
+            }
+        });
+
+        this.setComponentPopupMenu(mouseToolSelector);
 
         addContainerListener(new ContainerAdapter() {
             ComponentAdapter componentAdapter;
@@ -84,16 +115,185 @@ public class PlaygroundView extends JPanel {
         MouseAdapter mouseAdapter = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                EditableView editableView = createRootEditableView(() -> "", editorComponent -> {
-                    editorComponent.setLocation(e.getPoint());
-                    editorComponent.setSize(80, 15);
-                }, newValueView -> { }, () -> { });
+                if(e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() == 1) {
+                    EditableView editableView = createRootEditableView(() -> "", editorComponent -> {
+                        editorComponent.setLocation(e.getPoint());
+                        editorComponent.setSize(80, 15);
+                    }, newValueView -> {
+                    }, () -> {
+                    });
 
-                editableView.beginEdit();
+                    editableView.beginEdit();
+                }
             }
         };
 
-        addMouseListener(mouseAdapter);
+        //addMouseListener(mouseAdapter);
+        currentMouseToolWrapper = createWrapperForMouseTool();
+        addMouseListener(currentMouseToolWrapper);
+        addMouseMotionListener(currentMouseToolWrapper);
+    }
+
+    private MouseAdapter createWrapperForMouseTool() {
+        return new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                currentMouseTool.mouseClicked(e);
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                currentMouseTool.mousePressed(e);
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                currentMouseTool.mouseReleased(e);
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                currentMouseTool.mouseDragged(e);
+            }
+        };
+    }
+
+    private MouseAdapter createPutMouseTool() {
+        return new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if(e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() == 1) {
+                    EditableView editableView = createRootEditableView(() -> "", editorComponent -> {
+                        editorComponent.setLocation(e.getPoint());
+                        editorComponent.setSize(80, 15);
+                    }, newValueView -> {
+                    }, () -> {
+                    });
+
+                    editableView.beginEdit();
+                }
+            }
+        };
+    }
+
+    private MouseAdapter createMoveMouseTool() {
+        return new MouseAdapter() {
+            private JComponent targetValueView;
+            private int mousePressX;
+            private int mousePressY;
+            private boolean moving;
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                JComponent valueView = (JComponent) e.getComponent();
+                if(e.getButton() == MouseEvent.BUTTON1) {
+                    targetValueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
+
+                    moving = true;
+                    targetValueView.getParent().setComponentZOrder(targetValueView, 0);
+
+                    int cursorType = Cursor.MOVE_CURSOR;
+                    Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
+                    glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                    glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+
+                    mousePressX = e.getX();
+                    mousePressY = e.getY();
+                }
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if(moving) {
+                    int deltaX = e.getX() - mousePressX;
+                    int deltaY = e.getY() - mousePressY;
+
+                    targetValueView.setLocation(targetValueView.getX() + deltaX, targetValueView.getY() + deltaY);
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if(e.getButton() == MouseEvent.BUTTON1 && moving) {
+                    moving = false;
+                    int cursorType = Cursor.DEFAULT_CURSOR;
+                    Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
+                    glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                    glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+                }
+            }
+        };
+    }
+
+    private MouseAdapter createReduceMouseTool() {
+        return new MouseAdapter() {
+            private JComponent selection;
+            private boolean linking;
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                JComponent valueView = (JComponent) e.getComponent();
+                if(e.getButton() == MouseEvent.BUTTON1) {
+                    linking = true;
+
+                    selection = new JPanel();
+                    selection.setBorder(BorderFactory.createDashedBorder(Color.BLACK));
+                    Point point = SwingUtilities.convertPoint(valueView.getParent(), valueView.getLocation(), PlaygroundView.this);
+                    selection.setSize(valueView.getSize());
+                    selection.setLocation(point);
+                    selection.setOpaque(false);
+                    add(selection, 0);
+                    selection.repaint();
+                    selection.revalidate();
+
+                    int cursorType = Cursor.HAND_CURSOR;
+                    Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
+                    glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                    glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                JComponent valueView = (JComponent) e.getComponent();
+
+                if(e.getButton() == MouseEvent.BUTTON1 && linking) {
+                    linking = false;
+                    int cursorType = Cursor.DEFAULT_CURSOR;
+                    Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
+                    glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                    glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+
+                    remove(selection);
+                    repaint(selection.getBounds());
+                    revalidate();
+
+                    Point pointInContentPane = SwingUtilities.convertPoint(valueView, e.getPoint(), PlaygroundView.this);
+                    JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
+                    Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
+                    if(targetComponent != valueView) {
+                        ReductionView reduction = new ReductionView(valueView);
+
+                        if(valueView.getParent() == PlaygroundView.this) {
+                            // Should be called "Variable" instead of EditableView?
+                            EditableView editableView = viewToEditable.get(valueView);
+                            // TODO: When to remove change listener?
+                            editableView.addChangeListener(newValueView ->
+                                reduction.setValueView((JComponent)newValueView));
+                        }
+
+                        if(targetComponent == PlaygroundView.this) {
+                            reduction.setLocation(pointInTargetComponent);
+                            add(reduction);
+                        } else {
+                            JComponent targetComponentParent = (JComponent) targetComponent.getParent();
+                            ((ValueView) targetComponentParent).drop(PlaygroundView.this, reduction, targetComponent);
+                        }
+                    }
+
+                }
+            }
+        };
     }
 
     private EditableView createRootEditableView(Supplier<String> textSupplier, Consumer<JComponent> beginEdit, Consumer<JComponent> endEdit, Runnable cancelEdit) {
@@ -180,6 +380,8 @@ public class PlaygroundView extends JPanel {
     }
 
     public void makeEditableByMouse(Supplier<EditableView> editableViewSupplier, JComponent valueView) {
+        // TODO: How to make this a tool?
+        // - It is dependable on deriving an editable view.
         valueView.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -190,7 +392,7 @@ public class PlaygroundView extends JPanel {
             }
         });
 
-        MouseAdapter mouseAdapter = new MouseAdapter() {
+        /*MouseAdapter mouseAdapter = new MouseAdapter() {
             private JComponent selection;
             private JComponent targetValueView;
             private int mousePressX;
@@ -301,6 +503,9 @@ public class PlaygroundView extends JPanel {
         };
 
         valueView.addMouseListener(mouseAdapter);
-        valueView.addMouseMotionListener(mouseAdapter);
+        valueView.addMouseMotionListener(mouseAdapter);*/
+
+        valueView.addMouseListener(currentMouseToolWrapper);
+        valueView.addMouseMotionListener(currentMouseToolWrapper);
     }
 }
