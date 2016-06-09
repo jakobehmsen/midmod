@@ -122,27 +122,7 @@ public class BinaryView extends JPanel implements ValueView {
 
             @Override
             public void endEdit(JComponent parsedComponent) {
-                changeArgument(index, argument, parsedComponent);
-
-                playgroundView.makeEditableByMouse(() -> argument.editableView, argument.valueView);
-                ((ValueView)argument.valueView).setup(playgroundView);
-                setSize(getPreferredSize());
-
-                repaint();
-                revalidate();
-
-                /*remove(index);
-                add(parsedComponent, index);
-                ((ValueView)argument.valueView).removeObserver(argument.observer);
-                ((ValueView)argument.valueView).release();
-                argument.valueView = parsedComponent;
-                ((ValueView)argument.valueView).addObserver(argument.observer);
-                playgroundView.makeEditableByMouse(() -> argument.editableView, argument.valueView);
-                ((ValueView)argument.valueView).setup(playgroundView);
-                setSize(getPreferredSize());
-
-                repaint();
-                revalidate();*/
+                changeArgument(playgroundView, index, argument, parsedComponent);
             }
 
             @Override
@@ -172,25 +152,28 @@ public class BinaryView extends JPanel implements ValueView {
     }
 
     @Override
-    public void drop(JComponent dropped, JComponent target) {
+    public void drop(PlaygroundView playgroundView, JComponent dropped, JComponent target) {
         int index = getComponentZOrder(target);
         Argument argument = index == 0 ? lhs : rhs;
 
-        changeArgument(index, argument, dropped);
-
-        setSize(getPreferredSize());
-
-        repaint();
-        revalidate();
+        changeArgument(playgroundView, index, argument, dropped);
     }
 
-    private void changeArgument(int index, Argument argument, JComponent valueView) {
+    private void changeArgument(PlaygroundView playgroundView, int index, Argument argument, JComponent valueView) {
         remove(index);
         add(valueView, index);
         ((ValueView)argument.valueView).removeObserver(argument.observer);
         ((ValueView)argument.valueView).release();
         argument.valueView = valueView;
         ((ValueView)argument.valueView).addObserver(argument.observer);
+
+        playgroundView.makeEditableByMouse(() -> argument.editableView, argument.valueView);
+        ((ValueView)argument.valueView).setup(playgroundView);
+
+        setSize(getPreferredSize());
+
+        repaint();
+        revalidate();
 
         observers.forEach(x -> x.updated());
     }

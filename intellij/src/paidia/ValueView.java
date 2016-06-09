@@ -1,7 +1,6 @@
 package paidia;
 
 import javax.swing.*;
-import java.awt.*;
 
 public interface ValueView {
     String getText(TextContext textContext);
@@ -17,7 +16,7 @@ public interface ValueView {
 
     void release();
 
-    default void drop(JComponent dropped, JComponent target) {
+    default void drop(PlaygroundView playgroundView, JComponent dropped, JComponent target) {
 
     }
 }

@@ -1,21 +1,12 @@
 package paidia;
 
 import javax.swing.*;
-import javax.swing.border.AbstractBorder;
-import javax.swing.border.Border;
-import javax.swing.border.EtchedBorder;
-import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.Area;
-import java.awt.geom.GeneralPath;
-import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 public class PlaygroundView extends JPanel {
     private EditableView currentEditableView;
@@ -55,8 +46,8 @@ public class PlaygroundView extends JPanel {
                     else {
                         editableView = createRootEditableView(() -> ((ValueView)valueViewHolder[0]).getText(rootTextContext),
                             editorComponent -> {
-                                remove(valueViewHolder[0]);
                                 childBeingEdited = valueViewHolder[0];
+                                remove(valueViewHolder[0]);
                                 editorComponent.setBounds(valueViewHolder[0].getBounds());
                             }, newValueView -> {
                                 valueViewHolder[0].removeContainerListener(this);
@@ -83,10 +74,10 @@ public class PlaygroundView extends JPanel {
 
                 e.getChild().removeComponentListener(componentAdapter);
 
-                /*if(e.getChild() instanceof ValueView) {
+                if(e.getChild() instanceof ValueView && e.getChild() != childBeingEdited) {
                     ((Container)e.getChild()).removeContainerListener(this);
                     viewToEditable.remove(e.getChild());
-                }*/
+                }
             }
         });
 
@@ -177,13 +168,6 @@ public class PlaygroundView extends JPanel {
                 currentEditableView = null;
             }
 
-            /*@Override
-            public void endEdit(String text) {
-                editor.endEdit(text);
-
-                currentEditableView = null;
-            }*/
-
             @Override
             public void cancelEdit() {
                 editor.cancelEdit();
@@ -218,14 +202,7 @@ public class PlaygroundView extends JPanel {
             @Override
             public void mousePressed(MouseEvent e) {
                 if(e.getButton() == MouseEvent.BUTTON3) {
-                    /*if(valueView.getParent() != PlaygroundView.this)
-                        return;*/
-
                     linking = true;
-                    /*int cursorType = Cursor.HAND_CURSOR;
-                    Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
-                    glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
-                    glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);*/
 
                     selection = new JPanel();
                     selection.setBorder(BorderFactory.createDashedBorder(Color.BLACK));
@@ -239,15 +216,8 @@ public class PlaygroundView extends JPanel {
                 } else if(e.getButton() == MouseEvent.BUTTON1) {
                     targetValueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
 
-                    //if(valueView.getParent() != PlaygroundView.this)
-                    //    return;
-
                     moving = true;
                     targetValueView.getParent().setComponentZOrder(targetValueView, 0);
-                    /*int cursorType = Cursor.MOVE_CURSOR;
-                    Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
-                    glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
-                    glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);*/
 
                     mousePressX = e.getX();
                     mousePressY = e.getY();
@@ -262,6 +232,8 @@ public class PlaygroundView extends JPanel {
                         Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
                         glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
                         glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+
+                        hasDragged = true;
                     }
                 } else if(moving) {
                     if(!hasDragged) {
@@ -269,6 +241,8 @@ public class PlaygroundView extends JPanel {
                         Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
                         glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
                         glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+
+                        hasDragged = true;
                     }
 
                     int deltaX = e.getX() - mousePressX;
@@ -294,12 +268,9 @@ public class PlaygroundView extends JPanel {
                     revalidate();
 
                     Point pointInContentPane = SwingUtilities.convertPoint(valueView, e.getPoint(), PlaygroundView.this);
-                    //ViewBinding targetView = findView(pointInContentPane);
-                    //JComponent targetComponent = targetView.getView();//(JComponent) contentPane.findComponentAt(pointInContentPane);
                     JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
                     Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
                     if(targetComponent != valueView) {
-                        // Target must support dumping a value on it
                         ReductionView projection = new ReductionView(valueView);
 
                         if(valueView.getParent() == PlaygroundView.this) {
@@ -310,52 +281,13 @@ public class PlaygroundView extends JPanel {
                                  projection.setValueView((JComponent)newValueView));
                         }
 
-                        //Value projection = value.get().createProjection();
-                        //ViewBinding projectionView = projection.toComponent();
-                        //projectionView.setupWorkspace(workspace);
-                        //projectionView.getView().setLocation(pointInTargetComponent);
-
-                        makeEditableByMouse(() -> null, projection);
-                        projection.setup(PlaygroundView.this);
-
                         if(targetComponent == PlaygroundView.this) {
                             projection.setLocation(pointInTargetComponent);
                             add(projection);
                         } else {
                             JComponent targetComponentParent = (JComponent) targetComponent.getParent();
-                            ((ValueView) targetComponentParent).drop(projection, targetComponent);
+                            ((ValueView) targetComponentParent).drop(PlaygroundView.this, projection, targetComponent);
                         }
-                        //targetView.drop(projection, pointInTargetComponent);
-                        //targetComponent.add(projectionView.getView());
-
-                        /*projection.addUsage(new Usage() {
-                            ViewBinding origProjectionView = projectionView;
-
-                            @Override
-                            public void removeValue() {
-
-                            }
-
-                            @Override
-                            public void replaceValue(Value value) {
-                                if(origProjectionView.isCompatibleWith(value)) {
-                                    origProjectionView.updateFrom(value);
-                                    return;
-                                }
-
-                                ViewBinding projectionView = value.toComponent();
-                                projectionView.setupWorkspace(workspace);
-                                Point location = origProjectionView.getView().getLocation();
-
-                                origProjectionView.drop(value, location);
-
-                                //targetComponent.remove(origProjectionView.getView());
-                                projectionView.getView().setLocation(location);
-                                //targetComponent.add(projectionView.getView());
-                                //targetView.drop(projection);
-                                origProjectionView = projectionView;
-                            }
-                        });*/
                     }
 
                 } else if(e.getButton() == MouseEvent.BUTTON1 && moving) {
