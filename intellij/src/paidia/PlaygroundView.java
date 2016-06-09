@@ -319,6 +319,7 @@ public class PlaygroundView extends JPanel {
             @Override
             public void mouseClicked(MouseEvent e) {
                 JComponent valueView = (JComponent) e.getComponent();
+                valueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
 
                 remove(valueView);
 
