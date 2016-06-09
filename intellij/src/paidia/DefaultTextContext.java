@@ -15,4 +15,9 @@ public class DefaultTextContext implements TextContext {
     public String getTextMul(String text) {
         return text;
     }
+
+    @Override
+    public String getTextRaise(String text) {
+        return text;
+    }
 }

@@ -52,6 +52,9 @@ public class ComponentParser {
         } else if(operator.getText().equals("/")) {
             Object result = (long)((AtomValue)args[0]).getValue() / (long)((AtomValue)args[1]).getValue();
             return new AtomValue(workspace, result.toString(), result.toString(), result);
+        } else if(operator.getText().equals("^")) {
+            Object result = (long)((AtomValue)args[0]).getValue() / (long)((AtomValue)args[1]).getValue();
+            return new AtomValue(workspace, result.toString(), result.toString(), result);
         }
 
         return null;
@@ -112,7 +115,7 @@ public class ComponentParser {
 
             @Override
             public Value visitMulExpression(PaidiaParser.MulExpressionContext ctx) {
-                return visitBinaryExpression(ctx.lhs, ctx.mulExpressionOp(), o -> o.MUL_OP().getText(), o -> o.chainedExpression(), (o, args) -> {
+                return visitBinaryExpression(ctx.lhs, ctx.mulExpressionOp(), o -> o.MUL_OP().getText(), o -> o.raiseExpression(), (o, args) -> {
                     return reduce(workspace, args, o.MUL_OP());
 
                     /*if(o.MUL_OP().getText().equals("*")) {
@@ -124,6 +127,13 @@ public class ComponentParser {
                     }
 
                     return null;*/
+                });
+            }
+
+            @Override
+            public Value visitRaiseExpression(PaidiaParser.RaiseExpressionContext ctx) {
+                return visitBinaryExpression(ctx.lhs, ctx.raiseExpressionOp(), o -> o.RAISE_OP().getText(), o -> o.chainedExpression(), (o, args) -> {
+                    return reduce(workspace, args, o.RAISE_OP());
                 });
             }
 
@@ -216,8 +226,13 @@ public class ComponentParser {
                             public String getTextMul(String text) {
                                 return text;
                             }
+
+                            @Override
+                            public String getTextRaise(String text) {
+                                return text;
+                            }
                         };
-                    else
+                    else if(operator.equals("*") || operator.equals("/"))
                         textOperator = new TextContext() {
                             @Override
                             public String getText(TextContext textContext, String text) {
@@ -233,7 +248,36 @@ public class ComponentParser {
                             public String getTextMul(String text) {
                                 return text;
                             }
+
+                            @Override
+                            public String getTextRaise(String text) {
+                                return text;
+                            }
                         };
+                    else if(operator.equals("^"))
+                        textOperator = new TextContext() {
+                            @Override
+                            public String getText(TextContext textContext, String text) {
+                                return textContext.getTextRaise(text);
+                            }
+
+                            @Override
+                            public String getTextAdd(String text) {
+                                return "(" + text + ")";
+                            }
+
+                            @Override
+                            public String getTextMul(String text) {
+                                return "(" + text + ")";
+                            }
+
+                            @Override
+                            public String getTextRaise(String text) {
+                                return text;
+                            }
+                        };
+                    else
+                        textOperator = null;
 
                     BiFunction<BigDecimal, BigDecimal, BigDecimal> numberReducer;
 
@@ -249,6 +293,9 @@ public class ComponentParser {
                             break;
                         case "/":
                             numberReducer = (x, y) -> x.divide(y, MathContext.DECIMAL128);
+                            break;
+                        case "^":
+                            numberReducer = (x, y) -> x.pow(y.intValue());
                             break;
                         default:
                             numberReducer = null;
@@ -285,7 +332,7 @@ public class ComponentParser {
 
             @Override
             public JComponent visitMulExpression(PaidiaParser.MulExpressionContext ctx) {
-                return visitBinaryExpression(ctx.lhs, ctx.mulExpressionOp(), o -> o.MUL_OP().getText(), o -> o.chainedExpression(), (o, args) -> {
+                return visitBinaryExpression(ctx.lhs, ctx.mulExpressionOp(), o -> o.MUL_OP().getText(), o -> o.raiseExpression(), (o, args) -> {
                     return null;
                     //return reduce(workspace, args, o.MUL_OP());
 
@@ -298,6 +345,13 @@ public class ComponentParser {
                     }
 
                     return null;*/
+                });
+            }
+
+            @Override
+            public JComponent visitRaiseExpression(PaidiaParser.RaiseExpressionContext ctx) {
+                return visitBinaryExpression(ctx.lhs, ctx.raiseExpressionOp(), o -> o.RAISE_OP().getText(), o -> o.chainedExpression(), (o, args) -> {
+                    return null;
                 });
             }
 

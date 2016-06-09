@@ -6,4 +6,6 @@ public interface TextContext {
     String getTextAdd(String text);
 
     String getTextMul(String text);
+
+    String getTextRaise(String text);
 }

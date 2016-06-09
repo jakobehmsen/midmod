@@ -13,40 +13,41 @@ public class PlaygroundView extends JPanel {
     private JComponent childBeingEdited;
     private Hashtable<JComponent, EditableView> viewToEditable = new Hashtable<>();
 
-    private MouseAdapter currentMouseTool;
+    private MouseTool currentMouseTool;
     private JPopupMenu mouseToolSelector;
     private MouseAdapter currentMouseToolWrapper;
+
+    private Action createMouseToolSelector(String text, MouseTool mouseTool) {
+        return new AbstractAction(text) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(currentMouseTool != null)
+                    currentMouseTool.endTool(PlaygroundView.this);
+                currentMouseTool = mouseTool;
+                String title = ((JFrame) SwingUtilities.getWindowAncestor(PlaygroundView.this)).getTitle().split(" - ")[0];
+                ((JFrame) SwingUtilities.getWindowAncestor(PlaygroundView.this)).setTitle(title + " - " + text);
+                currentMouseTool.startTool(PlaygroundView.this);
+            }
+        };
+    }
 
     public PlaygroundView() {
         setLayout(null);
 
-        currentMouseTool = new MouseAdapter() { };
+        currentMouseTool = new MouseTool() {
+            @Override
+            public void startTool(JComponent component) {
+                component.setToolTipText("Please right click and select a tool");
+            }
+        };
+
+        currentMouseTool.startTool(this);
 
         mouseToolSelector = new JPopupMenu();
-        mouseToolSelector.add(new AbstractAction("Put") {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                currentMouseTool = createPutMouseTool();
-            }
-        });
-        mouseToolSelector.add(new AbstractAction("Move") {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                currentMouseTool = createMoveMouseTool();
-            }
-        });
-        mouseToolSelector.add(new AbstractAction("Reduce") {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                currentMouseTool = createReduceMouseTool();
-            }
-        });
-        mouseToolSelector.add(new AbstractAction("Delete") {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                currentMouseTool = createDeleteMouseTool();
-            }
-        });
+        mouseToolSelector.add(createMouseToolSelector("Put", createPutMouseTool()));
+        mouseToolSelector.add(createMouseToolSelector("Move", createMoveMouseTool()));
+        mouseToolSelector.add(createMouseToolSelector("Reduce", createReduceMouseTool()));
+        mouseToolSelector.add(createMouseToolSelector("Delete", createDeleteMouseTool()));
 
         // What if each mouse button could be a tool reference, that can be changed on the run?
         // - Then, which one should be used for mouse-over/enter/exit events?
@@ -118,23 +119,6 @@ public class PlaygroundView extends JPanel {
             }
         });
 
-        MouseAdapter mouseAdapter = new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if(e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() == 1) {
-                    EditableView editableView = createRootEditableView(() -> "", editorComponent -> {
-                        editorComponent.setLocation(e.getPoint());
-                        editorComponent.setSize(80, 15);
-                    }, newValueView -> {
-                    }, () -> {
-                    });
-
-                    editableView.beginEdit();
-                }
-            }
-        };
-
-        //addMouseListener(mouseAdapter);
         currentMouseToolWrapper = createWrapperForMouseTool();
         addMouseListener(currentMouseToolWrapper);
         addMouseMotionListener(currentMouseToolWrapper);
@@ -176,11 +160,13 @@ public class PlaygroundView extends JPanel {
         };
     }
 
-    private MouseAdapter createPutMouseTool() {
-        return new MouseAdapter() {
+    private MouseTool createPutMouseTool() {
+        return new MouseTool() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if(e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() == 1) {
+                if(e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() == 1 && e.getComponent() == PlaygroundView.this) {
+                    PlaygroundView.this.setToolTipText("");
+
                     EditableView editableView = createRootEditableView(() -> "", editorComponent -> {
                         editorComponent.setLocation(e.getPoint());
                         editorComponent.setSize(80, 15);
@@ -191,11 +177,23 @@ public class PlaygroundView extends JPanel {
                     editableView.beginEdit();
                 }
             }
+
+            @Override
+            public void startTool(JComponent component) {
+                component.setToolTipText("Click to create an arithmetic expression - and hit enter to put it.");
+            }
+
+            @Override
+            public void endTool(JComponent component) {
+                if(currentEditableView != null) {
+                    currentEditableView.cancelEdit();
+                }
+            }
         };
     }
 
-    private MouseAdapter createMoveMouseTool() {
-        return new MouseAdapter() {
+    private MouseTool createMoveMouseTool() {
+        return new MouseTool() {
             private JComponent targetValueView;
             private int mousePressX;
             private int mousePressY;
@@ -223,6 +221,8 @@ public class PlaygroundView extends JPanel {
             @Override
             public void mouseDragged(MouseEvent e) {
                 if(moving) {
+                    PlaygroundView.this.setToolTipText("");
+
                     int deltaX = e.getX() - mousePressX;
                     int deltaY = e.getY() - mousePressY;
 
@@ -240,11 +240,16 @@ public class PlaygroundView extends JPanel {
                     glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
                 }
             }
+
+            @Override
+            public void startTool(JComponent component) {
+                component.setToolTipText("Press and drag an object to move it.");
+            }
         };
     }
 
-    private MouseAdapter createReduceMouseTool() {
-        return new MouseAdapter() {
+    private MouseTool createReduceMouseTool() {
+        return new MouseTool() {
             private JComponent selection;
             private boolean linking;
 
@@ -268,6 +273,13 @@ public class PlaygroundView extends JPanel {
                     Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
                     glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
                     glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+                }
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if(linking) {
+                    PlaygroundView.this.setToolTipText("");
                 }
             }
 
@@ -308,16 +320,22 @@ public class PlaygroundView extends JPanel {
                             ((ValueView) targetComponentParent).drop(PlaygroundView.this, reduction, targetComponent);
                         }
                     }
-
                 }
+            }
+
+            @Override
+            public void startTool(JComponent component) {
+                component.setToolTipText("Press and drag an object to reduce it as an expression.");
             }
         };
     }
 
-    private MouseAdapter createDeleteMouseTool() {
-        return new MouseAdapter() {
+    private MouseTool createDeleteMouseTool() {
+        return new MouseTool() {
             @Override
             public void mouseClicked(MouseEvent e) {
+                PlaygroundView.this.setToolTipText("");
+
                 JComponent valueView = (JComponent) e.getComponent();
                 valueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
 
@@ -343,6 +361,11 @@ public class PlaygroundView extends JPanel {
                 Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
                 glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
                 glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+            }
+
+            @Override
+            public void startTool(JComponent component) {
+                component.setToolTipText("Click on an object to delete it.");
             }
         };
     }
@@ -443,118 +466,7 @@ public class PlaygroundView extends JPanel {
             }
         });
 
-        /*MouseAdapter mouseAdapter = new MouseAdapter() {
-            private JComponent selection;
-            private JComponent targetValueView;
-            private int mousePressX;
-            private int mousePressY;
-            private boolean linking;
-            private boolean moving;
-            private boolean hasDragged;
-
-            @Override
-            public void mousePressed(MouseEvent e) {
-                if(e.getButton() == MouseEvent.BUTTON3) {
-                    linking = true;
-
-                    selection = new JPanel();
-                    selection.setBorder(BorderFactory.createDashedBorder(Color.BLACK));
-                    Point point = SwingUtilities.convertPoint(valueView.getParent(), valueView.getLocation(), PlaygroundView.this);
-                    selection.setSize(valueView.getSize());
-                    selection.setLocation(point);
-                    selection.setOpaque(false);
-                    add(selection, 0);
-                    selection.repaint();
-                    selection.revalidate();
-                } else if(e.getButton() == MouseEvent.BUTTON1) {
-                    targetValueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
-
-                    moving = true;
-                    targetValueView.getParent().setComponentZOrder(targetValueView, 0);
-
-                    mousePressX = e.getX();
-                    mousePressY = e.getY();
-                }
-            }
-
-            @Override
-            public void mouseDragged(MouseEvent e) {
-                if(linking) {
-                    if(!hasDragged) {
-                        int cursorType = Cursor.HAND_CURSOR;
-                        Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
-                        glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
-                        glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
-
-                        hasDragged = true;
-                    }
-                } else if(moving) {
-                    if(!hasDragged) {
-                        int cursorType = Cursor.MOVE_CURSOR;
-                        Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
-                        glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
-                        glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
-
-                        hasDragged = true;
-                    }
-
-                    int deltaX = e.getX() - mousePressX;
-                    int deltaY = e.getY() - mousePressY;
-
-                    targetValueView.setLocation(targetValueView.getX() + deltaX, targetValueView.getY() + deltaY);
-                }
-            }
-
-            @Override
-            public void mouseReleased(MouseEvent e) {
-                hasDragged = false;
-
-                if(e.getButton() == MouseEvent.BUTTON3 && linking) {
-                    linking = false;
-                    int cursorType = Cursor.DEFAULT_CURSOR;
-                    Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
-                    glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
-                    glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
-
-                    remove(selection);
-                    repaint(selection.getBounds());
-                    revalidate();
-
-                    Point pointInContentPane = SwingUtilities.convertPoint(valueView, e.getPoint(), PlaygroundView.this);
-                    JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
-                    Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
-                    if(targetComponent != valueView) {
-                        ReductionView reduction = new ReductionView(valueView);
-
-                        if(valueView.getParent() == PlaygroundView.this) {
-                            // Should be called "Variable" instead of EditableView?
-                            EditableView editableView = viewToEditable.get(valueView);
-                            // TODO: When to remove change listener?
-                            editableView.addChangeListener(newValueView ->
-                                 reduction.setValueView((JComponent)newValueView));
-                        }
-
-                        if(targetComponent == PlaygroundView.this) {
-                            reduction.setLocation(pointInTargetComponent);
-                            add(reduction);
-                        } else {
-                            JComponent targetComponentParent = (JComponent) targetComponent.getParent();
-                            ((ValueView) targetComponentParent).drop(PlaygroundView.this, reduction, targetComponent);
-                        }
-                    }
-
-                } else if(e.getButton() == MouseEvent.BUTTON1 && moving) {
-                    moving = false;
-                    int cursorType = Cursor.DEFAULT_CURSOR;
-                    Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
-                    glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
-                    glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
-                }
-            }
-        };
-
-        valueView.addMouseListener(mouseAdapter);
-        valueView.addMouseMotionListener(mouseAdapter);*/
+        valueView.setComponentPopupMenu(mouseToolSelector);
 
         valueView.addMouseListener(currentMouseToolWrapper);
         valueView.addMouseMotionListener(currentMouseToolWrapper);
