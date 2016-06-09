@@ -3,13 +3,10 @@ package paidia;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-import java.util.List;
 
 public class PlaygroundView extends JPanel {
     private EditableView currentEditableView;
@@ -44,7 +41,15 @@ public class PlaygroundView extends JPanel {
                 currentMouseTool = createReduceMouseTool();
             }
         });
+        mouseToolSelector.add(new AbstractAction("Delete") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                currentMouseTool = createDeleteMouseTool();
+            }
+        });
 
+        // What if each mouse button could be a tool reference, that can be changed on the run?
+        // - Then, which one should be used for mouse-over/enter/exit events?
         this.setComponentPopupMenu(mouseToolSelector);
 
         addContainerListener(new ContainerAdapter() {
@@ -108,6 +113,7 @@ public class PlaygroundView extends JPanel {
                 if(e.getChild() instanceof ValueView && e.getChild() != childBeingEdited) {
                     ((Container)e.getChild()).removeContainerListener(this);
                     viewToEditable.remove(e.getChild());
+                    ((ValueView)e.getChild()).release();
                 }
             }
         });
@@ -154,6 +160,18 @@ public class PlaygroundView extends JPanel {
             @Override
             public void mouseDragged(MouseEvent e) {
                 currentMouseTool.mouseDragged(e);
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if(e.getComponent() != PlaygroundView.this)
+                    currentMouseTool.mouseEntered(e);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if(e.getComponent() != PlaygroundView.this)
+                    currentMouseTool.mouseExited(e);
             }
         };
     }
@@ -292,6 +310,38 @@ public class PlaygroundView extends JPanel {
                     }
 
                 }
+            }
+        };
+    }
+
+    private MouseAdapter createDeleteMouseTool() {
+        return new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                JComponent valueView = (JComponent) e.getComponent();
+
+                remove(valueView);
+
+                int cursorType = Cursor.DEFAULT_CURSOR;
+                Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
+                glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                int cursorType = Cursor.CROSSHAIR_CURSOR;
+                Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
+                glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                int cursorType = Cursor.DEFAULT_CURSOR;
+                Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
+                glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
             }
         };
     }
