@@ -1,6 +1,7 @@
 package paidia;
 
 import javax.swing.*;
+import java.awt.*;
 import java.util.ArrayList;
 
 public class ReductionView extends JLabel implements ValueView {
@@ -11,6 +12,7 @@ public class ReductionView extends JLabel implements ValueView {
     public ReductionView(JComponent valueView) {
         this.valueView = valueView;
         reduction = ((ValueView)valueView).reduce();
+        setFont(new Font(getFont().getFamily(), Font.ITALIC | Font.BOLD, getFont().getSize()));
         setText(reduction.getText(new DefaultTextContext()));
 
         observer = new ValueViewObserver() {
@@ -25,6 +27,7 @@ public class ReductionView extends JLabel implements ValueView {
 
         ((ValueView)valueView).addObserver(observer);
         setSize(getPreferredSize());
+
     }
 
     public void setValueView(JComponent valueView) {

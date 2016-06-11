@@ -3,6 +3,7 @@ package paidia;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -48,6 +49,7 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
         mouseToolSelector.add(createMouseToolSelector("Move", createMoveMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Reduce", createReduceMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Delete", createDeleteMouseTool()));
+        mouseToolSelector.add(createMouseToolSelector("Function", createFunctionMouseTool()));
 
         // What if each mouse button could be a tool reference, that can be changed on the run?
         // - Then, which one should be used for mouse-over/enter/exit events?
@@ -377,6 +379,31 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
             @Override
             public void startTool(JComponent component) {
                 component.setToolTipText("Click on an object to delete it.");
+            }
+        };
+    }
+
+    private MouseTool createFunctionMouseTool() {
+        return new MouseTool() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                PlaygroundView.this.setToolTipText("");
+
+                JComponent valueView = (JComponent) e.getComponent();
+                //valueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
+                JComponent parent = (JComponent) valueView.getParent();
+                parent.remove(valueView);
+                FunctionView functionView = new FunctionView(Arrays.asList(), valueView);
+                functionView.setLocation(valueView.getLocation());
+                parent.add(functionView);
+
+                revalidate();
+                repaint();
+            }
+
+            @Override
+            public void startTool(JComponent component) {
+                component.setToolTipText("Click on an object to convert it to a function.");
             }
         };
     }
