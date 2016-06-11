@@ -183,8 +183,7 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
 
 
                         ValueViewContainer container = (ValueViewContainer) e.getComponent().getParent();
-                        editableView = container.getEditorFor((JComponent) e.getComponent(), e.getPoint());
-                        //EditableView editableView = editableViewSupplier.get();
+                        editableView = container.getEditorFor((JComponent) e.getComponent());
                     }
                     editableView.beginEdit();
                 }
@@ -192,7 +191,7 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
 
             @Override
             public void startTool(JComponent component) {
-                component.setToolTipText("Click to create an arithmetic expression - and hit enter to put it.");
+                component.setToolTipText("Click to create or edit an arithmetic expression - and hit enter to do the change.");
             }
 
             @Override
@@ -467,20 +466,6 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
     }
 
     public void makeEditableByMouse(Supplier<EditableView> editableViewSupplier, JComponent valueView) {
-        /*// TODO: How to make this a tool?
-        // - It is dependable on deriving an editable view.
-        valueView.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if(e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() == 2) {
-                    ValueViewContainer container = (ValueViewContainer) e.getComponent().getParent();
-                    EditableView editableView = container.getEditorFor(valueView);
-                    //EditableView editableView = editableViewSupplier.get();
-                    editableView.beginEdit();
-                }
-            }
-        });*/
-
         valueView.setComponentPopupMenu(mouseToolSelector);
 
         valueView.addMouseListener(currentMouseToolWrapper);
@@ -488,17 +473,7 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
     }
 
     @Override
-    public EditableView getEditorFor(JComponent valueView, Point location) {
-
-        EditableView editableView = viewToEditable.get(valueView);
-        if(editableView == null) {
-            editableView = createRootEditableView(() -> "", editorComponent -> {
-                editorComponent.setLocation(location);
-                editorComponent.setSize(80, 15);
-            }, newValueView -> {
-            }, () -> {
-            });
-        }
-        return editableView;
+    public EditableView getEditorFor(JComponent valueView) {
+        return viewToEditable.get(valueView);
     }
 }

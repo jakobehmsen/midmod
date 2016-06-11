@@ -81,7 +81,7 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
     }
 
     @Override
-    public EditableView getEditorFor(JComponent valueView, Point location) {
+    public EditableView getEditorFor(JComponent valueView) {
         int index = getComponentZOrder(valueView);
         Argument argument = index == 0 ? lhs : rhs;
         return argument.editableView;
