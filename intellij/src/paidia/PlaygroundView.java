@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public class PlaygroundView extends JPanel {
+public class PlaygroundView extends JPanel implements ValueViewContainer {
     private EditableView currentEditableView;
     private JComponent childBeingEdited;
     private Hashtable<JComponent, EditableView> viewToEditable = new Hashtable<>();
@@ -44,7 +44,7 @@ public class PlaygroundView extends JPanel {
         currentMouseTool.startTool(this);
 
         mouseToolSelector = new JPopupMenu();
-        mouseToolSelector.add(createMouseToolSelector("Put", createPutMouseTool()));
+        mouseToolSelector.add(createMouseToolSelector("Write", createWriteMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Move", createMoveMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Reduce", createReduceMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Delete", createDeleteMouseTool()));
@@ -160,20 +160,32 @@ public class PlaygroundView extends JPanel {
         };
     }
 
-    private MouseTool createPutMouseTool() {
+    private MouseTool createWriteMouseTool() {
         return new MouseTool() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if(e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() == 1 && e.getComponent() == PlaygroundView.this) {
+                if(e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() == 1) {
                     PlaygroundView.this.setToolTipText("");
 
-                    EditableView editableView = createRootEditableView(() -> "", editorComponent -> {
-                        editorComponent.setLocation(e.getPoint());
-                        editorComponent.setSize(80, 15);
-                    }, newValueView -> {
-                    }, () -> {
-                    });
+                    EditableView editableView;
 
+                    if(e.getComponent() == PlaygroundView.this) {
+
+                        editableView = createRootEditableView(() -> "", editorComponent -> {
+                            editorComponent.setLocation(e.getPoint());
+                            editorComponent.setSize(80, 15);
+                        }, newValueView -> {
+                        }, () -> {
+                        });
+
+                        editableView.beginEdit();
+                    } else {
+
+
+                        ValueViewContainer container = (ValueViewContainer) e.getComponent().getParent();
+                        editableView = container.getEditorFor((JComponent) e.getComponent(), e.getPoint());
+                        //EditableView editableView = editableViewSupplier.get();
+                    }
                     editableView.beginEdit();
                 }
             }
@@ -395,6 +407,7 @@ public class PlaygroundView extends JPanel {
                 remove(editorComponent);
 
                 parsedComponent.setLocation(editorComponent.getLocation());
+
                 add(parsedComponent);
 
                 endEdit.accept(parsedComponent);
@@ -454,21 +467,38 @@ public class PlaygroundView extends JPanel {
     }
 
     public void makeEditableByMouse(Supplier<EditableView> editableViewSupplier, JComponent valueView) {
-        // TODO: How to make this a tool?
+        /*// TODO: How to make this a tool?
         // - It is dependable on deriving an editable view.
         valueView.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if(e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() == 2) {
-                    EditableView editableView = editableViewSupplier.get();
+                    ValueViewContainer container = (ValueViewContainer) e.getComponent().getParent();
+                    EditableView editableView = container.getEditorFor(valueView);
+                    //EditableView editableView = editableViewSupplier.get();
                     editableView.beginEdit();
                 }
             }
-        });
+        });*/
 
         valueView.setComponentPopupMenu(mouseToolSelector);
 
         valueView.addMouseListener(currentMouseToolWrapper);
         valueView.addMouseMotionListener(currentMouseToolWrapper);
+    }
+
+    @Override
+    public EditableView getEditorFor(JComponent valueView, Point location) {
+
+        EditableView editableView = viewToEditable.get(valueView);
+        if(editableView == null) {
+            editableView = createRootEditableView(() -> "", editorComponent -> {
+                editorComponent.setLocation(location);
+                editorComponent.setSize(80, 15);
+            }, newValueView -> {
+            }, () -> {
+            });
+        }
+        return editableView;
     }
 }

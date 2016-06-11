@@ -9,7 +9,7 @@ import java.awt.event.ContainerEvent;
 import java.util.ArrayList;
 import java.util.function.Function;
 
-public class BinaryView extends JPanel implements ValueView {
+public class BinaryView extends JPanel implements ValueView, ValueViewContainer {
     private Text operator;
     private TextContext textOperator;
     private Argument lhs;
@@ -78,6 +78,13 @@ public class BinaryView extends JPanel implements ValueView {
     @Override
     public void release() {
 
+    }
+
+    @Override
+    public EditableView getEditorFor(JComponent valueView, Point location) {
+        int index = getComponentZOrder(valueView);
+        Argument argument = index == 0 ? lhs : rhs;
+        return argument.editableView;
     }
 
     private static class Argument {
