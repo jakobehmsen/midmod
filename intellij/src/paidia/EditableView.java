@@ -5,16 +5,17 @@ import com.sun.glass.events.KeyEvent;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.text.DefaultCaret;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.function.Consumer;
 
 public class EditableView {
+    private TextParser textParseHandler;
     private Editor editor;
     private JTextArea editorComponent;
 
-    public EditableView(Editor editor) {
+    public EditableView(TextParser textParseHandler, Editor editor) {
+        this.textParseHandler = textParseHandler;
         this.editor = editor;
     }
 
@@ -32,9 +33,17 @@ public class EditableView {
 
         editorComponent.registerKeyboardAction(e1 -> {
             String text = editorComponent.getText();
-            JComponent parsedComponent = ComponentParser.parseComponent(text);
+            textParseHandler.parse(editorComponent, text, new TextParseHandler() {
+                @Override
+                public void handleParsedComponent(JComponent parsedComponent) {
+                    editor.endEdit(parsedComponent);
+                    listeners.forEach(x -> x.accept((ValueView)parsedComponent));
+                }
+            });
+
+            /*JComponent parsedComponent = ComponentParser.parseComponent(text);
             editor.endEdit(parsedComponent);
-            listeners.forEach(x -> x.accept((ValueView)parsedComponent));
+            listeners.forEach(x -> x.accept((ValueView)parsedComponent));*/
         }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
 
         editorComponent.registerKeyboardAction(e1 -> {

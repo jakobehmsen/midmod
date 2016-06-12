@@ -173,7 +173,7 @@ public class ComponentParser {
         });
     }
 
-    public static JComponent parseComponent(String text) {
+    public static void parseComponent(ChildSlot childSlot, String text, TextParseHandler textParseHandler) {
         CharStream charStream = new ANTLRInputStream(text);
         PaidiaLexer lexer = new PaidiaLexer(charStream);
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
@@ -186,10 +186,32 @@ public class ComponentParser {
         JComponent parsedComponent = parseComponentBlockParts(block.blockPart(), unresolvedIdentifiers);
 
         if(unresolvedIdentifiers.size() > 0) {
-            parsedComponent = new FunctionView(unresolvedIdentifiers, parsedComponent);
-        }
+            JComponent parsedFunctionComponent = new FunctionView(unresolvedIdentifiers, parsedComponent);
+            textParseHandler.handleParsedComponent(parsedFunctionComponent);
 
-        return parsedComponent;
+            /*TextEditor textEditor = new TextEditor() {
+                @Override
+                protected void endEdit(String text) {
+                    childSlot.commit(new NamedView(text, parsedFunctionComponent));
+                }
+
+                @Override
+                protected void cancelEdit() {
+                    childSlot.revert();
+                }
+            };
+
+            textEditor.setBorder(BorderFactory.createTitledBorder("Name the function"));
+            textEditor.setSize(200, 50);
+
+            childSlot.replace(textEditor);
+
+            textEditor.requestFocusInWindow();*/
+        } else {
+
+            //return parsedComponent;
+            textParseHandler.handleParsedComponent(parsedComponent);
+        }
     }
 
     private static JComponent parseComponentBlockParts(List<PaidiaParser.BlockPartContext> blockPartContexts, ArrayList<String> unresolvedIdentifiers) {

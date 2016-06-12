@@ -51,6 +51,7 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
         mouseToolSelector.add(createMouseToolSelector("Delete", createDeleteMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Function", createFunctionMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Parameter", createParameterMouseTool()));
+        mouseToolSelector.add(createMouseToolSelector("Name", createNameMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Apply", createApplyMouseTool()));
 
         // What if each mouse button could be a tool reference, that can be changed on the run?
@@ -452,6 +453,43 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
         };
     }
 
+    private MouseTool createNameMouseTool() {
+        return new MouseTool() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                PlaygroundView.this.setToolTipText("");
+
+                JComponent valueViewTmp = (JComponent) e.getComponent();
+                JComponent valueView = Stream.iterate(valueViewTmp, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
+                ValueViewContainer valueViewContainer = (ValueViewContainer) valueView.getParent();
+                ChildSlot childSlot = valueViewContainer.getChildSlot(PlaygroundView.this, valueView);
+
+                TextEditor textEditor = new TextEditor() {
+                    @Override
+                    protected void endEdit(String text) {
+                        childSlot.replace(new NamedView(text, valueView));
+                    }
+
+                    @Override
+                    protected void cancelEdit() {
+                        childSlot.revert();
+                    }
+                };
+
+                textEditor.setSize(100, 15);
+
+                childSlot.replace(textEditor);
+
+                textEditor.requestFocusInWindow();
+            }
+
+            @Override
+            public void startTool(JComponent component) {
+                component.setToolTipText("Click on an object to give it a name.");
+            }
+        };
+    }
+
     private MouseTool createApplyMouseTool() {
         return new MouseTool() {
             private JComponent selection;
@@ -586,7 +624,34 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
     public EditableView createEditableView(Editor editor) {
         EditableView[] editableViews = new EditableView[1];
 
-        editableViews[0] = new EditableView(new Editor() {
+        editableViews[0] = new EditableView(new TextParser() {
+            @Override
+            public void parse(JComponent editorComponent, String text, TextParseHandler handler) {
+                ComponentParser.parseComponent(new ChildSlot() {
+                    private JComponent currentView = editorComponent;
+
+                    @Override
+                    public void replace(JComponent view) {
+                        remove(currentView);
+                        view.setLocation(currentView.getLocation());
+                        add(view);
+                        currentView = view;
+                    }
+
+                    @Override
+                    public void revert() {
+                        remove(currentView);
+                    }
+
+                    @Override
+                    public void commit(JComponent valueView) {
+                        remove(currentView);
+                        valueView.setLocation(currentView.getLocation());
+                        add(valueView);
+                    }
+                }, text, handler);
+            }
+        }, new Editor() {
             @Override
             public String getText() {
                 return editor.getText();
@@ -636,6 +701,29 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
 
     @Override
     public ChildSlot getChildSlot(PlaygroundView playgroundView, JComponent valueView) {
-        return null;
+        return new ChildSlot() {
+            JComponent currentView = valueView;
+
+            @Override
+            public void replace(JComponent view) {
+                remove(currentView);
+                view.setLocation(currentView.getLocation());
+                add(view);
+                currentView = view;
+            }
+
+            @Override
+            public void revert() {
+                remove(currentView);
+                add(valueView);
+            }
+
+            @Override
+            public void commit(JComponent valueView) {
+                remove(currentView);
+                valueView.setLocation(currentView.getLocation());
+                add(valueView);
+            }
+        };
     }
 }

@@ -3,17 +3,21 @@ package paidia;
 import javax.swing.*;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
-import java.awt.event.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ContainerAdapter;
+import java.awt.event.ContainerEvent;
 
-public class FunctionView extends JPanel implements ValueView, ValueViewContainer {
-    private List<String> parameters;
+public class NamedView extends JPanel implements ValueView, ValueViewContainer {
     private JComponent bodyView;
     private EditableView bodyEditableView;
 
-    public FunctionView(List<String> parameters, JComponent bodyView) {
-        this.parameters = new ArrayList<>(parameters);
+    public NamedView(String name, JComponent bodyView) {
+        setLayout(new BorderLayout());
+        JLabel nameLabel = new JLabel(name);
+        nameLabel.setOpaque(true);
+        nameLabel.setBackground(Color.WHITE);
+        add(nameLabel, BorderLayout.NORTH);
         this.bodyView = bodyView;
 
         addContainerListener(new ContainerAdapter() {
@@ -37,15 +41,16 @@ public class FunctionView extends JPanel implements ValueView, ValueViewContaine
             }
         });
 
-        add(bodyView);
+        add(bodyView, BorderLayout.CENTER);
 
-        setBorder(BorderFactory.createLineBorder(Color.RED));
+        //setBorder(BorderFactory.createLineBorder(Color.RED));
         setSize(getPreferredSize());
+        setBorder(BorderFactory.createLineBorder(Color.GRAY));
     }
 
     @Override
     public String getText(TextContext textContext) {
-        return "function() {\n    " + ((ValueView)bodyView).getText(textContext) + "\n}";
+        return ((ValueView)bodyView).getText(textContext);
     }
 
     @Override
@@ -55,13 +60,13 @@ public class FunctionView extends JPanel implements ValueView, ValueViewContaine
 
     @Override
     public void setup(PlaygroundView playgroundView) {
-        ((ValueView)bodyView).setup(playgroundView);
-        playgroundView.makeEditableByMouse(() -> bodyEditableView, this.bodyView);
+        //((ValueView)bodyView).setup(playgroundView);
+        //playgroundView.makeEditableByMouse(() -> bodyEditableView, NamedView.this.bodyView);
 
         bodyEditableView = playgroundView.createEditableView(new Editor() {
             @Override
             public String getText() {
-                return ((ValueView)FunctionView.this.bodyView).getText(new DefaultTextContext());
+                return ((ValueView)NamedView.this.bodyView).getText(new DefaultTextContext());
             }
 
             @Override
@@ -69,8 +74,8 @@ public class FunctionView extends JPanel implements ValueView, ValueViewContaine
                 //editorComponent.setPreferredSize(FunctionView.this.bodyView.getPreferredSize());
                 editorComponent.setSize(((JTextComponent)editorComponent).getUI().getPreferredSize(editorComponent));
                 //editorComponent.setSize(editorComponent.getPreferredSize());
-                remove(0);
-                add(editorComponent, 0);
+                remove(bodyView);
+                add(editorComponent, BorderLayout.CENTER);
                 setSize(getPreferredSize());
 
                 repaint();
@@ -79,12 +84,13 @@ public class FunctionView extends JPanel implements ValueView, ValueViewContaine
 
             @Override
             public void endEdit(JComponent parsedComponent) {
-                remove(0);
-                add(parsedComponent, 0);
-                FunctionView.this.bodyView = parsedComponent;
+                //((BorderLayout)getLayout()).getLayoutComponent(BorderLayout.CENTER)
+                remove(((BorderLayout)getLayout()).getLayoutComponent(BorderLayout.CENTER));
+                add(parsedComponent, BorderLayout.CENTER);
+                NamedView.this.bodyView = parsedComponent;
 
-                playgroundView.makeEditableByMouse(() -> bodyEditableView, FunctionView.this.bodyView);
-                ((ValueView)FunctionView.this.bodyView).setup(playgroundView);
+                playgroundView.makeEditableByMouse(() -> bodyEditableView, NamedView.this.bodyView);
+                ((ValueView)NamedView.this.bodyView).setup(playgroundView);
 
                 setSize(getPreferredSize());
 
@@ -94,8 +100,8 @@ public class FunctionView extends JPanel implements ValueView, ValueViewContaine
 
             @Override
             public void cancelEdit() {
-                remove(0);
-                add(FunctionView.this.bodyView);
+                remove(((BorderLayout)getLayout()).getLayoutComponent(BorderLayout.CENTER));
+                add(NamedView.this.bodyView, BorderLayout.CENTER);
                 setSize(getPreferredSize());
 
                 repaint();
@@ -122,15 +128,6 @@ public class FunctionView extends JPanel implements ValueView, ValueViewContaine
     @Override
     public void release() {
 
-    }
-
-    public ParameterUsageView makeParameterUsage(String name) {
-        ParameterUsageView parameterUsageView = new ParameterUsageView(name);
-
-        if(!parameters.contains(name))
-            parameters.add(name);
-
-        return parameterUsageView;
     }
 
     @Override
