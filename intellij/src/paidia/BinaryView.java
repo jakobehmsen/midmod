@@ -87,6 +87,39 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
         return argument.editableView;
     }
 
+    @Override
+    public ChildSlot getChildSlot(PlaygroundView playgroundView, JComponent valueView) {
+        int index = getComponentZOrder(valueView);
+        Argument argument = index == 0 ? lhs : rhs;
+        return new ChildSlot() {
+            @Override
+            public void replace(JComponent view) {
+                view.setPreferredSize(argument.valueView.getPreferredSize());
+                remove(index);
+                add(view, index);
+                setSize(getPreferredSize());
+
+                repaint();
+                revalidate();
+            }
+
+            @Override
+            public void revert() {
+                remove(index);
+                add(argument.valueView, index);
+                setSize(getPreferredSize());
+
+                repaint();
+                revalidate();
+            }
+
+            @Override
+            public void commit(JComponent valueView) {
+                changeArgument(playgroundView, index, argument, valueView);
+            }
+        };
+    }
+
     private static class Argument {
         private JComponent valueView;
         private EditableView editableView;

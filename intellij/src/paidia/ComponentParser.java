@@ -10,6 +10,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import javax.swing.*;
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -180,14 +181,22 @@ public class ComponentParser {
 
         PaidiaParser.BlockContext block = parser.block();
 
-        return parseComponentBlockParts(block.blockPart());
+        ArrayList<String> unresolvedIdentifiers = new ArrayList<>();
+
+        JComponent parsedComponent = parseComponentBlockParts(block.blockPart(), unresolvedIdentifiers);
+
+        if(unresolvedIdentifiers.size() > 0) {
+            parsedComponent = new FunctionView(unresolvedIdentifiers, parsedComponent);
+        }
+
+        return parsedComponent;
     }
 
-    private static JComponent parseComponentBlockParts(List<PaidiaParser.BlockPartContext> blockPartContexts) {
+    private static JComponent parseComponentBlockParts(List<PaidiaParser.BlockPartContext> blockPartContexts, ArrayList<String> unresolvedIdentifiers) {
         if (blockPartContexts.size() == 0)
             return null;
         else if (blockPartContexts.size() == 1) {
-            return parseComponentBlockPart(blockPartContexts.get(0));
+            return parseComponentBlockPart(blockPartContexts.get(0), unresolvedIdentifiers);
         } else {
             // Multiple parts.
 
@@ -195,10 +204,10 @@ public class ComponentParser {
         }
     }
 
-    private static JComponent parseComponentBlockPart(ParserRuleContext blockPartContext) {
+    private static JComponent parseComponentBlockPart(ParserRuleContext blockPartContext, ArrayList<String> unresolvedIdentifiers) {
         return blockPartContext.accept(new PaidiaBaseVisitor<JComponent>() {
             private <T extends ParserRuleContext> JComponent visitBinaryExpression(ParserRuleContext first, List<T> operands, Function<T, String> operatorGetter, Function<T, ParserRuleContext> operandGetter, BiFunction<T, Value[], Value> reducer) {
-                JComponent value = parseComponentBlockPart(first);
+                JComponent value = parseComponentBlockPart(first, unresolvedIdentifiers);
 
                 int start = first.stop.getStopIndex() + 1;
                 for (T addExpressionOpContext : operands) {
@@ -206,7 +215,7 @@ public class ComponentParser {
                     String operator = operatorGetter.apply(addExpressionOpContext);
                     int end = operand.start.getStartIndex() - 1;
                     JComponent lhs = value;
-                    JComponent rhs = parseComponentBlockPart(operand);
+                    JComponent rhs = parseComponentBlockPart(operand, unresolvedIdentifiers);
                     String source = first.start.getInputStream().getText(new Interval(start, end));
 
                     TextContext textOperator;
@@ -357,7 +366,7 @@ public class ComponentParser {
 
             @Override
             public JComponent visitEmbeddedExpression(PaidiaParser.EmbeddedExpressionContext ctx) {
-                return parseComponentBlockPart((ParserRuleContext) ctx.getChild(1));
+                return parseComponentBlockPart((ParserRuleContext) ctx.getChild(1), unresolvedIdentifiers);
 
                 /*
                 String prefix = ctx.start.getInputStream().getText(new Interval(
@@ -385,6 +394,19 @@ public class ComponentParser {
 
                 return new AtomView(ctx.getText(), number);
                 //return new AtomValue(workspace, sourceWrapper.apply(ctx.getText()), ctx.getText(), number);
+            }
+
+            @Override
+            public JComponent visitIdentifier(PaidiaParser.IdentifierContext ctx) {
+                String name = ctx.getText();
+
+                if(!unresolvedIdentifiers.contains(name))
+                    unresolvedIdentifiers.add(name);
+
+                //return super.visitIdentifier(ctx);
+
+                // For now, should always just resolve to parameter usage
+                return new ParameterUsageView(name);
             }
 
             /*

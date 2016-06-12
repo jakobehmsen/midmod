@@ -4,6 +4,7 @@ import javax.swing.*;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.ArrayList;
 import java.util.List;
 
 public class FunctionView extends JPanel implements ValueView, ValueViewContainer {
@@ -13,21 +14,8 @@ public class FunctionView extends JPanel implements ValueView, ValueViewContaine
     //private ComponentListener componentListener;
 
     public FunctionView(List<String> parameters, JComponent bodyView) {
-        this.parameters = parameters;
+        this.parameters = new ArrayList<>(parameters);
         this.bodyView = bodyView;
-
-        /*componentListener = new ComponentAdapter() {
-            @Override
-            public void componentResized(ComponentEvent e) {
-                setSize(getPreferredSize());
-            }
-        };*/
-
-        //bodyView.addComponentListener(componentListener);
-        add(bodyView);
-
-        setBorder(BorderFactory.createLineBorder(Color.RED));
-        setSize(getPreferredSize());
 
         addContainerListener(new ContainerAdapter() {
             ComponentAdapter componentAdapter;
@@ -49,6 +37,19 @@ public class FunctionView extends JPanel implements ValueView, ValueViewContaine
                 e.getChild().removeComponentListener(componentAdapter);
             }
         });
+
+        /*componentListener = new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                setSize(getPreferredSize());
+            }
+        };*/
+
+        //bodyView.addComponentListener(componentListener);
+        add(bodyView);
+
+        setBorder(BorderFactory.createLineBorder(Color.RED));
+        setSize(getPreferredSize());
     }
 
     @Override
@@ -63,7 +64,7 @@ public class FunctionView extends JPanel implements ValueView, ValueViewContaine
 
     @Override
     public void setup(PlaygroundView playgroundView) {
-        ((ValueView)bodyView).setup(playgroundView);
+        //((ValueView)bodyView).setup(playgroundView);
 
         bodyEditableView = playgroundView.createEditableView(new Editor() {
             @Override
@@ -133,12 +134,22 @@ public class FunctionView extends JPanel implements ValueView, ValueViewContaine
 
     }
 
-    public void makeParameter(JComponent valueView) {
+    public ParameterUsageView makeParameterUsage(String name) {
+        ParameterUsageView parameterUsageView = new ParameterUsageView(name);
 
+        if(!parameters.contains(name))
+            parameters.add(name);
+
+        return parameterUsageView;
     }
 
     @Override
     public EditableView getEditorFor(JComponent valueView) {
         return bodyEditableView;
+    }
+
+    @Override
+    public ChildSlot getChildSlot(PlaygroundView playgroundView, JComponent valueView) {
+        return null;
     }
 }

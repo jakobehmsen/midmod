@@ -50,6 +50,8 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
         mouseToolSelector.add(createMouseToolSelector("Reduce", createReduceMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Delete", createDeleteMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Function", createFunctionMouseTool()));
+        mouseToolSelector.add(createMouseToolSelector("Parameter", createParameterMouseTool()));
+        mouseToolSelector.add(createMouseToolSelector("Apply", createApplyMouseTool()));
 
         // What if each mouse button could be a tool reference, that can be changed on the run?
         // - Then, which one should be used for mouse-over/enter/exit events?
@@ -163,6 +165,12 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
     }
 
     private MouseTool createWriteMouseTool() {
+
+        /*
+        What if editing simply begins when typing somewhere based on where the cursor was when the first key was typed?
+        What if editing is implicitly committed when editing an existing expression and starting to edit somewhere else
+        or, more generally, just losing focus? - I.e., "cancel" is caused by loss of focus.
+        */
         return new MouseTool() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -408,6 +416,128 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
         };
     }
 
+    private MouseTool createParameterMouseTool() {
+        return new MouseTool() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                PlaygroundView.this.setToolTipText("");
+
+                JComponent valueView = (JComponent) e.getComponent();
+                FunctionView functionView = (FunctionView) Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x instanceof FunctionView).findFirst().get();
+                ValueViewContainer valueViewContainer = (ValueViewContainer) valueView.getParent();
+                ChildSlot childSlot = valueViewContainer.getChildSlot(PlaygroundView.this, valueView);
+
+                TextEditor textEditor = new TextEditor() {
+                    @Override
+                    protected void endEdit(String text) {
+                        ParameterUsageView parameterView = functionView.makeParameterUsage(text);
+                        childSlot.commit(parameterView);
+                    }
+
+                    @Override
+                    protected void cancelEdit() {
+                        childSlot.revert();
+                    }
+                };
+
+                childSlot.replace(textEditor);
+
+                textEditor.requestFocusInWindow();
+            }
+
+            @Override
+            public void startTool(JComponent component) {
+                component.setToolTipText("Click on an object to convert it to a parameter.");
+            }
+        };
+    }
+
+    private MouseTool createApplyMouseTool() {
+        return new MouseTool() {
+            private JComponent selection;
+            private boolean linking;
+            private FunctionView functionView;
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                JComponent valueView = (JComponent) e.getComponent();
+                if(e.getButton() == MouseEvent.BUTTON1) {
+                    linking = true;
+
+                    functionView = (FunctionView) Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x instanceof FunctionView).findFirst().get();
+                    selection = new JPanel();
+                    selection.setBorder(BorderFactory.createDashedBorder(Color.BLACK));
+                    Point point = SwingUtilities.convertPoint(valueView.getParent(), valueView.getLocation(), PlaygroundView.this);
+                    selection.setSize(functionView.getSize());
+                    selection.setLocation(functionView.getLocation());
+                    selection.setOpaque(false);
+                    add(selection, 0);
+                    selection.repaint();
+                    selection.revalidate();
+
+                    int cursorType = Cursor.HAND_CURSOR;
+                    Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
+                    glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                    glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+                }
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if(linking) {
+                    PlaygroundView.this.setToolTipText("");
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                JComponent valueView = (JComponent) e.getComponent();
+
+                if(e.getButton() == MouseEvent.BUTTON1 && linking) {
+                    linking = false;
+                    int cursorType = Cursor.DEFAULT_CURSOR;
+                    Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
+                    glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                    glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+
+                    remove(selection);
+                    repaint(selection.getBounds());
+                    revalidate();
+
+                    Point pointInContentPane = SwingUtilities.convertPoint(valueView, e.getPoint(), PlaygroundView.this);
+                    JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
+                    Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
+                    if(targetComponent != valueView) {
+                        //ApplicationView applicationView = functionView.makeApplication();
+                        //functionView.toString();
+                        /*ReductionView reduction = new ReductionView(valueView);
+
+                        if(valueView.getParent() == PlaygroundView.this) {
+                            // Should be called "Variable" instead of EditableView?
+                            EditableView editableView = viewToEditable.get(valueView);
+                            // TODO: When to remove change listener?
+                            editableView.addChangeListener(newValueView ->
+                                reduction.setValueView((JComponent)newValueView));
+                        }
+
+                        if(targetComponent == PlaygroundView.this) {
+                            reduction.setLocation(pointInTargetComponent);
+                            add(reduction);
+                        } else {
+                            JComponent targetComponentParent = (JComponent) targetComponent.getParent();
+                            ((ValueView) targetComponentParent).drop(PlaygroundView.this, reduction, targetComponent);
+                        }*/
+                    }
+                }
+            }
+
+            @Override
+            public void startTool(JComponent component) {
+                component.setToolTipText("Press and drag a function to apply it.");
+            }
+        };
+    }
+
     private EditableView createRootEditableView(Supplier<String> textSupplier, Consumer<JComponent> beginEdit, Consumer<JComponent> endEdit, Runnable cancelEdit) {
         return createEditableView(new ParsingEditor() {
             JComponent editorComponent;
@@ -502,5 +632,10 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
     @Override
     public EditableView getEditorFor(JComponent valueView) {
         return viewToEditable.get(valueView);
+    }
+
+    @Override
+    public ChildSlot getChildSlot(PlaygroundView playgroundView, JComponent valueView) {
+        return null;
     }
 }
