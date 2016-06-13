@@ -6,7 +6,8 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ContainerAdapter;
 import java.awt.event.ContainerEvent;
-import java.util.ArrayList;
+import java.util.*;
+import java.util.List;
 import java.util.function.Function;
 
 public class BinaryView extends JPanel implements ValueView, ValueViewContainer {
@@ -59,8 +60,8 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
     }
 
     @Override
-    public ValueView reduce() {
-        return reducer.apply(new ValueView[]{((ValueView)lhs.valueView).reduce(), ((ValueView)rhs.valueView).reduce()});
+    public ValueView reduce(Map<String, ValueView> arguments) {
+        return reducer.apply(new ValueView[]{((ValueView)lhs.valueView).reduce(arguments), ((ValueView)rhs.valueView).reduce(arguments)});
     }
 
     private ArrayList<ValueViewObserver> observers = new ArrayList<>();
@@ -125,7 +126,6 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
         private EditableView editableView;
         private ValueViewObserver observer;
     }
-
 
     private Argument createArgument(int index, JComponent valueView) {
         Argument argument = new Argument();
@@ -216,5 +216,11 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
         revalidate();
 
         observers.forEach(x -> x.updated());
+    }
+
+    @Override
+    public void appendIdentifiers(List<String> identifiers) {
+        ((ValueView)lhs.valueView).appendIdentifiers(identifiers);
+        ((ValueView)rhs.valueView).appendIdentifiers(identifiers);
     }
 }

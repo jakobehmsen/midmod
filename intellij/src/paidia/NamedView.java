@@ -7,6 +7,7 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ContainerAdapter;
 import java.awt.event.ContainerEvent;
+import java.util.Map;
 
 public class NamedView extends JPanel implements ValueView, ValueViewContainer {
     private JComponent bodyView;
@@ -111,7 +112,7 @@ public class NamedView extends JPanel implements ValueView, ValueViewContainer {
     }
 
     @Override
-    public ValueView reduce() {
+    public ValueView reduce(Map<String, ValueView> arguments) {
         return null;
     }
 

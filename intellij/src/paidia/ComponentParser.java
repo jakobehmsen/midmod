@@ -186,8 +186,10 @@ public class ComponentParser {
         JComponent parsedComponent = parseComponentBlockParts(block.blockPart(), unresolvedIdentifiers);
 
         if(unresolvedIdentifiers.size() > 0) {
-            JComponent parsedFunctionComponent = new FunctionView(unresolvedIdentifiers, parsedComponent);
-            textParseHandler.handleParsedComponent(parsedFunctionComponent);
+            textParseHandler.handleParsedComponent(parsedComponent);
+
+            //JComponent parsedFunctionComponent = new FunctionView(unresolvedIdentifiers, parsedComponent);
+            //textParseHandler.handleParsedComponent(parsedFunctionComponent);
 
             /*TextEditor textEditor = new TextEditor() {
                 @Override
@@ -428,7 +430,9 @@ public class ComponentParser {
                 //return super.visitIdentifier(ctx);
 
                 // For now, should always just resolve to parameter usage
-                return new ParameterUsageView(name);
+                //return new ParameterUsageView(name);
+
+                return new IdentifierView(name);
             }
 
             /*

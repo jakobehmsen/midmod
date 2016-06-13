@@ -1,6 +1,7 @@
 package paidia;
 
 import javax.swing.*;
+import java.util.Map;
 
 public class AtomView extends JLabel implements ValueView {
     private Object value;
@@ -22,7 +23,7 @@ public class AtomView extends JLabel implements ValueView {
     }
 
     @Override
-    public ValueView reduce() {
+    public ValueView reduce(Map<String, ValueView> arguments) {
         return this;
     }
 

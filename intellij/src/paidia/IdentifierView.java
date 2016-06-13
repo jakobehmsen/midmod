@@ -1,18 +1,13 @@
 package paidia;
 
 import javax.swing.*;
-import java.awt.*;
-import java.awt.font.TextAttribute;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-public class ParameterUsageView extends JLabel implements ValueView {
-    public ParameterUsageView(String name) {
+public class IdentifierView extends JLabel implements ValueView {
+    public IdentifierView(String name) {
         setText(name);
-
-        Map<TextAttribute, Integer> fontAttributes = new HashMap<>();
-        fontAttributes.put(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON);
-        setFont(getFont().deriveFont(fontAttributes));
+        setSize(getPreferredSize());
     }
 
     @Override
@@ -27,7 +22,7 @@ public class ParameterUsageView extends JLabel implements ValueView {
 
     @Override
     public ValueView reduce(Map<String, ValueView> arguments) {
-        return null;
+        return arguments.get(getText());
     }
 
     @Override
@@ -43,5 +38,11 @@ public class ParameterUsageView extends JLabel implements ValueView {
     @Override
     public void release() {
 
+    }
+
+    @Override
+    public void appendIdentifiers(List<String> identifiers) {
+        if(!identifiers.contains(getText()))
+            identifiers.add(getText());
     }
 }

@@ -1,6 +1,9 @@
 package paidia;
 
 import javax.swing.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public interface ValueView {
     String getText(TextContext textContext);
@@ -9,7 +12,7 @@ public interface ValueView {
 
     void setup(PlaygroundView playgroundView);
 
-    ValueView reduce();
+    ValueView reduce(Map<String, ValueView> arguments);
 
     void addObserver(ValueViewObserver observer);
     void removeObserver(ValueViewObserver observer);
@@ -17,6 +20,16 @@ public interface ValueView {
     void release();
 
     default void drop(PlaygroundView playgroundView, JComponent dropped, JComponent target) {
+
+    }
+
+    default List<String> getIdentifiers() {
+        ArrayList<String> identifiers = new ArrayList<>();
+        appendIdentifiers(identifiers);
+        return identifiers;
+    }
+
+    default void appendIdentifiers(List<String> identifiers) {
 
     }
 }

@@ -6,6 +6,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class FunctionView extends JPanel implements ValueView, ValueViewContainer {
     private List<String> parameters;
@@ -105,8 +106,8 @@ public class FunctionView extends JPanel implements ValueView, ValueViewContaine
     }
 
     @Override
-    public ValueView reduce() {
-        return null;
+    public ValueView reduce(Map<String, ValueView> arguments) {
+        return this;
     }
 
     @Override
@@ -141,5 +142,13 @@ public class FunctionView extends JPanel implements ValueView, ValueViewContaine
     @Override
     public ChildSlot getChildSlot(PlaygroundView playgroundView, JComponent valueView) {
         return null;
+    }
+
+    public ValueView apply(List<JComponent> arguments) {
+        return null;
+    }
+
+    public List<String> getParameterNames() {
+        return parameters;
     }
 }

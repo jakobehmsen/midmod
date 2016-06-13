@@ -3,10 +3,12 @@ package paidia;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class PlaygroundView extends JPanel implements ValueViewContainer {
@@ -494,7 +496,7 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
         return new MouseTool() {
             private JComponent selection;
             private boolean linking;
-            private FunctionView functionView;
+            private JComponent functionView;
 
             @Override
             public void mousePressed(MouseEvent e) {
@@ -502,7 +504,7 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
                 if(e.getButton() == MouseEvent.BUTTON1) {
                     linking = true;
 
-                    functionView = (FunctionView) Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x instanceof FunctionView).findFirst().get();
+                    functionView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
                     selection = new JPanel();
                     selection.setBorder(BorderFactory.createDashedBorder(Color.BLACK));
                     Point point = SwingUtilities.convertPoint(valueView.getParent(), valueView.getLocation(), PlaygroundView.this);
@@ -546,6 +548,16 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
                     JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
                     Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
                     if(targetComponent != valueView) {
+                        ApplyView applyView = new ApplyView(functionView, ((ValueView)functionView).getIdentifiers().stream().map(x -> (JComponent)new AtomView("0", new BigDecimal(0))).collect(Collectors.toList()));
+
+                        if(targetComponent == PlaygroundView.this) {
+                            applyView.setLocation(pointInTargetComponent);
+                            add(applyView);
+                        } else {
+                            JComponent targetComponentParent = (JComponent) targetComponent.getParent();
+                            ((ValueView) targetComponentParent).drop(PlaygroundView.this, applyView, targetComponent);
+                        }
+
                         //ApplicationView applicationView = functionView.makeApplication();
                         //functionView.toString();
                         /*ReductionView reduction = new ReductionView(valueView);
