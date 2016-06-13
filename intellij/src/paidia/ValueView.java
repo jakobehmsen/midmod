@@ -19,10 +19,6 @@ public interface ValueView {
 
     void release();
 
-    default void drop(PlaygroundView playgroundView, JComponent dropped, JComponent target) {
-
-    }
-
     default List<String> getIdentifiers() {
         ArrayList<String> identifiers = new ArrayList<>();
         appendIdentifiers(identifiers);

@@ -7,6 +7,7 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.ContainerAdapter;
 import java.awt.event.ContainerEvent;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -15,6 +16,7 @@ import java.util.stream.IntStream;
 public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
     private JComponent functionView;
     private List<Argument> arguments;
+    private ValueViewObserver observer;
 
     public ApplyView(JComponent functionView, List<JComponent> arguments) {
         addContainerListener(new ContainerAdapter() {
@@ -44,6 +46,13 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
             JComponent view = arguments.get(i);
             Argument argument = new Argument(name, view);
 
+            argument.observer = new ValueViewObserver() {
+                @Override
+                public void updated() {
+                    observers.forEach(x -> x.updated());
+                }
+            };
+
             //argument.valueView = x;
             //argument.editableView =
             //argument
@@ -54,6 +63,19 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
         this.arguments.forEach(x -> add(x));
 
         setSize(getPreferredSize());
+
+        observer = new ValueViewObserver() {
+            @Override
+            public void updated() {
+                // Assumed arguments don't change
+
+                observers.forEach(x -> x.updated());
+            }
+        };
+
+        ((ValueView)functionView).addObserver(observer);
+
+        setBorder(BorderFactory.createDashedBorder(Color.GRAY, 4.0f, 4.0f));
     }
 
     @Override
@@ -137,7 +159,6 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
     public ValueView reduce(Map<String, ValueView> arguments) {
         // Ignore given arguments;
         // - Or, could see arguments as a dynamic scope?
-        new String();
         Map<String, ValueView> ownArguments = IntStream.range(0, this.arguments.size()).mapToObj(i -> i)
             .collect(Collectors.toMap(i -> ((ValueView)this.functionView).getIdentifiers().get(i.intValue()), i -> (ValueView)this.arguments.get(i.intValue()).valueView));
         return ((ValueView)this.functionView).reduce(ownArguments);
@@ -168,6 +189,26 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
     @Override
     public ChildSlot getChildSlot(PlaygroundView playgroundView, JComponent valueView) {
         return null;
+    }
+
+    public void setValueView(JComponent valueView) {
+        ((ValueView)this.functionView).removeObserver(observer);
+
+        this.functionView = valueView;
+
+        observer = new ValueViewObserver() {
+            @Override
+            public void updated() {
+                // Assumed arguments don't change
+
+                observers.forEach(x -> x.updated());
+            }
+        };
+
+        ((ValueView)valueView).addObserver(observer);
+
+        observers.forEach(x -> x.updated());
+        setSize(getPreferredSize());
     }
 
     private static class Argument extends JPanel implements ValueViewContainer {
@@ -229,9 +270,16 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
         }
 
         public void changeValue(JComponent valueView) {
-            this.valueView = valueView;
+            //this.valueView = valueView;
             remove(((BorderLayout)getLayout()).getLayoutComponent(BorderLayout.CENTER));
             add(valueView, BorderLayout.CENTER);
+        }
+
+        @Override
+        public void drop(PlaygroundView playgroundView, JComponent dropped, JComponent target) {
+            if(target == valueView) {
+                ((ApplyView)getParent()).changeArgument(playgroundView, getParent().getComponentZOrder(this), this, dropped);
+            }
         }
     }
 

@@ -1,6 +1,7 @@
 package paidia;
 
 import javax.swing.*;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -22,7 +23,7 @@ public class IdentifierView extends JLabel implements ValueView {
 
     @Override
     public ValueView reduce(Map<String, ValueView> arguments) {
-        return arguments.get(getText());
+        return arguments.get(getText()).reduce(Collections.emptyMap());
     }
 
     @Override

@@ -341,7 +341,8 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
                             add(reduction);
                         } else {
                             JComponent targetComponentParent = (JComponent) targetComponent.getParent();
-                            ((ValueView) targetComponentParent).drop(PlaygroundView.this, reduction, targetComponent);
+                            // TODO: Should be ValueViewContainer instead of ValueView
+                            ((ValueViewContainer) targetComponentParent).drop(PlaygroundView.this, reduction, targetComponent);
                         }
                     }
                 }
@@ -550,12 +551,20 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
                     if(targetComponent != valueView) {
                         ApplyView applyView = new ApplyView(functionView, ((ValueView)functionView).getIdentifiers().stream().map(x -> (JComponent)new AtomView("0", new BigDecimal(0))).collect(Collectors.toList()));
 
+                        if(valueView.getParent() == PlaygroundView.this) {
+                            // Should be called "Variable" instead of EditableView?
+                            EditableView editableView = viewToEditable.get(valueView);
+                            // TODO: When to remove change listener?
+                            editableView.addChangeListener(newValueView ->
+                                applyView.setValueView((JComponent)newValueView));
+                        }
+
                         if(targetComponent == PlaygroundView.this) {
                             applyView.setLocation(pointInTargetComponent);
                             add(applyView);
                         } else {
                             JComponent targetComponentParent = (JComponent) targetComponent.getParent();
-                            ((ValueView) targetComponentParent).drop(PlaygroundView.this, applyView, targetComponent);
+                            ((ValueViewContainer) targetComponentParent).drop(PlaygroundView.this, applyView, targetComponent);
                         }
 
                         //ApplicationView applicationView = functionView.makeApplication();
