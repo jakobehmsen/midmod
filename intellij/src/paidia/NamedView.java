@@ -7,11 +7,13 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ContainerAdapter;
 import java.awt.event.ContainerEvent;
+import java.util.ArrayList;
 import java.util.Map;
 
 public class NamedView extends JPanel implements ValueView, ValueViewContainer {
     private JComponent bodyView;
     private EditableView bodyEditableView;
+    private ValueViewObserver observer;
 
     public NamedView(String name, JComponent bodyView) {
         setLayout(new BorderLayout());
@@ -47,6 +49,14 @@ public class NamedView extends JPanel implements ValueView, ValueViewContainer {
         //setBorder(BorderFactory.createLineBorder(Color.RED));
         setSize(getPreferredSize());
         setBorder(BorderFactory.createLineBorder(Color.GRAY));
+
+        observer = new ValueViewObserver() {
+            @Override
+            public void updated() {
+                update();
+            }
+        };
+        ((ValueView)bodyView).addObserver(observer);
     }
 
     @Override
@@ -57,6 +67,15 @@ public class NamedView extends JPanel implements ValueView, ValueViewContainer {
     @Override
     public void setText(String text) {
 
+    }
+
+    private void update() {
+        observers.forEach(x -> x.updated());
+
+        setSize(getPreferredSize());
+
+        repaint();
+        revalidate();
     }
 
     @Override
@@ -93,10 +112,7 @@ public class NamedView extends JPanel implements ValueView, ValueViewContainer {
                 playgroundView.makeEditableByMouse(() -> bodyEditableView, NamedView.this.bodyView);
                 ((ValueView)NamedView.this.bodyView).setup(playgroundView);
 
-                setSize(getPreferredSize());
-
-                repaint();
-                revalidate();
+                update();
             }
 
             @Override
@@ -113,17 +129,19 @@ public class NamedView extends JPanel implements ValueView, ValueViewContainer {
 
     @Override
     public ValueView reduce(Map<String, ValueView> arguments) {
-        return null;
+        return ((ValueView)bodyView).reduce(arguments);
     }
+
+    private ArrayList<ValueViewObserver> observers = new ArrayList<>();
 
     @Override
     public void addObserver(ValueViewObserver observer) {
-
+        observers.add(observer);
     }
 
     @Override
     public void removeObserver(ValueViewObserver observer) {
-
+        observers.remove(observer);
     }
 
     @Override
