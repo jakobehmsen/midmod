@@ -26,13 +26,13 @@ public class ComponentParser {
         PaidiaParser.BlockContext block = parser.block();
 
         if(block.selector() != null) {
-            if(block.selector().ADD_OP() != null || block.selector().MUL_OP() != null) {
+            /*if(block.selector().ADD_OP() != null || block.selector().MUL_OP() != null) {
                 // Use ConstructorCell instead of ParameterCell?
                 TerminalNode operator = block.selector().ADD_OP() != null ? block.selector().ADD_OP() : block.selector().MUL_OP();
                 return new CompositeValue(Arrays.asList("lhs", "rhs"), Arrays.asList(new ParameterCell(workspace), new ParameterCell(workspace)), block.selector().getText(), args -> {
                     return reduce(workspace, args, operator);
                 }, workspace, block.selector().getText(), s -> s);
-            }
+            }*/
 
             return null;
         } else {
@@ -173,7 +173,7 @@ public class ComponentParser {
         });
     }
 
-    public static void parseComponent(ChildSlot childSlot, String text, TextParseHandler textParseHandler) {
+    public static void parseComponent(ChildSlot childSlot, String text, TextParseHandler textParseHandler, PlaygroundView playgroundView) {
         CharStream charStream = new ANTLRInputStream(text);
         PaidiaLexer lexer = new PaidiaLexer(charStream);
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
@@ -182,6 +182,16 @@ public class ComponentParser {
         PaidiaParser.BlockContext block = parser.block();
 
         ArrayList<String> unresolvedIdentifiers = new ArrayList<>();
+
+        if(block.selector() != null) {
+            if(block.selector().binaryOperator() != null) {
+                String operator = block.selector().binaryOperator().getText();
+                TextContext textOperator = getBinaryTextOperator(operator);
+                Function<ValueView[], ValueView> reducer = getBinaryReducer(operator);
+                textParseHandler.handleParsedComponent(new BinaryView(new Text(operator, operator), textOperator, playgroundView.createDefaultValueView(), playgroundView.createDefaultValueView(), reducer));
+                return;
+            }
+        }
 
         JComponent parsedComponent = parseComponentBlockParts(block.blockPart(), unresolvedIdentifiers);
 
@@ -228,9 +238,112 @@ public class ComponentParser {
         }
     }
 
+    private static TextContext getBinaryTextOperator(String operator) {
+        TextContext textOperator;
+        if(operator.equals("+") || operator.equals("-"))
+            textOperator = new TextContext() {
+                @Override
+                public String getText(TextContext textContext, String text) {
+                    return textContext.getTextAdd(text);
+                }
+
+                @Override
+                public String getTextAdd(String text) {
+                    return text;
+                }
+
+                @Override
+                public String getTextMul(String text) {
+                    return text;
+                }
+
+                @Override
+                public String getTextRaise(String text) {
+                    return text;
+                }
+            };
+        else if(operator.equals("*") || operator.equals("/"))
+            textOperator = new TextContext() {
+                @Override
+                public String getText(TextContext textContext, String text) {
+                    return textContext.getTextMul(text);
+                }
+
+                @Override
+                public String getTextAdd(String text) {
+                    return "(" + text + ")";
+                }
+
+                @Override
+                public String getTextMul(String text) {
+                    return text;
+                }
+
+                @Override
+                public String getTextRaise(String text) {
+                    return text;
+                }
+            };
+        else if(operator.equals("^"))
+            textOperator = new TextContext() {
+                @Override
+                public String getText(TextContext textContext, String text) {
+                    return textContext.getTextRaise(text);
+                }
+
+                @Override
+                public String getTextAdd(String text) {
+                    return "(" + text + ")";
+                }
+
+                @Override
+                public String getTextMul(String text) {
+                    return "(" + text + ")";
+                }
+
+                @Override
+                public String getTextRaise(String text) {
+                    return text;
+                }
+            };
+        else
+            textOperator = null;
+
+        return textOperator;
+    }
+
+    private static Function<ValueView[], ValueView> getBinaryReducer(String operator) {
+        BiFunction<BigDecimal, BigDecimal, BigDecimal> numberReducer;
+
+        switch (operator) {
+            case "+":
+                numberReducer = (x, y) -> x.add(y);
+                break;
+            case "-":
+                numberReducer = (x, y) -> x.subtract(y);
+                break;
+            case "*":
+                numberReducer = (x, y) -> x.multiply(y);
+                break;
+            case "/":
+                numberReducer = (x, y) -> x.divide(y, MathContext.DECIMAL128);
+                break;
+            case "^":
+                numberReducer = (x, y) -> x.pow(y.intValue());
+                break;
+            default:
+                numberReducer = null;
+        }
+
+        return args -> {
+            Number result = numberReducer.apply(((BigDecimal)((AtomView)args[0]).getValue()), ((BigDecimal)((AtomView)args[1]).getValue()));
+            return new AtomView(result.toString(), result);
+        };
+    }
+
     private static JComponent parseComponentBlockPart(ParserRuleContext blockPartContext, ArrayList<String> unresolvedIdentifiers) {
         return blockPartContext.accept(new PaidiaBaseVisitor<JComponent>() {
-            private <T extends ParserRuleContext> JComponent visitBinaryExpression(ParserRuleContext first, List<T> operands, Function<T, String> operatorGetter, Function<T, ParserRuleContext> operandGetter, BiFunction<T, Value[], Value> reducer) {
+            private <T extends ParserRuleContext> JComponent visitBinaryExpression(ParserRuleContext first, List<T> operands, Function<T, String> operatorGetter, Function<T, ParserRuleContext> operandGetter) {
                 JComponent value = parseComponentBlockPart(first, unresolvedIdentifiers);
 
                 int start = first.stop.getStopIndex() + 1;
@@ -242,103 +355,11 @@ public class ComponentParser {
                     JComponent rhs = parseComponentBlockPart(operand, unresolvedIdentifiers);
                     String source = first.start.getInputStream().getText(new Interval(start, end));
 
-                    TextContext textOperator;
-                    if(operator.equals("+") || operator.equals("-"))
-                        textOperator = new TextContext() {
-                            @Override
-                            public String getText(TextContext textContext, String text) {
-                                return textContext.getTextAdd(text);
-                            }
-
-                            @Override
-                            public String getTextAdd(String text) {
-                                return text;
-                            }
-
-                            @Override
-                            public String getTextMul(String text) {
-                                return text;
-                            }
-
-                            @Override
-                            public String getTextRaise(String text) {
-                                return text;
-                            }
-                        };
-                    else if(operator.equals("*") || operator.equals("/"))
-                        textOperator = new TextContext() {
-                            @Override
-                            public String getText(TextContext textContext, String text) {
-                                return textContext.getTextMul(text);
-                            }
-
-                            @Override
-                            public String getTextAdd(String text) {
-                                return "(" + text + ")";
-                            }
-
-                            @Override
-                            public String getTextMul(String text) {
-                                return text;
-                            }
-
-                            @Override
-                            public String getTextRaise(String text) {
-                                return text;
-                            }
-                        };
-                    else if(operator.equals("^"))
-                        textOperator = new TextContext() {
-                            @Override
-                            public String getText(TextContext textContext, String text) {
-                                return textContext.getTextRaise(text);
-                            }
-
-                            @Override
-                            public String getTextAdd(String text) {
-                                return "(" + text + ")";
-                            }
-
-                            @Override
-                            public String getTextMul(String text) {
-                                return "(" + text + ")";
-                            }
-
-                            @Override
-                            public String getTextRaise(String text) {
-                                return text;
-                            }
-                        };
-                    else
-                        textOperator = null;
-
-                    BiFunction<BigDecimal, BigDecimal, BigDecimal> numberReducer;
-
-                    switch (operator) {
-                        case "+":
-                            numberReducer = (x, y) -> x.add(y);
-                            break;
-                        case "-":
-                            numberReducer = (x, y) -> x.subtract(y);
-                            break;
-                        case "*":
-                            numberReducer = (x, y) -> x.multiply(y);
-                            break;
-                        case "/":
-                            numberReducer = (x, y) -> x.divide(y, MathContext.DECIMAL128);
-                            break;
-                        case "^":
-                            numberReducer = (x, y) -> x.pow(y.intValue());
-                            break;
-                        default:
-                            numberReducer = null;
-                    }
+                    TextContext textOperator = getBinaryTextOperator(operator);
+                    Function<ValueView[], ValueView> reducer = getBinaryReducer(operator);
 
                     //value = new BinaryView(new Text(source, operator), textOperator, lhs, rhs);
-                    value = new BinaryView(new Text(operator, operator), textOperator, lhs, rhs, args -> {
-                        Number result = numberReducer.apply(((BigDecimal)((AtomView)args[0]).getValue()), ((BigDecimal)((AtomView)args[1]).getValue()));
-                        return new AtomView(result.toString(), result);
-                    });
+                    value = new BinaryView(new Text(operator, operator), textOperator, lhs, rhs, reducer);
                     start = operand.stop.getStopIndex();
                 }
 
@@ -347,45 +368,17 @@ public class ComponentParser {
 
             @Override
             public JComponent visitAddExpression(PaidiaParser.AddExpressionContext ctx) {
-                return visitBinaryExpression(ctx.lhs, ctx.addExpressionOp(), o -> o.ADD_OP().getText(), o -> o.mulExpression(), (o, args) -> {
-                    return null;
-                    //return reduce(workspace, args, o.ADD_OP());
-
-                    /*if(o.ADD_OP().getText().equals("+")) {
-                        Object result = (long)((AtomValue)args[0]).getValue() + (long)((AtomValue)args[1]).getValue();
-                        return new AtomValue(workspace, result.toString(), result.toString(), result);
-                    } else if(o.ADD_OP().getText().equals("-")) {
-                        Object result = (long)((AtomValue)args[0]).getValue() - (long)((AtomValue)args[1]).getValue();
-                        return new AtomValue(workspace, result.toString(), result.toString(), result);
-                    }
-
-                    return null;*/
-                });
+                return visitBinaryExpression(ctx.lhs, ctx.addExpressionOp(), o -> o.ADD_OP().getText(), o -> o.mulExpression());
             }
 
             @Override
             public JComponent visitMulExpression(PaidiaParser.MulExpressionContext ctx) {
-                return visitBinaryExpression(ctx.lhs, ctx.mulExpressionOp(), o -> o.MUL_OP().getText(), o -> o.raiseExpression(), (o, args) -> {
-                    return null;
-                    //return reduce(workspace, args, o.MUL_OP());
-
-                    /*if(o.MUL_OP().getText().equals("*")) {
-                        Object result = (long)((AtomValue)args[0]).getValue() * (long)((AtomValue)args[1]).getValue();
-                        return new AtomValue(workspace, result.toString(), result.toString(), result);
-                    } else if(o.MUL_OP().getText().equals("/")) {
-                        Object result = (long)((AtomValue)args[0]).getValue() / (long)((AtomValue)args[1]).getValue();
-                        return new AtomValue(workspace, result.toString(), result.toString(), result);
-                    }
-
-                    return null;*/
-                });
+                return visitBinaryExpression(ctx.lhs, ctx.mulExpressionOp(), o -> o.MUL_OP().getText(), o -> o.raiseExpression());
             }
 
             @Override
             public JComponent visitRaiseExpression(PaidiaParser.RaiseExpressionContext ctx) {
-                return visitBinaryExpression(ctx.lhs, ctx.raiseExpressionOp(), o -> o.RAISE_OP().getText(), o -> o.chainedExpression(), (o, args) -> {
-                    return null;
-                });
+                return visitBinaryExpression(ctx.lhs, ctx.raiseExpressionOp(), o -> o.RAISE_OP().getText(), o -> o.chainedExpression());
             }
 
             @Override

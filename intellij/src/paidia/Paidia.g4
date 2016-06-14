@@ -17,7 +17,8 @@ identifier: ID;
 parameter: QUESTION_MARK;
 embeddedExpression: '(' embeddedExpressionContent? ')';
 embeddedExpressionContent: selector | expression;
-selector: ID | ADD_OP | MUL_OP;
+selector: ID | binaryOperator;
+binaryOperator: ADD_OP | MUL_OP | RAISE_OP;
 
 fragment DIGIT: [0-9];
 fragment LETTER: [A-Z]|[a-z];

@@ -549,7 +549,7 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
                     JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
                     Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
                     if(targetComponent != valueView) {
-                        ApplyView applyView = new ApplyView(functionView, ((ValueView)functionView).getIdentifiers().stream().map(x -> (JComponent)new AtomView("0", new BigDecimal(0))).collect(Collectors.toList()));
+                        ApplyView applyView = new ApplyView(functionView, ((ValueView)functionView).getIdentifiers().stream().map(x -> createDefaultValueView()).collect(Collectors.toList()));
 
                         if(valueView.getParent() == PlaygroundView.this) {
                             // Should be called "Variable" instead of EditableView?
@@ -595,6 +595,10 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
                 component.setToolTipText("Press and drag a function to apply it.");
             }
         };
+    }
+
+    public JComponent createDefaultValueView() {
+        return new AtomView("0", new BigDecimal(0));
     }
 
     private EditableView createRootEditableView(Supplier<String> textSupplier, Consumer<JComponent> beginEdit, Consumer<JComponent> endEdit, Runnable cancelEdit) {
@@ -670,7 +674,7 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
                         valueView.setLocation(currentView.getLocation());
                         add(valueView);
                     }
-                }, text, handler);
+                }, text, handler, PlaygroundView.this);
             }
         }, new Editor() {
             @Override
