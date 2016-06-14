@@ -17,7 +17,7 @@ identifier: ID;
 parameter: QUESTION_MARK;
 embeddedExpression: '(' embeddedExpressionContent? ')';
 embeddedExpressionContent: selector | expression;
-selector: ID | binaryOperator;
+selector: binaryOperator;
 binaryOperator: ADD_OP | MUL_OP | RAISE_OP;
 
 fragment DIGIT: [0-9];

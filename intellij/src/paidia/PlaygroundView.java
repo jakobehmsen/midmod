@@ -556,7 +556,7 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
                             EditableView editableView = viewToEditable.get(valueView);
                             // TODO: When to remove change listener?
                             editableView.addChangeListener(newValueView ->
-                                applyView.setValueView((JComponent)newValueView));
+                                applyView.setValueView(PlaygroundView.this, (JComponent)newValueView));
                         }
 
                         if(targetComponent == PlaygroundView.this) {
@@ -566,26 +566,6 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
                             JComponent targetComponentParent = (JComponent) targetComponent.getParent();
                             ((ValueViewContainer) targetComponentParent).drop(PlaygroundView.this, applyView, targetComponent);
                         }
-
-                        //ApplicationView applicationView = functionView.makeApplication();
-                        //functionView.toString();
-                        /*ReductionView reduction = new ReductionView(valueView);
-
-                        if(valueView.getParent() == PlaygroundView.this) {
-                            // Should be called "Variable" instead of EditableView?
-                            EditableView editableView = viewToEditable.get(valueView);
-                            // TODO: When to remove change listener?
-                            editableView.addChangeListener(newValueView ->
-                                reduction.setValueView((JComponent)newValueView));
-                        }
-
-                        if(targetComponent == PlaygroundView.this) {
-                            reduction.setLocation(pointInTargetComponent);
-                            add(reduction);
-                        } else {
-                            JComponent targetComponentParent = (JComponent) targetComponent.getParent();
-                            ((ValueView) targetComponentParent).drop(PlaygroundView.this, reduction, targetComponent);
-                        }*/
                     }
                 }
             }

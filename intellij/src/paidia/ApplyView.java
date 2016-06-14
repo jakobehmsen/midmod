@@ -7,7 +7,6 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.ContainerAdapter;
 import java.awt.event.ContainerEvent;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -44,44 +43,67 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
         this.arguments = IntStream.range(0, arguments.size()).mapToObj(i -> {
             String name = ((ValueView)this.functionView).getIdentifiers().get(i);
             JComponent view = arguments.get(i);
-            Argument argument = new Argument(name, view);
-
-            argument.observer = new ValueViewObserver() {
-                @Override
-                public void updated() {
-                    observers.forEach(x -> x.updated());
-                }
-            };
-
-            //argument.valueView = x;
-            //argument.editableView =
-            //argument
-
-            return argument;
+            return createArgument(name, view);
         }).collect(Collectors.toList());
 
         this.arguments.forEach(x -> add(x));
 
         setSize(getPreferredSize());
 
-        observer = new ValueViewObserver() {
+        setBorder(BorderFactory.createDashedBorder(Color.GRAY, 4.0f, 4.0f));
+    }
+
+    private Argument createArgument(String name, JComponent view) {
+        Argument argument = new Argument(name, view);
+
+        argument.observer = new ValueViewObserver() {
             @Override
             public void updated() {
-                // Assumed arguments don't change
-
                 observers.forEach(x -> x.updated());
             }
         };
 
-        ((ValueView)functionView).addObserver(observer);
+        return argument;
+    }
 
-        setBorder(BorderFactory.createDashedBorder(Color.GRAY, 4.0f, 4.0f));
+    private void update(PlaygroundView playgroundView) {
+        List<String> addedParameters = ((ValueView)ApplyView.this.functionView).getIdentifiers().stream()
+            .filter(x -> !ApplyView.this.arguments.stream().anyMatch(y -> y.name.equals(x)))
+            .collect(Collectors.toList());
+
+        List<String> removedParameters = ApplyView.this.arguments.stream().map(x -> x.name)
+            .filter(x -> !((ValueView)ApplyView.this.functionView).getIdentifiers().contains(x))
+            .collect(Collectors.toList());
+
+        removedParameters.forEach(x -> {
+            int index = IntStream.range(0, arguments.size()).filter(i -> arguments.get(i).name.equals(x)).findFirst().getAsInt();
+            Argument argument = arguments.get(index);
+            releaseArgument(argument);
+            arguments.remove(index);
+            remove(argument);
+
+            setSize(getPreferredSize());
+            revalidate();
+            repaint();
+        });
+
+        addedParameters.forEach(x -> {
+            int indexOfArgument = ((ValueView)ApplyView.this.functionView).getIdentifiers().indexOf(x);
+            Argument argument = createArgument(x, playgroundView.createDefaultValueView());
+            arguments.add(indexOfArgument, argument);
+            add(argument, indexOfArgument);
+            setupArgument(playgroundView, argument);
+
+            setSize(getPreferredSize());
+            revalidate();
+            repaint();
+        });
+
+        observers.forEach(x -> x.updated());
     }
 
     @Override
     public String getText(TextContext textContext) {
-        //FunctionView functionView = (FunctionView) ((ValueView)this.functionView).reduce();
-
         return IntStream.range(0, ((ValueView)this.functionView).getIdentifiers().size()).mapToObj(i -> {
             String n = ((ValueView)this.functionView).getIdentifiers().get(i);
             return n + " = " + ((ValueView)arguments.get(i).valueView).getText(textContext);
@@ -95,52 +117,64 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
 
     @Override
     public void setup(PlaygroundView playgroundView) {
+        // playgroundView could be derived looking into the ancestry
+        observer = new ValueViewObserver() {
+            @Override
+            public void updated() {
+                update(playgroundView);
+            }
+        };
+
+        ((ValueView)functionView).addObserver(observer);
+
         IntStream.range(0, arguments.size()).forEach(index -> {
             Argument x = arguments.get(index);
-            x.editableView = playgroundView.createEditableView(new Editor() {
-                @Override
-                public String getText() {
-                    return ((ValueView)x.valueView).getText(new DefaultTextContext());
-                }
-
-                @Override
-                public void beginEdit(JComponent editorComponent) {
-                    editorComponent.setPreferredSize(x.valueView.getPreferredSize());
-                    x.beginEdit(editorComponent);
-                    //remove(index);
-                    //add(editorComponent, index);
-                    setSize(getPreferredSize());
-
-                    repaint();
-                    revalidate();
-                }
-
-                @Override
-                public void endEdit(JComponent parsedComponent) {
-                    changeArgument(playgroundView, index, x, parsedComponent);
-                }
-
-                @Override
-                public void cancelEdit() {
-                    x.cancelEdit();
-                    //remove(index);
-                    //add(x.valueView, index);
-                    setSize(getPreferredSize());
-
-                    repaint();
-                    revalidate();
-                }
-            });
-            playgroundView.makeEditableByMouse(() -> x.editableView, x.valueView);
+            setupArgument(playgroundView, x);
         });
     }
 
-    private void changeArgument(PlaygroundView playgroundView, int index, Argument argument, JComponent valueView) {
-        argument.changeValue(valueView);
-        //remove(index);
-        //add(valueView, index);
+    private void setupArgument(PlaygroundView playgroundView, Argument x) {
+        x.editableView = playgroundView.createEditableView(new Editor() {
+            @Override
+            public String getText() {
+                return ((ValueView)x.valueView).getText(new DefaultTextContext());
+            }
+
+            @Override
+            public void beginEdit(JComponent editorComponent) {
+                editorComponent.setPreferredSize(x.valueView.getPreferredSize());
+                x.beginEdit(editorComponent);
+                setSize(getPreferredSize());
+
+                repaint();
+                revalidate();
+            }
+
+            @Override
+            public void endEdit(JComponent parsedComponent) {
+                changeArgument(playgroundView, x, parsedComponent);
+            }
+
+            @Override
+            public void cancelEdit() {
+                x.cancelEdit();
+                setSize(getPreferredSize());
+
+                repaint();
+                revalidate();
+            }
+        });
+        playgroundView.makeEditableByMouse(() -> x.editableView, x.valueView);
+    }
+
+    private void releaseArgument(Argument argument) {
         ((ValueView)argument.valueView).removeObserver(argument.observer);
         ((ValueView)argument.valueView).release();
+    }
+
+    private void changeArgument(PlaygroundView playgroundView, Argument argument, JComponent valueView) {
+        argument.changeValue(valueView);
+        releaseArgument(argument);
         argument.valueView = valueView;
         ((ValueView)argument.valueView).addObserver(argument.observer);
 
@@ -191,24 +225,14 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
         return null;
     }
 
-    public void setValueView(JComponent valueView) {
+    public void setValueView(PlaygroundView playgroundView, JComponent valueView) {
         ((ValueView)this.functionView).removeObserver(observer);
 
         this.functionView = valueView;
 
-        observer = new ValueViewObserver() {
-            @Override
-            public void updated() {
-                // Assumed arguments don't change
-
-                observers.forEach(x -> x.updated());
-            }
-        };
-
         ((ValueView)valueView).addObserver(observer);
 
-        observers.forEach(x -> x.updated());
-        setSize(getPreferredSize());
+        update(playgroundView);
     }
 
     private static class Argument extends JPanel implements ValueViewContainer {
@@ -270,7 +294,6 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
         }
 
         public void changeValue(JComponent valueView) {
-            //this.valueView = valueView;
             remove(((BorderLayout)getLayout()).getLayoutComponent(BorderLayout.CENTER));
             add(valueView, BorderLayout.CENTER);
         }
@@ -278,23 +301,8 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
         @Override
         public void drop(PlaygroundView playgroundView, JComponent dropped, JComponent target) {
             if(target == valueView) {
-                ((ApplyView)getParent()).changeArgument(playgroundView, getParent().getComponentZOrder(this), this, dropped);
+                ((ApplyView)getParent()).changeArgument(playgroundView, this, dropped);
             }
         }
     }
-
-    /*private Argument createArgument(int index, JComponent valueView) {
-        Argument argument = new Argument();
-        argument.valueView = valueView;
-        add(argument.valueView, index);
-        argument.observer = new ValueViewObserver() {
-            @Override
-            public void updated() {
-                observers.forEach(x -> x.updated());
-            }
-        };
-
-        ((ValueView)argument.valueView).addObserver(argument.observer);
-        return argument;
-    }*/
 }
