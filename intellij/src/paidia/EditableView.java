@@ -33,17 +33,9 @@ public class EditableView {
 
         editorComponent.registerKeyboardAction(e1 -> {
             String text = editorComponent.getText();
-            textParseHandler.parse(editorComponent, text, new TextParseHandler() {
-                @Override
-                public void handleParsedComponent(JComponent parsedComponent) {
-                    editor.endEdit(parsedComponent);
-                    listeners.forEach(x -> x.accept((ValueView)parsedComponent));
-                }
-            });
-
-            /*JComponent parsedComponent = ComponentParser.parseComponent(text);
+            JComponent parsedComponent = textParseHandler.parse(editorComponent, text);
             editor.endEdit(parsedComponent);
-            listeners.forEach(x -> x.accept((ValueView)parsedComponent));*/
+            listeners.forEach(x -> x.accept((ValueView)parsedComponent));
         }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
 
         editorComponent.registerKeyboardAction(e1 -> {

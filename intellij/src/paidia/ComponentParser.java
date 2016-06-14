@@ -173,7 +173,7 @@ public class ComponentParser {
         });
     }
 
-    public static void parseComponent(ChildSlot childSlot, String text, TextParseHandler textParseHandler, PlaygroundView playgroundView) {
+    public static JComponent parseComponent(String text, PlaygroundView playgroundView) {
         CharStream charStream = new ANTLRInputStream(text);
         PaidiaLexer lexer = new PaidiaLexer(charStream);
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
@@ -188,42 +188,11 @@ public class ComponentParser {
                 String operator = block.selector().binaryOperator().getText();
                 TextContext textOperator = getBinaryTextOperator(operator);
                 Function<ValueView[], ValueView> reducer = getBinaryReducer(operator);
-                textParseHandler.handleParsedComponent(new BinaryView(new Text(operator, operator), textOperator, playgroundView.createDefaultValueView(), playgroundView.createDefaultValueView(), reducer));
-                return;
+                return new BinaryView(new Text(operator, operator), textOperator, playgroundView.createDefaultValueView(), playgroundView.createDefaultValueView(), reducer);
             }
         }
 
-        JComponent parsedComponent = parseComponentBlockParts(block.blockPart(), unresolvedIdentifiers);
-
-        if(unresolvedIdentifiers.size() > 0) {
-            textParseHandler.handleParsedComponent(parsedComponent);
-
-            //JComponent parsedFunctionComponent = new FunctionView(unresolvedIdentifiers, parsedComponent);
-            //textParseHandler.handleParsedComponent(parsedFunctionComponent);
-
-            /*TextEditor textEditor = new TextEditor() {
-                @Override
-                protected void endEdit(String text) {
-                    childSlot.commit(new NamedView(text, parsedFunctionComponent));
-                }
-
-                @Override
-                protected void cancelEdit() {
-                    childSlot.revert();
-                }
-            };
-
-            textEditor.setBorder(BorderFactory.createTitledBorder("Name the function"));
-            textEditor.setSize(200, 50);
-
-            childSlot.replace(textEditor);
-
-            textEditor.requestFocusInWindow();*/
-        } else {
-
-            //return parsedComponent;
-            textParseHandler.handleParsedComponent(parsedComponent);
-        }
+        return parseComponentBlockParts(block.blockPart(), unresolvedIdentifiers);
     }
 
     private static JComponent parseComponentBlockParts(List<PaidiaParser.BlockPartContext> blockPartContexts, ArrayList<String> unresolvedIdentifiers) {

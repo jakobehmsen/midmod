@@ -651,30 +651,8 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
 
         editableViews[0] = new EditableView(new TextParser() {
             @Override
-            public void parse(JComponent editorComponent, String text, TextParseHandler handler) {
-                ComponentParser.parseComponent(new ChildSlot() {
-                    private JComponent currentView = editorComponent;
-
-                    @Override
-                    public void replace(JComponent view) {
-                        remove(currentView);
-                        view.setLocation(currentView.getLocation());
-                        add(view);
-                        currentView = view;
-                    }
-
-                    @Override
-                    public void revert() {
-                        remove(currentView);
-                    }
-
-                    @Override
-                    public void commit(JComponent valueView) {
-                        remove(currentView);
-                        valueView.setLocation(currentView.getLocation());
-                        add(valueView);
-                    }
-                }, text, handler, PlaygroundView.this);
+            public JComponent parse(JComponent editorComponent, String text) {
+                return ComponentParser.parseComponent(text, PlaygroundView.this);
             }
         }, new Editor() {
             @Override
