@@ -175,7 +175,7 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
                 revalidate();
             }
         });
-        playgroundView.makeEditableByMouse(() -> argument.editableView, argument.valueView);
+        playgroundView.makeEditableByMouse(argument.valueView);
         ((ValueView)argument.valueView).setup(playgroundView);
     }
 
@@ -207,7 +207,7 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
         argument.valueView = valueView;
         ((ValueView)argument.valueView).addObserver(argument.observer);
 
-        playgroundView.makeEditableByMouse(() -> argument.editableView, argument.valueView);
+        playgroundView.makeEditableByMouse(argument.valueView);
         ((ValueView)argument.valueView).setup(playgroundView);
 
         setSize(getPreferredSize());

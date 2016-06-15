@@ -57,7 +57,7 @@ public class FunctionView extends JPanel implements ValueView, ValueViewContaine
     @Override
     public void setup(PlaygroundView playgroundView) {
         ((ValueView)bodyView).setup(playgroundView);
-        playgroundView.makeEditableByMouse(() -> bodyEditableView, this.bodyView);
+        playgroundView.makeEditableByMouse(this.bodyView);
 
         bodyEditableView = playgroundView.createEditableView(new Editor() {
             @Override
@@ -84,7 +84,7 @@ public class FunctionView extends JPanel implements ValueView, ValueViewContaine
                 add(parsedComponent, 0);
                 FunctionView.this.bodyView = parsedComponent;
 
-                playgroundView.makeEditableByMouse(() -> bodyEditableView, FunctionView.this.bodyView);
+                playgroundView.makeEditableByMouse(FunctionView.this.bodyView);
                 ((ValueView)FunctionView.this.bodyView).setup(playgroundView);
 
                 setSize(getPreferredSize());

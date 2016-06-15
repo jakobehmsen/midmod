@@ -5,6 +5,7 @@ import com.sun.glass.events.KeyEvent;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.text.BadLocationException;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.function.Consumer;
@@ -41,6 +42,15 @@ public class EditableView {
         editorComponent.registerKeyboardAction(e1 -> {
             editor.cancelEdit();
         }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_FOCUSED);
+
+        editorComponent.registerKeyboardAction(e1 -> {
+            try {
+                int index = editorComponent.getCaretPosition();
+                editorComponent.getDocument().insertString(index, "\n", null);
+            } catch (BadLocationException e2) {
+                e2.printStackTrace();
+            }
+        }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.MODIFIER_ALT), JComponent.WHEN_FOCUSED);
 
         editorComponent.getDocument().addDocumentListener(new DocumentListener() {
             @Override

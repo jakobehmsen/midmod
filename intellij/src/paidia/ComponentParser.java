@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class ComponentParser {
     public static Value parse(Workspace workspace, String text) {
@@ -203,7 +204,9 @@ public class ComponentParser {
         } else {
             // Multiple parts.
 
-            return null;
+            List<ValueView> expressions = blockPartContexts.stream().map(x -> (ValueView)parseComponentBlockPart(x, unresolvedIdentifiers)).collect(Collectors.toList());
+
+            return new BlockView(expressions);
         }
     }
 

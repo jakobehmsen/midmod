@@ -164,7 +164,7 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
                 revalidate();
             }
         });
-        playgroundView.makeEditableByMouse(() -> x.editableView, x.valueView);
+        playgroundView.makeEditableByMouse(x.valueView);
     }
 
     private void releaseArgument(Argument argument) {
@@ -178,7 +178,7 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
         argument.valueView = valueView;
         ((ValueView)argument.valueView).addObserver(argument.observer);
 
-        playgroundView.makeEditableByMouse(() -> argument.editableView, argument.valueView);
+        playgroundView.makeEditableByMouse(argument.valueView);
         ((ValueView)argument.valueView).setup(playgroundView);
 
         setSize(getPreferredSize());

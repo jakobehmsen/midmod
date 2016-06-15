@@ -107,7 +107,7 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
                     }
                     editableViewHolder[0] = editableView;
 
-                    makeEditableByMouse(() -> editableView, (JComponent) e.getChild());
+                    makeEditableByMouse((JComponent) e.getChild());
                 }
             }
 
@@ -670,7 +670,7 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
         return editableViews[0];
     }
 
-    public void makeEditableByMouse(Supplier<EditableView> editableViewSupplier, JComponent valueView) {
+    public void makeEditableByMouse(JComponent valueView) {
         valueView.setComponentPopupMenu(mouseToolSelector);
 
         valueView.addMouseListener(currentMouseToolWrapper);

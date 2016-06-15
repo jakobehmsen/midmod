@@ -109,7 +109,7 @@ public class NamedView extends JPanel implements ValueView, ValueViewContainer {
                 add(parsedComponent, BorderLayout.CENTER);
                 NamedView.this.bodyView = parsedComponent;
 
-                playgroundView.makeEditableByMouse(() -> bodyEditableView, NamedView.this.bodyView);
+                playgroundView.makeEditableByMouse(NamedView.this.bodyView);
                 ((ValueView)NamedView.this.bodyView).setup(playgroundView);
 
                 update();
