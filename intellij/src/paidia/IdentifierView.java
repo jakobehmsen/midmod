@@ -23,7 +23,7 @@ public class IdentifierView extends JLabel implements ValueView {
 
     @Override
     public ValueView reduce(Map<String, ValueView> arguments) {
-        return arguments.get(getText()).reduce(Collections.emptyMap());
+        return arguments.get(getText());
     }
 
     @Override

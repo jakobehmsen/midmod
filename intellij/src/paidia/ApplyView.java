@@ -134,6 +134,7 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
     }
 
     private void setupArgument(PlaygroundView playgroundView, Argument x) {
+        ((ValueView)x.valueView).addObserver(x.observer);
         x.editableView = playgroundView.createEditableView(new Editor() {
             @Override
             public String getText() {
@@ -193,9 +194,15 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
     public ValueView reduce(Map<String, ValueView> arguments) {
         // Ignore given arguments;
         // - Or, could see arguments as a dynamic scope?
-        Map<String, ValueView> ownArguments = IntStream.range(0, this.arguments.size()).mapToObj(i -> i)
-            .collect(Collectors.toMap(i -> ((ValueView)this.functionView).getIdentifiers().get(i.intValue()), i -> (ValueView)this.arguments.get(i.intValue()).valueView));
-        return ((ValueView)this.functionView).reduce(ownArguments);
+        Map<String, ValueView> applyArguments = IntStream.range(0, this.arguments.size()).mapToObj(i -> i)
+            .collect(Collectors.toMap(
+                i -> ((ValueView)this.functionView).getIdentifiers().get(i.intValue()),
+                i -> ((ValueView)this.arguments.get(i.intValue()).valueView).reduce(arguments)));
+        getIdentifiers().stream().filter(x -> !applyArguments.containsKey(x)).forEach(x -> {
+            applyArguments.put(x, arguments.get(x));
+        });
+
+        return ((ValueView)this.functionView).reduce(applyArguments);
     }
 
     private ArrayList<ValueViewObserver> observers = new ArrayList<>();
@@ -213,6 +220,11 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
     @Override
     public void release() {
 
+    }
+
+    @Override
+    public void appendIdentifiers(List<String> identifiers) {
+        arguments.forEach(x -> ((ValueView)x.valueView).appendIdentifiers(identifiers));
     }
 
     @Override
