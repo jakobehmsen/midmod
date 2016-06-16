@@ -34,9 +34,9 @@ public class BlockView extends CompositeValueView implements ValueViewContainer 
     }
 
     @Override
-    public ValueView reduce(Map<String, ValueView> arguments) {
+    public ValueView evaluate(Map<String, ValueView> environment) {
         for(int i = 0; i < getChildren().size() - 1; i++)
-            getChildren().get(i).reduce(arguments);
+            getChildren().get(i).evaluate(environment);
 
         return getChildren().get(getChildren().size() - 1);
     }

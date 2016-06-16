@@ -14,14 +14,14 @@ public class ReductionView extends JLabel implements ValueView {
     public ReductionView(JComponent valueView) {
         // TODO: Should be replaced by ApplyView? Is simply, implicitly an ApplyView with no arguments?
         this.valueView = valueView;
-        reduction = ((ValueView)valueView).reduce(Collections.emptyMap());
+        reduction = ((ValueView)valueView).evaluate(Collections.emptyMap());
         setFont(new Font(getFont().getFamily(), Font.ITALIC | Font.BOLD, getFont().getSize()));
         setText(reduction.getText(new DefaultTextContext()));
 
         observer = new ValueViewObserver() {
             @Override
             public void updated() {
-                reduction = ((ValueView)valueView).reduce(Collections.emptyMap());
+                reduction = ((ValueView)valueView).evaluate(Collections.emptyMap());
                 setText(reduction.getText(new DefaultTextContext()));
                 observers.forEach(x -> x.updated());
                 setSize(getPreferredSize());
@@ -37,13 +37,13 @@ public class ReductionView extends JLabel implements ValueView {
         ((ValueView)this.valueView).removeObserver(observer);
 
         this.valueView = valueView;
-        reduction = ((ValueView)valueView).reduce(Collections.emptyMap());
+        reduction = ((ValueView)valueView).evaluate(Collections.emptyMap());
         setText(reduction.getText(new DefaultTextContext()));
 
         observer = new ValueViewObserver() {
             @Override
             public void updated() {
-                reduction = ((ValueView)valueView).reduce(Collections.emptyMap());
+                reduction = ((ValueView)valueView).evaluate(Collections.emptyMap());
                 setText(reduction.getText(new DefaultTextContext()));
                 observers.forEach(x -> x.updated());
                 setSize(getPreferredSize());
@@ -67,7 +67,7 @@ public class ReductionView extends JLabel implements ValueView {
     }
 
     @Override
-    public ValueView reduce(Map<String, ValueView> arguments) {
+    public ValueView evaluate(Map<String, ValueView> environment) {
         return reduction;
     }
 

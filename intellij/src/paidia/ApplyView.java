@@ -191,18 +191,15 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
     }
 
     @Override
-    public ValueView reduce(Map<String, ValueView> arguments) {
+    public ValueView evaluate(Map<String, ValueView> environment) {
         // Ignore given arguments;
         // - Or, could see arguments as a dynamic scope?
-        Map<String, ValueView> applyArguments = IntStream.range(0, this.arguments.size()).mapToObj(i -> i)
+        Map<String, ValueView> applyEnvironment = IntStream.range(0, this.arguments.size()).mapToObj(i -> i)
             .collect(Collectors.toMap(
                 i -> ((ValueView)this.functionView).getIdentifiers().get(i.intValue()),
-                i -> ((ValueView)this.arguments.get(i.intValue()).valueView).reduce(arguments)));
-        getIdentifiers().stream().filter(x -> !applyArguments.containsKey(x)).forEach(x -> {
-            applyArguments.put(x, arguments.get(x));
-        });
+                i -> ((ValueView)this.arguments.get(i.intValue()).valueView).evaluate(environment)));
 
-        return ((ValueView)this.functionView).reduce(applyArguments);
+        return ((ValueView)this.functionView).evaluate(applyEnvironment);
     }
 
     private ArrayList<ValueViewObserver> observers = new ArrayList<>();

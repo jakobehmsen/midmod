@@ -1,7 +1,6 @@
 package paidia;
 
 import javax.swing.*;
-import java.awt.*;
 import java.awt.font.TextAttribute;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,7 +25,7 @@ public class ParameterUsageView extends JLabel implements ValueView {
     }
 
     @Override
-    public ValueView reduce(Map<String, ValueView> arguments) {
+    public ValueView evaluate(Map<String, ValueView> environment) {
         return null;
     }
 

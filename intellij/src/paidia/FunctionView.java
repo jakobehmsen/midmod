@@ -106,7 +106,7 @@ public class FunctionView extends JPanel implements ValueView, ValueViewContaine
     }
 
     @Override
-    public ValueView reduce(Map<String, ValueView> arguments) {
+    public ValueView evaluate(Map<String, ValueView> environment) {
         return this;
     }
 

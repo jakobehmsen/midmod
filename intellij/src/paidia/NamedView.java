@@ -128,8 +128,8 @@ public class NamedView extends JPanel implements ValueView, ValueViewContainer {
     }
 
     @Override
-    public ValueView reduce(Map<String, ValueView> arguments) {
-        return ((ValueView)bodyView).reduce(arguments);
+    public ValueView evaluate(Map<String, ValueView> environment) {
+        return ((ValueView)bodyView).evaluate(environment);
     }
 
     private ArrayList<ValueViewObserver> observers = new ArrayList<>();

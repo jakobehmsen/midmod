@@ -60,8 +60,8 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
     }
 
     @Override
-    public ValueView reduce(Map<String, ValueView> arguments) {
-        return reducer.apply(new ValueView[]{((ValueView)lhs.valueView).reduce(arguments), ((ValueView)rhs.valueView).reduce(arguments)});
+    public ValueView evaluate(Map<String, ValueView> environment) {
+        return reducer.apply(new ValueView[]{((ValueView)lhs.valueView).evaluate(environment), ((ValueView)rhs.valueView).evaluate(environment)});
     }
 
     private ArrayList<ValueViewObserver> observers = new ArrayList<>();

@@ -1,6 +1,5 @@
 package paidia;
 
-import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -12,7 +11,7 @@ public interface ValueView {
 
     void setup(PlaygroundView playgroundView);
 
-    ValueView reduce(Map<String, ValueView> arguments);
+    ValueView evaluate(Map<String, ValueView> environment);
 
     void addObserver(ValueViewObserver observer);
     void removeObserver(ValueViewObserver observer);

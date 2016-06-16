@@ -23,7 +23,7 @@ public class AtomView extends JLabel implements ValueView {
     }
 
     @Override
-    public ValueView reduce(Map<String, ValueView> arguments) {
+    public ValueView evaluate(Map<String, ValueView> environment) {
         return this;
     }
 
