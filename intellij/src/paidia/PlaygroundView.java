@@ -677,6 +677,13 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
         valueView.addMouseMotionListener(currentMouseToolWrapper);
     }
 
+    public void unmakeEditableByMouse(JComponent valueView) {
+        valueView.setComponentPopupMenu(null);
+
+        valueView.removeMouseListener(currentMouseToolWrapper);
+        valueView.removeMouseMotionListener(currentMouseToolWrapper);
+    }
+
     @Override
     public EditableView getEditorFor(JComponent valueView) {
         return viewToEditable.get(valueView);
