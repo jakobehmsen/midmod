@@ -71,6 +71,8 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
                 repaint();
             }
         });
+
+        setAlignmentX(Component.LEFT_ALIGNMENT);
     }
 
     protected void beginUpdate() {
@@ -215,7 +217,7 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
 
     protected EditableView createChildEditableView(PlaygroundView playgroundView, ValueViewChild child) {
         return playgroundView.createEditableView(new ParsingEditor() {
-            private int index;
+            private int childZOrder;
 
             @Override
             public String getText() {
@@ -225,9 +227,10 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
             @Override
             public void beginEdit(JComponent editorComponent) {
                 editorComponent.setPreferredSize(((JComponent)child.child).getPreferredSize());
-                index = getComponentZOrder((Component) child.child);
-                remove(index);
-                add(editorComponent, index);
+                //childZOrder = getComponentZOrder((Component) child.child);
+                childZOrder = zOrderFromChild((JComponent) child.child);
+                remove(childZOrder);
+                add(editorComponent, childZOrder);
                 setSize(getPreferredSize());
 
                 repaint();
@@ -236,6 +239,7 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
 
             @Override
             public void endEdit(JComponent parsedComponent) {
+                int index = getChildren().indexOf(child.child);
                 setChild(index, (ValueView) parsedComponent);
                 setSize(getPreferredSize());
 
@@ -245,14 +249,18 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
 
             @Override
             public void cancelEdit() {
-                remove(index);
-                add((Component) child.child, index);
+                remove(childZOrder);
+                add((Component) child.child, childZOrder);
                 setSize(getPreferredSize());
 
                 repaint();
                 revalidate();
             }
         });
+    }
+
+    protected int zOrderFromChild(JComponent child) {
+        return getComponentZOrder(child);
     }
 
     @Override

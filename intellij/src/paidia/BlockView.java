@@ -1,9 +1,12 @@
 package paidia;
 
 import javax.swing.*;
+import java.awt.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class BlockView extends CompositeValueView {
     public BlockView(List<ValueView> expressions) {
@@ -32,4 +35,31 @@ public class BlockView extends CompositeValueView {
 
         return getChildren().get(getChildren().size() - 1);
     }
+
+    @Override
+    protected void addChildAsComponent(int index, JComponent child) {
+        Box  b = Box.createHorizontalBox();
+        b.add( child );
+        b.add( Box.createHorizontalGlue() );
+        super.addChildAsComponent(index, b);
+
+
+        /*if(index == 0)
+            add(Box.createHorizontalGlue(), index * 2);
+        else
+            add(Box.createRigidArea(new Dimension(10, 0)), index * 2);
+        super.addChildAsComponent((index * 2) + 1, child);*/
+    }
+
+    @Override
+    protected int zOrderFromChild(JComponent child) {
+        return IntStream.range(0, getComponentCount()).filter(x ->
+            ((Box)getComponent(x)).getComponent(0) == child).findFirst().getAsInt();
+    }
+
+    /*@Override
+    protected void removeChildAsComponent(int index, JComponent child) {
+        remove(index * 2);
+        remove(index * 2);
+    }*/
 }
