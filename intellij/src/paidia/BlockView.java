@@ -37,7 +37,7 @@ public class BlockView extends CompositeValueView {
         for(int i = 0; i < getChildren().size() - 1; i++)
             getChildren().get(i).evaluate(environment);
 
-        return getChildren().get(getChildren().size() - 1);
+        return getChildren().get(getChildren().size() - 1).evaluate(environment);
     }
 
     @Override
