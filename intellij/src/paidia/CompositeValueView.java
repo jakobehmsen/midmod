@@ -218,6 +218,7 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
     protected EditableView createChildEditableView(PlaygroundView playgroundView, ValueViewChild child) {
         return playgroundView.createEditableView(new ParsingEditor() {
             private int childZOrder;
+            private JComponent childBeingReplaced;
 
             @Override
             public String getText() {
@@ -229,6 +230,7 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
                 editorComponent.setPreferredSize(((JComponent)child.child).getPreferredSize());
                 //childZOrder = getComponentZOrder((Component) child.child);
                 childZOrder = zOrderFromChild((JComponent) child.child);
+                childBeingReplaced = (JComponent) getComponent(childZOrder);
                 remove(childZOrder);
                 add(editorComponent, childZOrder);
                 setSize(getPreferredSize());
@@ -250,7 +252,7 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
             @Override
             public void cancelEdit() {
                 remove(childZOrder);
-                add((Component) child.child, childZOrder);
+                add(childBeingReplaced, childZOrder);
                 setSize(getPreferredSize());
 
                 repaint();

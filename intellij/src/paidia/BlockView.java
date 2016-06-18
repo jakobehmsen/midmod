@@ -2,6 +2,10 @@ package paidia;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ContainerAdapter;
+import java.awt.event.ContainerEvent;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -38,9 +42,31 @@ public class BlockView extends CompositeValueView {
 
     @Override
     protected void addChildAsComponent(int index, JComponent child) {
-        Box  b = Box.createHorizontalBox();
-        b.add( child );
-        b.add( Box.createHorizontalGlue() );
+        Box b = Box.createHorizontalBox();
+
+        b.addContainerListener(new ContainerAdapter() {
+            ComponentAdapter componentAdapter;
+
+            @Override
+            public void componentAdded(ContainerEvent e) {
+                componentAdapter = new ComponentAdapter() {
+                    @Override
+                    public void componentResized(ComponentEvent e) {
+                        b.setSize(b.getPreferredSize());
+                    }
+                };
+
+                e.getChild().addComponentListener(componentAdapter);
+            }
+
+            @Override
+            public void componentRemoved(ContainerEvent e) {
+                e.getChild().removeComponentListener(componentAdapter);
+            }
+        });
+
+        b.add(child);
+        b.add(Box.createHorizontalGlue());
         super.addChildAsComponent(index, b);
 
 

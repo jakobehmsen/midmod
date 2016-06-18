@@ -193,7 +193,7 @@ public class PlaygroundView extends JPanel implements ValueViewContainer {
 
                         editableView.beginEdit();
                     } else {
-                        ValueViewContainer container = (ValueViewContainer) Stream.iterate(e.getComponent(), c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
+                        ValueViewContainer container = (ValueViewContainer) Stream.iterate(e.getComponent().getParent(), c -> (JComponent)c.getParent()).filter(x -> x instanceof ValueViewContainer).findFirst().get();
                         //ValueViewContainer container = (ValueViewContainer) e.getComponent().getParent();
                         editableView = container.getEditorFor((JComponent) e.getComponent());
                     }
