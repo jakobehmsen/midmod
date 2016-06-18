@@ -1,11 +1,19 @@
 package paidia;
 
 import javax.swing.*;
+import javax.swing.border.AbstractBorder;
+import java.awt.*;
 import java.util.Map;
 
-public class ScopeView extends CompositeValueView implements ValueViewContainer {
+public class ScopeView extends CompositeValueView {
     public ScopeView(ValueView valueView) {
         addChild(valueView);
+
+        setSize(getPreferredSize());
+
+        //setBorder(BorderFactory.createLineBorder(Color.BLACK, 2, true));
+
+        setBorder(new RoundedBorder());
     }
 
     @Override
@@ -16,15 +24,6 @@ public class ScopeView extends CompositeValueView implements ValueViewContainer 
     @Override
     public void setText(String text) {
 
-    }
-
-    public void setValueView(JComponent valueView) {
-        setChild(0, (ValueView)valueView);
-    }
-
-    @Override
-    public void setup(PlaygroundView playgroundView) {
-        getChild(0).setup(playgroundView);
     }
 
     @Override

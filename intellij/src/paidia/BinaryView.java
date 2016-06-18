@@ -48,7 +48,7 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
         rhs = createArgument(2, rhsView);
 
         //setBorder(BorderFactory.createRaisedSoftBevelBorder());
-        setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+        setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
 
         setSize(getPreferredSize());
     }
