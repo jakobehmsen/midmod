@@ -219,8 +219,8 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
     }
 
     @Override
-    public void appendIdentifiers(List<String> identifiers) {
-        ((ValueView)lhs.valueView).appendIdentifiers(identifiers);
-        ((ValueView)rhs.valueView).appendIdentifiers(identifiers);
+    public void appendIdentifiers(Set<String> locals, List<String> identifiers) {
+        ((ValueView)lhs.valueView).appendIdentifiers(locals, identifiers);
+        ((ValueView)rhs.valueView).appendIdentifiers(locals, identifiers);
     }
 }

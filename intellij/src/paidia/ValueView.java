@@ -1,8 +1,6 @@
 package paidia;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public interface ValueView {
     String getText(TextContext textContext);
@@ -20,11 +18,11 @@ public interface ValueView {
 
     default List<String> getIdentifiers() {
         ArrayList<String> identifiers = new ArrayList<>();
-        appendIdentifiers(identifiers);
+        appendIdentifiers(new HashSet<>(), identifiers);
         return identifiers;
     }
 
-    default void appendIdentifiers(List<String> identifiers) {
+    default void appendIdentifiers(Set<String> locals, List<String> identifiers) {
 
     }
 }

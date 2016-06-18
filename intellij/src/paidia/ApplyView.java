@@ -9,6 +9,7 @@ import java.awt.event.ContainerEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -218,8 +219,8 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
     }
 
     @Override
-    public void appendIdentifiers(List<String> identifiers) {
-        arguments.forEach(x -> ((ValueView)x.valueView).appendIdentifiers(identifiers));
+    public void appendIdentifiers(Set<String> locals, List<String> identifiers) {
+        arguments.forEach(x -> ((ValueView)x.valueView).appendIdentifiers(locals, identifiers));
     }
 
     @Override

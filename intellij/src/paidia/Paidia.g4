@@ -2,7 +2,8 @@ grammar Paidia;
 
 block: selector | (blockPart*);
 blockPart: expression;
-expression: addExpression;
+expression: assignment | addExpression;
+assignment: ID EQUALS expression;
 addExpression: lhs=mulExpression addExpressionOp*;
 addExpressionOp: ADD_OP mulExpression;
 mulExpression: lhs=raiseExpression mulExpressionOp*;
@@ -20,6 +21,8 @@ embeddedExpressionContent: selector | expression;
 selector: binaryOperator;
 binaryOperator: ADD_OP | MUL_OP | RAISE_OP;
 
+KW_VAR: 'var';
+EQUALS: '=';
 fragment DIGIT: [0-9];
 fragment LETTER: [A-Z]|[a-z];
 ADD_OP: '+'|'-';

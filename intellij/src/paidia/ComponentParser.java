@@ -315,6 +315,14 @@ public class ComponentParser {
 
     private static JComponent parseComponentBlockPart(ParserRuleContext blockPartContext, ArrayList<String> unresolvedIdentifiers) {
         return blockPartContext.accept(new PaidiaBaseVisitor<JComponent>() {
+            @Override
+            public JComponent visitAssignment(PaidiaParser.AssignmentContext ctx) {
+                String id = ctx.ID().getText();
+                ValueView value = (ValueView) parseComponentBlockPart(ctx.expression(), unresolvedIdentifiers);
+
+                return new AssignmentView(id, value);
+            }
+
             private <T extends ParserRuleContext> JComponent visitBinaryExpression(ParserRuleContext first, List<T> operands, Function<T, String> operatorGetter, Function<T, ParserRuleContext> operandGetter) {
                 JComponent value = parseComponentBlockPart(first, unresolvedIdentifiers);
 

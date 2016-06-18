@@ -3,6 +3,7 @@ package paidia;
 import javax.swing.*;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class IdentifierView extends JLabel implements ValueView {
     public IdentifierView(String name) {
@@ -41,8 +42,8 @@ public class IdentifierView extends JLabel implements ValueView {
     }
 
     @Override
-    public void appendIdentifiers(List<String> identifiers) {
-        if(!identifiers.contains(getText()))
+    public void appendIdentifiers(Set<String> locals, List<String> identifiers) {
+        if(!locals.contains(getText()) && !identifiers.contains(getText()))
             identifiers.add(getText());
     }
 }

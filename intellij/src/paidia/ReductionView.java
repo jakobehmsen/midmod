@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Hashtable;
 import java.util.Map;
 
 public class ReductionView extends JLabel implements ValueView {
@@ -14,14 +15,14 @@ public class ReductionView extends JLabel implements ValueView {
     public ReductionView(JComponent valueView) {
         // TODO: Should be replaced by ApplyView? Is simply, implicitly an ApplyView with no arguments?
         this.valueView = valueView;
-        reduction = ((ValueView)valueView).evaluate(Collections.emptyMap());
+        reduction = ((ValueView)valueView).evaluate(new Hashtable<>());
         setFont(new Font(getFont().getFamily(), Font.ITALIC | Font.BOLD, getFont().getSize()));
         setText(reduction.getText(new DefaultTextContext()));
 
         observer = new ValueViewObserver() {
             @Override
             public void updated() {
-                reduction = ((ValueView)valueView).evaluate(Collections.emptyMap());
+                reduction = ((ValueView)valueView).evaluate(new Hashtable<>());
                 setText(reduction.getText(new DefaultTextContext()));
                 observers.forEach(x -> x.updated());
                 setSize(getPreferredSize());

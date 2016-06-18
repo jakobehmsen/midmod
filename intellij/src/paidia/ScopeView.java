@@ -29,21 +29,6 @@ public class ScopeView extends CompositeValueView implements ValueViewContainer 
 
     @Override
     public ValueView evaluate(Map<String, ValueView> environment) {
-        return null;
-    }
-
-    @Override
-    public void release() {
-
-    }
-
-    @Override
-    public EditableView getEditorFor(JComponent valueView) {
-        return null;
-    }
-
-    @Override
-    public ChildSlot getChildSlot(PlaygroundView playgroundView, JComponent valueView) {
-        return null;
+        return getChild(0).evaluate(environment);
     }
 }

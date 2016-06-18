@@ -8,6 +8,7 @@ import java.awt.event.ContainerAdapter;
 import java.awt.event.ContainerEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -117,6 +118,10 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
         return children.get(index).child;
     }
 
+    protected int getChildCount() {
+        return children.size();
+    }
+
     protected void setChild(int index, ValueView child) {
         ValueViewChild valueViewChild = children.get(index);
         ValueView childOld = valueViewChild.child;
@@ -191,8 +196,8 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
     }
 
     @Override
-    public void appendIdentifiers(List<String> identifiers) {
-        children.forEach(x -> x.child.appendIdentifiers(identifiers));
+    public void appendIdentifiers(Set<String> locals, List<String> identifiers) {
+        children.forEach(x -> x.child.appendIdentifiers(locals, identifiers));
     }
 
     private PlaygroundView playgroundView;
