@@ -360,8 +360,9 @@ public class ComponentParser {
         addBinaryNumberReducer(">=", (x, y) -> x.compareTo(y) >= 0);
         addBinaryNumberReducer("+", (x, y) -> x.add(y));
         addBinaryNumberReducer("-", (x, y) -> x.subtract(y));
-        addBinaryNumberReducer("*", (x, y) -> x.divide(y, MathContext.DECIMAL128));
-        addBinaryNumberReducer("/", (x, y) -> x.pow(y.intValue()));
+        addBinaryNumberReducer("*", (x, y) -> x.multiply(y));
+        addBinaryNumberReducer("/", (x, y) -> x.divide(y, MathContext.DECIMAL128));
+        addBinaryNumberReducer("^", (x, y) -> x.pow(y.intValue()));
     }
 
     private static Function<ValueView[], ValueView> getBinaryReducer(String operator) {
