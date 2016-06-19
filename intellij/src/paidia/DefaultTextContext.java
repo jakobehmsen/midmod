@@ -20,4 +20,9 @@ public class DefaultTextContext implements TextContext {
     public String getTextRaise(String text) {
         return text;
     }
+
+    @Override
+    public String getTextOperator(String text, String operator, int precedence) {
+        return text;
+    }
 }

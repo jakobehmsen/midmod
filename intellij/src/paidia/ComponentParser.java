@@ -10,12 +10,11 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import javax.swing.*;
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class ComponentParser {
     public static Value parse(Workspace workspace, String text) {
@@ -210,8 +209,52 @@ public class ComponentParser {
         }
     }
 
+    private static List<Set<String>> operatorPrecedence = Arrays.asList(
+        new String[]{"==", "!="},
+        new String[]{"<", ">", "<=", ">="},
+        new String[]{"+", "-"},
+        new String[]{"*", "/"},
+        new String[]{"^"}
+    ).stream().map(x -> new HashSet<>(Arrays.asList(x))).collect(Collectors.toList());
+
+    private static int getOperatorPrecedence(String operator) {
+        return IntStream.range(0, operatorPrecedence.size()).filter(i -> operatorPrecedence.get(i).contains(operator)).findFirst().getAsInt();
+    }
+
     private static TextContext getBinaryTextOperator(String operator) {
-        TextContext textOperator;
+        int precedence = getOperatorPrecedence(operator);
+
+        return new TextContext() {
+            @Override
+            public String getText(TextContext textContext, String text) {
+                return textContext.getTextOperator(text, operator, precedence);
+            }
+
+            @Override
+            public String getTextAdd(String text) {
+                return null;
+            }
+
+            @Override
+            public String getTextMul(String text) {
+                return null;
+            }
+
+            @Override
+            public String getTextRaise(String text) {
+                return null;
+            }
+
+            @Override
+            public String getTextOperator(String text, String otherOperator, int otherPrecedence) {
+                if(otherPrecedence < precedence)
+                    return "(" + text + ")";
+
+                return text;
+            }
+        };
+
+        /*TextContext textOperator;
         if(operator.equals("+") || operator.equals("-"))
             textOperator = new TextContext() {
                 @Override
@@ -281,13 +324,31 @@ public class ComponentParser {
         else
             textOperator = null;
 
-        return textOperator;
+        return textOperator;*/
     }
 
     private static Function<ValueView[], ValueView> getBinaryReducer(String operator) {
-        BiFunction<BigDecimal, BigDecimal, BigDecimal> numberReducer;
+        BiFunction<BigDecimal, BigDecimal, Object> numberReducer;
 
         switch (operator) {
+            case "==":
+                numberReducer = (x, y) -> x.equals(y);
+                break;
+            case "!=":
+                numberReducer = (x, y) -> !x.equals(y);
+                break;
+            case "<":
+                numberReducer = (x, y) -> x.compareTo(y) < 0;
+                break;
+            case ">":
+                numberReducer = (x, y) -> x.compareTo(y) > 0;
+                break;
+            case "<=":
+                numberReducer = (x, y) -> x.compareTo(y) <= 0;
+                break;
+            case ">=":
+                numberReducer = (x, y) -> x.compareTo(y) >= 0;
+                break;
             case "+":
                 numberReducer = (x, y) -> x.add(y);
                 break;
@@ -308,7 +369,7 @@ public class ComponentParser {
         }
 
         return args -> {
-            Number result = numberReducer.apply(((BigDecimal)((AtomView)args[0]).getValue()), ((BigDecimal)((AtomView)args[1]).getValue()));
+            Object result = numberReducer.apply(((BigDecimal)((AtomView)args[0]).getValue()), ((BigDecimal)((AtomView)args[1]).getValue()));
             return new AtomView(result.toString(), result);
         };
     }
@@ -344,6 +405,16 @@ public class ComponentParser {
                 }
 
                 return value;
+            }
+
+            @Override
+            public JComponent visitEqualityExpression(PaidiaParser.EqualityExpressionContext ctx) {
+                return visitBinaryExpression(ctx.lhs, ctx.equalityExpressionOp(), o -> o.EQ_OP().getText(), o -> o.relationalExpression());
+            }
+
+            @Override
+            public JComponent visitRelationalExpression(PaidiaParser.RelationalExpressionContext ctx) {
+                return visitBinaryExpression(ctx.lhs, ctx.relationalExpressionOp(), o -> o.REL_OP().getText(), o -> o.addExpression());
             }
 
             @Override

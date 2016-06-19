@@ -8,4 +8,6 @@ public interface TextContext {
     String getTextMul(String text);
 
     String getTextRaise(String text);
+
+    String getTextOperator(String text, String operator, int precedence);
 }
