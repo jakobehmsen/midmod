@@ -181,14 +181,14 @@ public class ComponentParser {
 
         PaidiaParser.BlockContext block = parser.block();
 
-        ArrayList<String> unresolvedIdentifiers = new ArrayList<>();
-
         if(block.selector() != null) {
             if(block.selector().binaryOperator() != null) {
                 String operator = block.selector().binaryOperator().getText();
                 TextContext textOperator = getBinaryTextOperator(operator);
                 Function<ValueView[], ValueView> reducer = getBinaryReducer(operator);
                 return new BinaryView(new Text(operator, operator), textOperator, playgroundView.createDefaultValueView(), playgroundView.createDefaultValueView(), reducer);
+            } else if(block.selector().KW_IF() != null) {
+                return new IfView(new AtomView("true", new Boolean(true)), (ValueView) playgroundView.createDefaultValueView(), (ValueView) playgroundView.createDefaultValueView());
             }
         }
 
@@ -305,6 +305,15 @@ public class ComponentParser {
                 ValueView value = (ValueView) parseComponentBlockPart(ctx.expression());
 
                 return new AssignmentView(id, value);
+            }
+
+            @Override
+            public JComponent visitIfExpression(PaidiaParser.IfExpressionContext ctx) {
+                JComponent condition = parseComponentBlockPart(ctx.condition);
+                JComponent trueExpression = parseComponentBlockPart(ctx.trueExpression);
+                JComponent falseExpression = parseComponentBlockPart(ctx.falseExpression);
+
+                return new IfView((ValueView) condition, (ValueView)trueExpression, (ValueView)falseExpression);
             }
 
             private <T extends ParserRuleContext> JComponent visitBinaryExpression(ParserRuleContext first, List<T> operands, Function<T, String> operatorGetter, Function<T, ParserRuleContext> operandGetter) {
