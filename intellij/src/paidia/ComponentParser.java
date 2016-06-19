@@ -210,6 +210,8 @@ public class ComponentParser {
     }
 
     private static List<Set<String>> operatorPrecedence = Arrays.asList(
+        new String[]{"||"},
+        new String[]{"&&"},
         new String[]{"==", "!="},
         new String[]{"<", ">", "<=", ">="},
         new String[]{"+", "-"},
@@ -327,8 +329,45 @@ public class ComponentParser {
         return textOperator;*/
     }
 
+    private static Hashtable<String, Function<ValueView[], ValueView>> binaryReducers = new Hashtable<>();
+
+    private static <T> void addBinaryReducer(String operator, Function<ValueView[], ValueView> reducer) {
+        binaryReducers.put(operator, reducer);
+    }
+
+    private static <T> void addBinaryNumberReducer(String operator, BiFunction<BigDecimal, BigDecimal, T> numberReducer) {
+        addBinaryReducer(operator, args -> {
+            T result = numberReducer.apply(((BigDecimal)((AtomView)args[0]).getValue()), ((BigDecimal)((AtomView)args[1]).getValue()));
+            return new AtomView(result.toString(), result);
+        });
+    }
+
+    private static <T> void addBinaryBooleanReducer(String operator, BiFunction<Boolean, Boolean, T> numberReducer) {
+        addBinaryReducer(operator, args -> {
+            T result = numberReducer.apply(((Boolean)((AtomView)args[0]).getValue()), ((Boolean)((AtomView)args[1]).getValue()));
+            return new AtomView(result.toString(), result);
+        });
+    }
+
+    static {
+        addBinaryBooleanReducer("||", (x, y) -> x || y);
+        addBinaryBooleanReducer("&&", (x, y) -> x && y);
+        addBinaryNumberReducer("==", (x, y) -> x.equals(y));
+        addBinaryNumberReducer("!=", (x, y) -> !x.equals(y));
+        addBinaryNumberReducer("<", (x, y) -> x.compareTo(y) < 0);
+        addBinaryNumberReducer(">", (x, y) -> x.compareTo(y) > 0);
+        addBinaryNumberReducer("<=", (x, y) -> x.compareTo(y) <= 0);
+        addBinaryNumberReducer(">=", (x, y) -> x.compareTo(y) >= 0);
+        addBinaryNumberReducer("+", (x, y) -> x.add(y));
+        addBinaryNumberReducer("-", (x, y) -> x.subtract(y));
+        addBinaryNumberReducer("*", (x, y) -> x.divide(y, MathContext.DECIMAL128));
+        addBinaryNumberReducer("/", (x, y) -> x.pow(y.intValue()));
+    }
+
     private static Function<ValueView[], ValueView> getBinaryReducer(String operator) {
-        BiFunction<BigDecimal, BigDecimal, Object> numberReducer;
+        return binaryReducers.get(operator);
+
+        /*BiFunction<BigDecimal, BigDecimal, Object> numberReducer;
 
         switch (operator) {
             case "==":
@@ -371,7 +410,7 @@ public class ComponentParser {
         return args -> {
             Object result = numberReducer.apply(((BigDecimal)((AtomView)args[0]).getValue()), ((BigDecimal)((AtomView)args[1]).getValue()));
             return new AtomView(result.toString(), result);
-        };
+        };*/
     }
 
     private static JComponent parseComponentBlockPart(ParserRuleContext blockPartContext, ArrayList<String> unresolvedIdentifiers) {
@@ -405,6 +444,16 @@ public class ComponentParser {
                 }
 
                 return value;
+            }
+
+            @Override
+            public JComponent visitLogicalOrExpression(PaidiaParser.LogicalOrExpressionContext ctx) {
+                return visitBinaryExpression(ctx.lhs, ctx.logicalOrExpressionOp(), o -> o.OR_OP().getText(), o -> o.logicalAndExpression());
+            }
+
+            @Override
+            public JComponent visitLogicalAndExpression(PaidiaParser.LogicalAndExpressionContext ctx) {
+                return visitBinaryExpression(ctx.lhs, ctx.logicalAndExpressionOp(), o -> o.AND_OP().getText(), o -> o.equalityExpression());
             }
 
             @Override
