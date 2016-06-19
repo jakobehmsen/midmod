@@ -104,10 +104,10 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
     }
 
     @Override
-    public String getText(TextContext textContext) {
+    public String getSource(TextContext textContext) {
         return IntStream.range(0, ((ValueView)this.functionView).getIdentifiers().size()).mapToObj(i -> {
             String n = ((ValueView)this.functionView).getIdentifiers().get(i);
-            return n + " = " + ((ValueView)arguments.get(i).valueView).getText(textContext);
+            return n + " = " + ((ValueView)arguments.get(i).valueView).getSource(textContext);
         }).collect(Collectors.joining(", ", "(", ")"));
     }
 
@@ -139,7 +139,7 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
         x.editableView = playgroundView.createEditableView(new Editor() {
             @Override
             public String getText() {
-                return ((ValueView)x.valueView).getText(new DefaultTextContext());
+                return ((ValueView)x.valueView).getSource(new DefaultTextContext());
             }
 
             @Override

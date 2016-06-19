@@ -51,6 +51,9 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
         setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
 
         setSize(getPreferredSize());
+
+        setAlignmentX(Component.LEFT_ALIGNMENT);
+        //setAlignmentY(Component.TOP_ALIGNMENT);
     }
 
     @Override
@@ -146,7 +149,7 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
         argument.editableView = playgroundView.createEditableView(new ParsingEditor() {
             @Override
             public String getText() {
-                return ((ValueView)argument.valueView).getText(new DefaultTextContext());
+                return ((ValueView)argument.valueView).getSource(new DefaultTextContext());
             }
 
             @Override
@@ -180,8 +183,8 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
     }
 
     @Override
-    public String getText(TextContext textContext) {
-        String text = ((ValueView)lhs.valueView).getText(textOperator) + operator.getRaw() + ((ValueView)rhs.valueView).getText(textOperator);
+    public String getSource(TextContext textContext) {
+        String text = ((ValueView)lhs.valueView).getSource(textOperator) + operator.getRaw() + ((ValueView)rhs.valueView).getSource(textOperator);
 
         return textOperator.getText(textContext, text);
     }

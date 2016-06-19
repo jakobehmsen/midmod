@@ -24,8 +24,8 @@ public class AssignmentView extends CompositeValueView {
     }
 
     @Override
-    public String getText(TextContext textContext) {
-        return id + " = " + getValue().getText(textContext);
+    public String getSource(TextContext textContext) {
+        return id + " = " + getValue().getSource(textContext);
     }
 
     @Override

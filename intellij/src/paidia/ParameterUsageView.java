@@ -15,7 +15,7 @@ public class ParameterUsageView extends JLabel implements ValueView {
     }
 
     @Override
-    public String getText(TextContext textContext) {
+    public String getSource(TextContext textContext) {
         return getText();
     }
 

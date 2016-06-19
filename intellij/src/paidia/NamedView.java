@@ -60,8 +60,8 @@ public class NamedView extends JPanel implements ValueView, ValueViewContainer {
     }
 
     @Override
-    public String getText(TextContext textContext) {
-        return ((ValueView)bodyView).getText(textContext);
+    public String getSource(TextContext textContext) {
+        return ((ValueView)bodyView).getSource(textContext);
     }
 
     @Override
@@ -86,7 +86,7 @@ public class NamedView extends JPanel implements ValueView, ValueViewContainer {
         bodyEditableView = playgroundView.createEditableView(new Editor() {
             @Override
             public String getText() {
-                return ((ValueView)NamedView.this.bodyView).getText(new DefaultTextContext());
+                return ((ValueView)NamedView.this.bodyView).getSource(new DefaultTextContext());
             }
 
             @Override

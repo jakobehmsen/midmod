@@ -5,16 +5,26 @@ import java.util.Map;
 
 public class AtomView extends JLabel implements ValueView {
     private Object value;
+    private String source;
 
-    public AtomView(String text, Object value) {
+    public AtomView(String text, String source, Object value) {
+        this.source = source;
+        this.value = value;
         setText(text);
         setSize(getPreferredSize());
-        this.value = value;
+    }
+
+    public AtomView(String text, Object value) {
+        this(text, text, value);
+    }
+
+    public AtomView(Object value) {
+        this(value.toString(), value);
     }
 
     @Override
-    public String getText(TextContext textContext) {
-        return getText();
+    public String getSource(TextContext textContext) {
+        return source;
     }
 
     @Override

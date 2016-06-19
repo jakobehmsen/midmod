@@ -406,11 +406,22 @@ public class ComponentParser {
             }
 
             @Override
+            public JComponent visitString(PaidiaParser.StringContext ctx) {
+                String value = parseString(ctx);
+                return new AtomView(value, ctx.getText(), value);
+            }
+
+            @Override
             public JComponent visitIdentifier(PaidiaParser.IdentifierContext ctx) {
                 String name = ctx.getText();
 
                 return new IdentifierView(name);
             }
         });
+    }
+
+    private static String parseString(ParserRuleContext ctx) {
+        String rawString = ctx.getText().substring(1, ctx.getText().length() - 1);
+        return rawString.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
     }
 }

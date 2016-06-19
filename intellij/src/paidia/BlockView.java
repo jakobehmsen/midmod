@@ -1,12 +1,10 @@
 package paidia;
 
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ContainerAdapter;
 import java.awt.event.ContainerEvent;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -14,7 +12,6 @@ import java.util.stream.IntStream;
 
 public class BlockView extends CompositeValueView {
     public BlockView(List<ValueView> expressions) {
-
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 
         expressions.forEach(x -> {
@@ -23,8 +20,8 @@ public class BlockView extends CompositeValueView {
     }
 
     @Override
-    public String getText(TextContext textContext) {
-        return getChildren().stream().map(x -> x.getText(textContext)).collect(Collectors.joining("\n"));
+    public String getSource(TextContext textContext) {
+        return getChildren().stream().map(x -> x.getSource(textContext)).collect(Collectors.joining("\n"));
     }
 
     @Override

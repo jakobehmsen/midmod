@@ -45,8 +45,8 @@ public class FunctionView extends JPanel implements ValueView, ValueViewContaine
     }
 
     @Override
-    public String getText(TextContext textContext) {
-        return "function() {\n    " + ((ValueView)bodyView).getText(textContext) + "\n}";
+    public String getSource(TextContext textContext) {
+        return "function() {\n    " + ((ValueView)bodyView).getSource(textContext) + "\n}";
     }
 
     @Override
@@ -62,7 +62,7 @@ public class FunctionView extends JPanel implements ValueView, ValueViewContaine
         bodyEditableView = playgroundView.createEditableView(new Editor() {
             @Override
             public String getText() {
-                return ((ValueView)FunctionView.this.bodyView).getText(new DefaultTextContext());
+                return ((ValueView)FunctionView.this.bodyView).getSource(new DefaultTextContext());
             }
 
             @Override

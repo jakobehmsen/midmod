@@ -74,6 +74,7 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
         });
 
         setAlignmentX(Component.LEFT_ALIGNMENT);
+        setAlignmentY(Component.TOP_ALIGNMENT);
     }
 
     protected void beginUpdate() {
@@ -224,20 +225,28 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
         return playgroundView.createEditableView(new ParsingEditor() {
             private int childZOrder;
             private JComponent childBeingReplaced;
+            private ChildSlot childSlot;
 
             @Override
             public String getText() {
-                return (child.child.getText(new DefaultTextContext()));
+                return (child.child.getSource(new DefaultTextContext()));
             }
 
             @Override
             public void beginEdit(JComponent editorComponent) {
-                editorComponent.setPreferredSize(((JComponent)child.child).getPreferredSize());
+                int preferredWidth = Math.max(editorComponent.getPreferredSize().width, ((JComponent)child.child).getPreferredSize().width);
+                int preferredHeight = Math.max(editorComponent.getPreferredSize().height, ((JComponent)child.child).getPreferredSize().height);
+
+                //editorComponent.setPreferredSize(((JComponent)child.child).getPreferredSize());
+                editorComponent.setPreferredSize(new Dimension(preferredWidth, preferredHeight));
                 //childZOrder = getComponentZOrder((Component) child.child);
-                childZOrder = zOrderFromChild((JComponent) child.child);
                 childBeingReplaced = (JComponent) getComponent(childZOrder);
+                childSlot = getChildSlot(playgroundView, (JComponent) child.child);
+                childSlot.replace(editorComponent);
+                /*childZOrder = zOrderFromChild((JComponent) child.child);
                 remove(childZOrder);
-                add(editorComponent, childZOrder);
+                add(editorComponent, childZOrder);*/
+                //setChildComponent(childBeingReplaced, editorComponent);
                 setSize(getPreferredSize());
 
                 repaint();
@@ -256,8 +265,10 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
 
             @Override
             public void cancelEdit() {
-                remove(childZOrder);
-                add(childBeingReplaced, childZOrder);
+                childSlot.revert();
+                //setChildComponent(childBeingReplaced, childBeingReplaced);
+                /*remove(childZOrder);
+                add(childBeingReplaced, childZOrder);*/
                 setSize(getPreferredSize());
 
                 repaint();
@@ -270,6 +281,12 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
         return getComponentZOrder(child);
     }
 
+    protected void setChildComponent(JComponent childBeingEdited, JComponent replacement) {
+        int childZOrder = zOrderFromChild((JComponent) childBeingEdited);
+        remove(childZOrder);
+        add(replacement, childZOrder);
+    }
+
     @Override
     public EditableView getEditorFor(JComponent valueView) {
         int index = IntStream.range(0, children.size()).filter(i -> children.get(i).child == valueView).findFirst().getAsInt();
@@ -280,6 +297,28 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
 
     @Override
     public ChildSlot getChildSlot(PlaygroundView playgroundView, JComponent valueView) {
-        return null;
+        int zOrder = zOrderFromChild(valueView);
+        JComponent theValueView = (JComponent) getComponent(zOrder);
+        JComponent parent = this;//(JComponent) valueView.getParent();
+
+        return new ChildSlot() {
+            JComponent current = theValueView;
+
+            @Override
+            public void replace(JComponent view) {
+                parent.remove(zOrder);
+                parent.add(view, zOrder);
+            }
+
+            @Override
+            public void revert() {
+                replace(theValueView);
+            }
+
+            @Override
+            public void commit(JComponent valueView) {
+                replace(valueView);
+            }
+        };
     }
 }

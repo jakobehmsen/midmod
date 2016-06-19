@@ -1,8 +1,5 @@
 package paidia;
 
-import javax.swing.*;
-import javax.swing.border.AbstractBorder;
-import java.awt.*;
 import java.util.Map;
 
 public class ScopeView extends CompositeValueView {
@@ -17,8 +14,8 @@ public class ScopeView extends CompositeValueView {
     }
 
     @Override
-    public String getText(TextContext textContext) {
-        return getChild(0).getText(textContext);
+    public String getSource(TextContext textContext) {
+        return getChild(0).getSource(textContext);
     }
 
     @Override

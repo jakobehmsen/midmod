@@ -17,13 +17,13 @@ public class ReductionView extends JLabel implements ValueView {
         this.valueView = valueView;
         reduction = ((ValueView)valueView).evaluate(new Hashtable<>());
         setFont(new Font(getFont().getFamily(), Font.ITALIC | Font.BOLD, getFont().getSize()));
-        setText(reduction.getText(new DefaultTextContext()));
+        setText(reduction.getText());
 
         observer = new ValueViewObserver() {
             @Override
             public void updated() {
                 reduction = ((ValueView)valueView).evaluate(new Hashtable<>());
-                setText(reduction.getText(new DefaultTextContext()));
+                setText(reduction.getText());
                 observers.forEach(x -> x.updated());
                 setSize(getPreferredSize());
             }
@@ -39,13 +39,13 @@ public class ReductionView extends JLabel implements ValueView {
 
         this.valueView = valueView;
         reduction = ((ValueView)valueView).evaluate(Collections.emptyMap());
-        setText(reduction.getText(new DefaultTextContext()));
+        setText(reduction.getSource(new DefaultTextContext()));
 
         observer = new ValueViewObserver() {
             @Override
             public void updated() {
                 reduction = ((ValueView)valueView).evaluate(Collections.emptyMap());
-                setText(reduction.getText(new DefaultTextContext()));
+                setText(reduction.getSource(new DefaultTextContext()));
                 observers.forEach(x -> x.updated());
                 setSize(getPreferredSize());
             }
@@ -58,8 +58,8 @@ public class ReductionView extends JLabel implements ValueView {
     }
 
     @Override
-    public String getText(TextContext textContext) {
-        return getText();
+    public String getSource(TextContext textContext) {
+        return reduction.getSource(textContext);
     }
 
     @Override

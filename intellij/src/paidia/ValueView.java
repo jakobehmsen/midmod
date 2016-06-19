@@ -3,7 +3,11 @@ package paidia;
 import java.util.*;
 
 public interface ValueView {
-    String getText(TextContext textContext);
+    default String getText() {
+        return getSource(new DefaultTextContext());
+    }
+
+    String getSource(TextContext textContext);
 
     void setText(String text);
 
