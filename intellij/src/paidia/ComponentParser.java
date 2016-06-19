@@ -192,18 +192,18 @@ public class ComponentParser {
             }
         }
 
-        return parseComponentBlockParts(block.blockPart(), unresolvedIdentifiers);
+        return parseComponentBlockParts(block.blockPart());
     }
 
-    private static JComponent parseComponentBlockParts(List<PaidiaParser.BlockPartContext> blockPartContexts, ArrayList<String> unresolvedIdentifiers) {
+    private static JComponent parseComponentBlockParts(List<PaidiaParser.BlockPartContext> blockPartContexts) {
         if (blockPartContexts.size() == 0)
             return null;
         else if (blockPartContexts.size() == 1) {
-            return parseComponentBlockPart(blockPartContexts.get(0), unresolvedIdentifiers);
+            return parseComponentBlockPart(blockPartContexts.get(0));
         } else {
             // Multiple parts.
 
-            List<ValueView> expressions = blockPartContexts.stream().map(x -> (ValueView)parseComponentBlockPart(x, unresolvedIdentifiers)).collect(Collectors.toList());
+            List<ValueView> expressions = blockPartContexts.stream().map(x -> (ValueView)parseComponentBlockPart(x)).collect(Collectors.toList());
 
             return new BlockView(expressions);
         }
@@ -255,78 +255,6 @@ public class ComponentParser {
                 return text;
             }
         };
-
-        /*TextContext textOperator;
-        if(operator.equals("+") || operator.equals("-"))
-            textOperator = new TextContext() {
-                @Override
-                public String getText(TextContext textContext, String text) {
-                    return textContext.getTextAdd(text);
-                }
-
-                @Override
-                public String getTextAdd(String text) {
-                    return text;
-                }
-
-                @Override
-                public String getTextMul(String text) {
-                    return text;
-                }
-
-                @Override
-                public String getTextRaise(String text) {
-                    return text;
-                }
-            };
-        else if(operator.equals("*") || operator.equals("/"))
-            textOperator = new TextContext() {
-                @Override
-                public String getText(TextContext textContext, String text) {
-                    return textContext.getTextMul(text);
-                }
-
-                @Override
-                public String getTextAdd(String text) {
-                    return "(" + text + ")";
-                }
-
-                @Override
-                public String getTextMul(String text) {
-                    return text;
-                }
-
-                @Override
-                public String getTextRaise(String text) {
-                    return text;
-                }
-            };
-        else if(operator.equals("^"))
-            textOperator = new TextContext() {
-                @Override
-                public String getText(TextContext textContext, String text) {
-                    return textContext.getTextRaise(text);
-                }
-
-                @Override
-                public String getTextAdd(String text) {
-                    return "(" + text + ")";
-                }
-
-                @Override
-                public String getTextMul(String text) {
-                    return "(" + text + ")";
-                }
-
-                @Override
-                public String getTextRaise(String text) {
-                    return text;
-                }
-            };
-        else
-            textOperator = null;
-
-        return textOperator;*/
     }
 
     private static Hashtable<String, Function<ValueView[], ValueView>> binaryReducers = new Hashtable<>();
@@ -367,65 +295,20 @@ public class ComponentParser {
 
     private static Function<ValueView[], ValueView> getBinaryReducer(String operator) {
         return binaryReducers.get(operator);
-
-        /*BiFunction<BigDecimal, BigDecimal, Object> numberReducer;
-
-        switch (operator) {
-            case "==":
-                numberReducer = (x, y) -> x.equals(y);
-                break;
-            case "!=":
-                numberReducer = (x, y) -> !x.equals(y);
-                break;
-            case "<":
-                numberReducer = (x, y) -> x.compareTo(y) < 0;
-                break;
-            case ">":
-                numberReducer = (x, y) -> x.compareTo(y) > 0;
-                break;
-            case "<=":
-                numberReducer = (x, y) -> x.compareTo(y) <= 0;
-                break;
-            case ">=":
-                numberReducer = (x, y) -> x.compareTo(y) >= 0;
-                break;
-            case "+":
-                numberReducer = (x, y) -> x.add(y);
-                break;
-            case "-":
-                numberReducer = (x, y) -> x.subtract(y);
-                break;
-            case "*":
-                numberReducer = (x, y) -> x.multiply(y);
-                break;
-            case "/":
-                numberReducer = (x, y) -> x.divide(y, MathContext.DECIMAL128);
-                break;
-            case "^":
-                numberReducer = (x, y) -> x.pow(y.intValue());
-                break;
-            default:
-                numberReducer = null;
-        }
-
-        return args -> {
-            Object result = numberReducer.apply(((BigDecimal)((AtomView)args[0]).getValue()), ((BigDecimal)((AtomView)args[1]).getValue()));
-            return new AtomView(result.toString(), result);
-        };*/
     }
 
-    private static JComponent parseComponentBlockPart(ParserRuleContext blockPartContext, ArrayList<String> unresolvedIdentifiers) {
+    private static JComponent parseComponentBlockPart(ParserRuleContext blockPartContext) {
         return blockPartContext.accept(new PaidiaBaseVisitor<JComponent>() {
             @Override
             public JComponent visitAssignment(PaidiaParser.AssignmentContext ctx) {
                 String id = ctx.ID().getText();
-                ValueView value = (ValueView) parseComponentBlockPart(ctx.expression(), unresolvedIdentifiers);
+                ValueView value = (ValueView) parseComponentBlockPart(ctx.expression());
 
                 return new AssignmentView(id, value);
             }
 
             private <T extends ParserRuleContext> JComponent visitBinaryExpression(ParserRuleContext first, List<T> operands, Function<T, String> operatorGetter, Function<T, ParserRuleContext> operandGetter) {
-                JComponent value = parseComponentBlockPart(first, unresolvedIdentifiers);
+                JComponent value = parseComponentBlockPart(first);
 
                 int start = first.stop.getStopIndex() + 1;
                 for (T addExpressionOpContext : operands) {
@@ -433,7 +316,7 @@ public class ComponentParser {
                     String operator = operatorGetter.apply(addExpressionOpContext);
                     int end = operand.start.getStartIndex() - 1;
                     JComponent lhs = value;
-                    JComponent rhs = parseComponentBlockPart(operand, unresolvedIdentifiers);
+                    JComponent rhs = parseComponentBlockPart(operand);
                     String source = first.start.getInputStream().getText(new Interval(start, end));
 
                     TextContext textOperator = getBinaryTextOperator(operator);
@@ -484,7 +367,7 @@ public class ComponentParser {
 
             @Override
             public JComponent visitEmbeddedExpression(PaidiaParser.EmbeddedExpressionContext ctx) {
-                return parseComponentBlockPart((ParserRuleContext) ctx.getChild(1), unresolvedIdentifiers);
+                return parseComponentBlockPart((ParserRuleContext) ctx.getChild(1));
 
                 /*
                 String prefix = ctx.start.getInputStream().getText(new Interval(
@@ -511,30 +394,14 @@ public class ComponentParser {
                 }
 
                 return new AtomView(ctx.getText(), number);
-                //return new AtomValue(workspace, sourceWrapper.apply(ctx.getText()), ctx.getText(), number);
             }
 
             @Override
             public JComponent visitIdentifier(PaidiaParser.IdentifierContext ctx) {
                 String name = ctx.getText();
 
-                if(!unresolvedIdentifiers.contains(name))
-                    unresolvedIdentifiers.add(name);
-
-                //return super.visitIdentifier(ctx);
-
-                // For now, should always just resolve to parameter usage
-                //return new ParameterUsageView(name);
-
                 return new IdentifierView(name);
             }
-
-            /*
-            @Override
-            public Value visitParameter(PaidiaParser.ParameterContext ctx) {
-                return new ParameterCell(workspace);
-            }
-            */
         });
     }
 }
