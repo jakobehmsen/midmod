@@ -11,10 +11,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class PlaygroundView extends JPanel /*implements ValueViewContainer*/ {
+public class PlaygroundView extends JPanel {
     private EditableView currentEditableView;
-    //private JComponent childBeingEdited;
-    //private Hashtable<JComponent, EditableView> viewToEditable = new Hashtable<>();
 
     private MouseTool currentMouseTool;
     private JPopupMenu mouseToolSelector;
@@ -51,8 +49,6 @@ public class PlaygroundView extends JPanel /*implements ValueViewContainer*/ {
         mouseToolSelector.add(createMouseToolSelector("Move", createMoveMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Reduce", createReduceMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Delete", createDeleteMouseTool()));
-        mouseToolSelector.add(createMouseToolSelector("Function", createFunctionMouseTool()));
-        mouseToolSelector.add(createMouseToolSelector("Parameter", createParameterMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Name", createNameMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Apply", createApplyMouseTool()));
 
@@ -76,46 +72,9 @@ public class PlaygroundView extends JPanel /*implements ValueViewContainer*/ {
 
                 e.getChild().addComponentListener(componentAdapter);
 
-                if(e.getChild() instanceof ValueView/* && e.getChild() != childBeingEdited*/) {
+                if(e.getChild() instanceof ValueView) {
                     ((ValueView) e.getChild()).setup(PlaygroundView.this);
                     makeEditableByMouse((JComponent) e.getChild());
-
-                    /*if(!(e.getChild() instanceof ScopeView)) {
-                        remove(e.getChild());
-                        ScopeView scopeView = new ScopeView((ValueView) e.getChild());
-                        scopeView.setup(PlaygroundView.this);
-                        makeEditableByMouse(scopeView);
-                    }*/
-
-                    /*((ValueView) e.getChild()).setup(PlaygroundView.this);
-                    TextContext rootTextContext = new DefaultTextContext();
-                    JComponent[] valueViewHolder = new JComponent[1];
-                    valueViewHolder[0] = (JComponent) e.getChild();
-                    EditableView[] editableViewHolder = new EditableView[1];
-                    EditableView editableView;
-                    if(childBeingEdited != null)
-                        editableView = viewToEditable.get(childBeingEdited);
-                    else {
-                        editableView = createRootEditableView(() -> ((ValueView)valueViewHolder[0]).getText(rootTextContext),
-                            editorComponent -> {
-                                childBeingEdited = valueViewHolder[0];
-                                remove(valueViewHolder[0]);
-                                editorComponent.setBounds(valueViewHolder[0].getBounds());
-                            }, newValueView -> {
-                                valueViewHolder[0].removeContainerListener(this);
-                                viewToEditable.remove(valueViewHolder[0]);
-                                valueViewHolder[0] = newValueView;
-                                viewToEditable.put(newValueView, editableViewHolder[0]);
-                                childBeingEdited = null;
-                            }, () -> {
-                                add(valueViewHolder[0]);
-                                childBeingEdited = null;
-                            });
-                        viewToEditable.put((JComponent) e.getChild(), editableView);
-                    }
-                    editableViewHolder[0] = editableView;
-
-                    makeEditableByMouse((JComponent) e.getChild());*/
                 }
             }
 
@@ -126,9 +85,8 @@ public class PlaygroundView extends JPanel /*implements ValueViewContainer*/ {
 
                 e.getChild().removeComponentListener(componentAdapter);
 
-                if(e.getChild() instanceof ValueView/* && e.getChild() != childBeingEdited*/) {
+                if(e.getChild() instanceof ValueView) {
                     ((Container)e.getChild()).removeContainerListener(this);
-                    //viewToEditable.remove(e.getChild());
                     ((ValueView)e.getChild()).release();
                 }
             }
@@ -202,7 +160,6 @@ public class PlaygroundView extends JPanel /*implements ValueViewContainer*/ {
                         editableView.beginEdit();
                     } else {
                         ValueViewContainer container = (ValueViewContainer) Stream.iterate(e.getComponent().getParent(), c -> (JComponent)c.getParent()).filter(x -> x instanceof ValueViewContainer).findFirst().get();
-                        //ValueViewContainer container = (ValueViewContainer) e.getComponent().getParent();
                         editableView = container.getEditorFor((JComponent) e.getComponent());
                     }
                     editableView.beginEdit();
@@ -320,8 +277,6 @@ public class PlaygroundView extends JPanel /*implements ValueViewContainer*/ {
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                JComponent valueView = (JComponent) e.getComponent();
-
                 if(e.getButton() == MouseEvent.BUTTON1 && linking) {
                     linking = false;
                     int cursorType = Cursor.DEFAULT_CURSOR;
@@ -338,14 +293,6 @@ public class PlaygroundView extends JPanel /*implements ValueViewContainer*/ {
                     Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
                     if(targetComponent != targetValueView) {
                         ReductionView reduction = new ReductionView(targetValueView);
-
-                        /*if(valueView.getParent() == PlaygroundView.this) {
-                            // Should be called "Variable" instead of EditableView?
-                            EditableView editableView = viewToEditable.get(valueView);
-                            // TODO: When to remove change listener?
-                            editableView.addChangeListener(newValueView ->
-                                reduction.setValueView((JComponent)newValueView));
-                        }*/
 
                         if(targetComponent == PlaygroundView.this) {
                             ScopeView scopeView = new ScopeView(reduction);
@@ -407,67 +354,6 @@ public class PlaygroundView extends JPanel /*implements ValueViewContainer*/ {
         };
     }
 
-    private MouseTool createFunctionMouseTool() {
-        return new MouseTool() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                PlaygroundView.this.setToolTipText("");
-
-                JComponent valueView = (JComponent) e.getComponent();
-                //valueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
-                JComponent parent = (JComponent) valueView.getParent();
-                parent.remove(valueView);
-                FunctionView functionView = new FunctionView(Arrays.asList(), valueView);
-                functionView.setLocation(valueView.getLocation());
-                parent.add(functionView);
-
-                revalidate();
-                repaint();
-            }
-
-            @Override
-            public void startTool(JComponent component) {
-                component.setToolTipText("Click on an object to convert it to a function.");
-            }
-        };
-    }
-
-    private MouseTool createParameterMouseTool() {
-        return new MouseTool() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                PlaygroundView.this.setToolTipText("");
-
-                JComponent valueView = (JComponent) e.getComponent();
-                FunctionView functionView = (FunctionView) Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x instanceof FunctionView).findFirst().get();
-                ValueViewContainer valueViewContainer = (ValueViewContainer) valueView.getParent();
-                ChildSlot childSlot = valueViewContainer.getChildSlot(PlaygroundView.this, valueView);
-
-                TextEditor textEditor = new TextEditor() {
-                    @Override
-                    protected void endEdit(String text) {
-                        ParameterUsageView parameterView = functionView.makeParameterUsage(text);
-                        childSlot.commit(parameterView);
-                    }
-
-                    @Override
-                    protected void cancelEdit() {
-                        childSlot.revert();
-                    }
-                };
-
-                childSlot.replace(textEditor);
-
-                textEditor.requestFocusInWindow();
-            }
-
-            @Override
-            public void startTool(JComponent component) {
-                component.setToolTipText("Click on an object to convert it to a parameter.");
-            }
-        };
-    }
-
     private MouseTool createNameMouseTool() {
         return new MouseTool() {
             @Override
@@ -521,7 +407,6 @@ public class PlaygroundView extends JPanel /*implements ValueViewContainer*/ {
                     selection = new JPanel();
                     selection.setForeground(Color.BLUE);
                     selection.setBorder(new RoundedBorder());
-                    Point point = SwingUtilities.convertPoint(valueView.getParent(), valueView.getLocation(), PlaygroundView.this);
                     selection.setSize(functionView.getSize());
                     selection.setLocation(functionView.getLocation());
                     selection.setOpaque(false);
@@ -563,14 +448,6 @@ public class PlaygroundView extends JPanel /*implements ValueViewContainer*/ {
                     Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
                     if(targetComponent != valueView) {
                         ApplyView applyView = new ApplyView(functionView, ((ValueView)functionView).getIdentifiers().stream().map(x -> createDefaultValueView()).collect(Collectors.toList()));
-
-                        /*if(valueView.getParent() == PlaygroundView.this) {
-                            // Should be called "Variable" instead of EditableView?
-                            EditableView editableView = viewToEditable.get(valueView);
-                            // TODO: When to remove change listener?
-                            editableView.addChangeListener(newValueView ->
-                                applyView.setValueView(PlaygroundView.this, (JComponent)newValueView));
-                        }*/
 
                         if(targetComponent == PlaygroundView.this) {
                             ScopeView scopeView = new ScopeView(applyView);
@@ -622,7 +499,6 @@ public class PlaygroundView extends JPanel /*implements ValueViewContainer*/ {
                 ScopeView scopeView = new ScopeView((ValueView)parsedComponent);
                 scopeView.setLocation(editorComponent.getLocation());
 
-                //add(parsedComponent);
                 add(scopeView);
 
                 endEdit.accept(parsedComponent);
@@ -699,37 +575,4 @@ public class PlaygroundView extends JPanel /*implements ValueViewContainer*/ {
         valueView.removeMouseListener(currentMouseToolWrapper);
         valueView.removeMouseMotionListener(currentMouseToolWrapper);
     }
-
-    /*@Override
-    public EditableView getEditorFor(JComponent valueView) {
-        return viewToEditable.get(valueView);
-    }*/
-
-    /*@Override
-    public ChildSlot getChildSlot(PlaygroundView playgroundView, JComponent valueView) {
-        return new ChildSlot() {
-            JComponent currentView = valueView;
-
-            @Override
-            public void replace(JComponent view) {
-                remove(currentView);
-                view.setLocation(currentView.getLocation());
-                add(view);
-                currentView = view;
-            }
-
-            @Override
-            public void revert() {
-                remove(currentView);
-                add(valueView);
-            }
-
-            @Override
-            public void commit(JComponent valueView) {
-                remove(currentView);
-                valueView.setLocation(currentView.getLocation());
-                add(valueView);
-            }
-        };
-    }*/
 }
