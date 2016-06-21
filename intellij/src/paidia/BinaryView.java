@@ -146,7 +146,7 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
     }
 
     private void setupArgument(PlaygroundView playgroundView, int index, Argument argument) {
-        argument.editableView = playgroundView.createEditableView(new ParsingEditor() {
+        argument.editableView = playgroundView.createEditableView(new ParsingEditor(playgroundView) {
             @Override
             public String getText() {
                 return ((ValueView)argument.valueView).getSource(new DefaultTextContext());

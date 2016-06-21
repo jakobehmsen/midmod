@@ -83,7 +83,7 @@ public class NamedView extends JPanel implements ValueView, ValueViewContainer {
         //((ValueView)bodyView).setup(playgroundView);
         //playgroundView.makeEditableByMouse(() -> bodyEditableView, NamedView.this.bodyView);
 
-        bodyEditableView = playgroundView.createEditableView(new Editor() {
+        bodyEditableView = playgroundView.createEditableView(new ParsingEditor(playgroundView) {
             @Override
             public String getText() {
                 return ((ValueView)NamedView.this.bodyView).getSource(new DefaultTextContext());

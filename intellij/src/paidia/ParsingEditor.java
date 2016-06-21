@@ -1,22 +1,19 @@
 package paidia;
 
 import javax.swing.*;
-import java.util.ArrayList;
-import java.util.function.Consumer;
 
 public abstract class ParsingEditor implements Editor {
-    /*@Override
+    private PlaygroundView playgroundView;
+
+    public ParsingEditor(PlaygroundView playgroundView) {
+        this.playgroundView = playgroundView;
+    }
+
+    @Override
     public void endEdit(String text) {
-        JComponent parsedComponent = ComponentParser.parseComponent(text);
+        JComponent parsedComponent = ComponentParser.parseComponent(text, playgroundView);
         endEdit(parsedComponent);
-        listeners.forEach(x -> x.accept((ValueView)parsedComponent));
-    }*/
+    }
 
-    //protected abstract void endEdit(JComponent parsedComponent);
-
-    /*private ArrayList<Consumer<ValueView>> listeners = new ArrayList<>();
-
-    public void addChangeListener(Consumer<ValueView> listener) {
-        listeners.add(listener);
-    }*/
+    protected abstract void endEdit(JComponent parsedComponent);
 }

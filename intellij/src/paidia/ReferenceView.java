@@ -12,12 +12,12 @@ public class ReferenceView  extends JLabel implements ValueView {
         // TODO: Should be replaced by ApplyView? Is simply, implicitly an ApplyView with no arguments?
         this.valueView = valueView;
         setFont(new Font(getFont().getFamily(), Font.ITALIC | Font.BOLD, getFont().getSize()));
-        setText(((ValueView)valueView).getText());
+        setText(((ValueView)valueView).getSummaryText());
 
         observer = new ValueViewObserver() {
             @Override
             public void updated() {
-                setText(((ValueView)valueView).getText());
+                setText(((ValueView)valueView).getSummaryText());
                 observers.forEach(x -> x.updated());
                 setSize(getPreferredSize());
             }
@@ -40,7 +40,7 @@ public class ReferenceView  extends JLabel implements ValueView {
 
     @Override
     public ValueView evaluate(Map<String, ValueView> environment) {
-        return (ValueView)valueView;
+        return ((ValueView)valueView).passAsReference();
     }
 
     private ArrayList<ValueViewObserver> observers = new ArrayList<>();
@@ -58,5 +58,10 @@ public class ReferenceView  extends JLabel implements ValueView {
     @Override
     public void release() {
         ((ValueView)valueView).removeObserver(observer);
+    }
+
+    @Override
+    public ValueView passAsReference() {
+        return ((ValueView)valueView).passAsReference();
     }
 }

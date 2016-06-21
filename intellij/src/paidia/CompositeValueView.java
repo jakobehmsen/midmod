@@ -203,6 +203,10 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
 
     private PlaygroundView playgroundView;
 
+    public PlaygroundView getPlaygroundView() {
+        return playgroundView;
+    }
+
     @Override
     public void setup(PlaygroundView playgroundView) {
         this.playgroundView = playgroundView;
@@ -222,7 +226,7 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
     }
 
     protected EditableView createChildEditableView(PlaygroundView playgroundView, ValueViewChild child) {
-        return playgroundView.createEditableView(new ParsingEditor() {
+        return playgroundView.createEditableView(new ParsingEditor(playgroundView) {
             private int childZOrder;
             private JComponent childBeingReplaced;
             private ChildSlot childSlot;

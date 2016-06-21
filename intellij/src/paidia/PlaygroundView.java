@@ -4,8 +4,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.Hashtable;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -362,27 +360,9 @@ public class PlaygroundView extends JPanel {
                 PlaygroundView.this.setToolTipText("");
 
                 JComponent valueViewTmp = (JComponent) e.getComponent();
-                JComponent valueView = Stream.iterate(valueViewTmp, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
-                ValueViewContainer valueViewContainer = (ValueViewContainer) valueView.getParent();
-                ChildSlot childSlot = valueViewContainer.getChildSlot(PlaygroundView.this, valueView);
+                ScopeView valueView = (ScopeView) Stream.iterate(valueViewTmp, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
 
-                TextEditor textEditor = new TextEditor() {
-                    @Override
-                    protected void endEdit(String text) {
-                        childSlot.replace(new NamedView(text, valueView));
-                    }
-
-                    @Override
-                    protected void cancelEdit() {
-                        childSlot.revert();
-                    }
-                };
-
-                textEditor.setSize(100, 15);
-
-                childSlot.replace(textEditor);
-
-                textEditor.requestFocusInWindow();
+                valueView.beginEditName();
             }
 
             @Override
@@ -552,7 +532,7 @@ public class PlaygroundView extends JPanel {
     }
 
     private EditableView createRootEditableView(Supplier<String> textSupplier, Consumer<JComponent> beginEdit, Consumer<JComponent> endEdit, Runnable cancelEdit) {
-        return createEditableView(new ParsingEditor() {
+        return createEditableView(new ParsingEditor(this) {
             JComponent editorComponent;
 
             @Override
@@ -624,11 +604,18 @@ public class PlaygroundView extends JPanel {
             }
 
             @Override
+            public void endEdit(String text) {
+                editor.endEdit(text);
+
+                currentEditableView = null;
+            }
+
+            /*@Override
             public void endEdit(JComponent parsedComponent) {
                 editor.endEdit(parsedComponent);
 
                 currentEditableView = null;
-            }
+            }*/
 
             @Override
             public void cancelEdit() {

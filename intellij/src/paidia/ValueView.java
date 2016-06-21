@@ -3,6 +3,10 @@ package paidia;
 import java.util.*;
 
 public interface ValueView {
+    default String getSummaryText() {
+        return getText();
+    }
+
     default String getText() {
         return getSource(new DefaultTextContext());
     }
@@ -28,5 +32,9 @@ public interface ValueView {
 
     default void appendIdentifiers(Set<String> locals, List<String> identifiers) {
 
+    }
+
+    default ValueView passAsReference() {
+        return evaluate(new Hashtable<>());
     }
 }

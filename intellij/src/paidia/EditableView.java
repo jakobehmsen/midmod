@@ -34,9 +34,10 @@ public class EditableView {
 
         editorComponent.registerKeyboardAction(e1 -> {
             String text = editorComponent.getText();
-            JComponent parsedComponent = textParseHandler.parse(editorComponent, text);
-            editor.endEdit(parsedComponent);
-            listeners.forEach(x -> x.accept((ValueView)parsedComponent));
+            editor.endEdit(text);
+            //JComponent parsedComponent = textParseHandler.parse(editorComponent, text);
+            //editor.endEdit(parsedComponent);
+            //listeners.forEach(x -> x.accept((ValueView)parsedComponent));
         }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
 
         editorComponent.registerKeyboardAction(e1 -> {
@@ -91,9 +92,9 @@ public class EditableView {
         editor.cancelEdit();
     }
 
-    private ArrayList<Consumer<ValueView>> listeners = new ArrayList<>();
+    //private ArrayList<Consumer<ValueView>> listeners = new ArrayList<>();
 
-    public void addChangeListener(Consumer<ValueView> listener) {
+    /*public void addChangeListener(Consumer<ValueView> listener) {
         listeners.add(listener);
-    }
+    }*/
 }

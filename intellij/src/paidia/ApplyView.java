@@ -136,7 +136,7 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
 
     private void setupArgument(PlaygroundView playgroundView, Argument x) {
         ((ValueView)x.valueView).addObserver(x.observer);
-        x.editableView = playgroundView.createEditableView(new Editor() {
+        x.editableView = playgroundView.createEditableView(new ParsingEditor(playgroundView) {
             @Override
             public String getText() {
                 return ((ValueView)x.valueView).getSource(new DefaultTextContext());
