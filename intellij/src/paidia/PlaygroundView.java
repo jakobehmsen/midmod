@@ -51,6 +51,7 @@ public class PlaygroundView extends JPanel {
         mouseToolSelector.add(createMouseToolSelector("Delete", createDeleteMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Name", createNameMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Apply", createApplyMouseTool()));
+        mouseToolSelector.add(createMouseToolSelector("Reference", createReferenceMouseTool()));
 
         // What if each mouse button could be a tool reference, that can be changed on the run?
         // - Then, which one should be used for mouse-over/enter/exit events?
@@ -464,6 +465,84 @@ public class PlaygroundView extends JPanel {
             @Override
             public void startTool(JComponent component) {
                 component.setToolTipText("Press and drag a function to apply it.");
+            }
+        };
+    }
+
+    private MouseTool createReferenceMouseTool() {
+        return new MouseTool() {
+            private JComponent selection;
+            private boolean linking;
+            private JComponent targetValueView;
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                JComponent valueView = (JComponent) e.getComponent();
+                if(e.getButton() == MouseEvent.BUTTON1) {
+                    linking = true;
+
+                    targetValueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
+
+                    selection = new JPanel();
+                    selection.setForeground(Color.BLUE);
+                    selection.setBorder(new RoundedBorder());
+                    Point point = SwingUtilities.convertPoint(targetValueView.getParent(), targetValueView.getLocation(), PlaygroundView.this);
+                    selection.setSize(targetValueView.getSize());
+                    selection.setLocation(point);
+                    selection.setOpaque(false);
+                    add(selection, 0);
+                    selection.repaint();
+                    selection.revalidate();
+
+                    int cursorType = Cursor.HAND_CURSOR;
+                    Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
+                    glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                    glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+                }
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if(linking) {
+                    PlaygroundView.this.setToolTipText("");
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if(e.getButton() == MouseEvent.BUTTON1 && linking) {
+                    linking = false;
+                    int cursorType = Cursor.DEFAULT_CURSOR;
+                    Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
+                    glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                    glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+
+                    remove(selection);
+                    repaint(selection.getBounds());
+                    revalidate();
+
+                    Point pointInContentPane = SwingUtilities.convertPoint(targetValueView, e.getPoint(), PlaygroundView.this);
+                    JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
+                    Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
+                    if(targetComponent != targetValueView) {
+                        ReferenceView reduction = new ReferenceView(targetValueView);
+
+                        if(targetComponent == PlaygroundView.this) {
+                            ScopeView scopeView = new ScopeView(reduction);
+                            scopeView.setLocation(pointInTargetComponent);
+                            add(scopeView);
+                        } else {
+                            JComponent targetComponentParent = (JComponent) targetComponent.getParent();
+                            // TODO: Should be ValueViewContainer instead of ValueView
+                            ((ValueViewContainer) targetComponentParent).drop(PlaygroundView.this, reduction, targetComponent);
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void startTool(JComponent component) {
+                component.setToolTipText("Press and drag an object to reduce it as an expression.");
             }
         };
     }
