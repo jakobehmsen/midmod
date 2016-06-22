@@ -8,11 +8,13 @@ public class ScopeView extends CompositeValueView {
     private JLabel nameLabel;
 
     public ScopeView(ValueView valueView) {
-        setLayout(new BorderLayout());
+        setLayout(new BorderLayout(3, 3));
 
         addChild(valueView);
 
         setSize(getPreferredSize());
+
+        setBackground(Color.WHITE);
 
         //setBorder(BorderFactory.createLineBorder(Color.BLACK, 2, true));
 
@@ -38,6 +40,13 @@ public class ScopeView extends CompositeValueView {
     @Override
     public void setText(String text) {
 
+    }
+
+    @Override
+    public void setup(PlaygroundView playgroundView) {
+        super.setup(playgroundView);
+
+        ((RoundedBorder)getBorder()).adjustArcSize(this);
     }
 
     @Override
@@ -105,7 +114,6 @@ public class ScopeView extends CompositeValueView {
                 if(nameWasEmpty) {
                     nameLabel = new JLabel();
                     nameLabel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.BLACK));
-                    nameLabel.setOpaque(true);
                 }
 
                 if(text.equals("")) {

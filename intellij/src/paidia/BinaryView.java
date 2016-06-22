@@ -9,6 +9,8 @@ import java.awt.event.ContainerEvent;
 import java.util.*;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collector;
+import java.util.stream.Stream;
 
 public class BinaryView extends JPanel implements ValueView, ValueViewContainer {
     private Text operator;
@@ -48,11 +50,15 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
         rhs = createArgument(2, rhsView);
 
         //setBorder(BorderFactory.createRaisedSoftBevelBorder());
-        setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
+        setBackground(Color.WHITE);
+        setForeground(new Color(220, 220, 220));
+        setBorder(new RoundedBorder());
+        //setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
 
         setSize(getPreferredSize());
 
         setAlignmentX(Component.LEFT_ALIGNMENT);
+        setOpaque(false);
         //setAlignmentY(Component.TOP_ALIGNMENT);
     }
 
@@ -60,6 +66,8 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
     public void setup(PlaygroundView playgroundView) {
         setupArgument(playgroundView, 0, lhs);
         setupArgument(playgroundView, 2, rhs);
+
+        ((RoundedBorder)getBorder()).adjustArcSize(this);
     }
 
     @Override

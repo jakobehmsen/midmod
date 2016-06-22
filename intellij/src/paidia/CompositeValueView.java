@@ -75,6 +75,8 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
 
         setAlignmentX(Component.LEFT_ALIGNMENT);
         setAlignmentY(Component.TOP_ALIGNMENT);
+
+        setOpaque(false);
     }
 
     protected void beginUpdate() {
@@ -135,12 +137,12 @@ public abstract class CompositeValueView extends JPanel implements ValueView, Va
         valueViewChild.child = child;
         valueViewChild.child.addObserver(valueViewChild.observer);
 
+        setChildAsComponent(index, (JComponent) childOld, (JComponent) valueViewChild.child);
+
         if(playgroundView != null) {
             valueViewChild.child.setup(playgroundView);
             playgroundView.makeEditableByMouse((JComponent) valueViewChild.child);
         }
-
-        setChildAsComponent(index, (JComponent) childOld, (JComponent) valueViewChild.child);
 
         sendUpdated();
     }

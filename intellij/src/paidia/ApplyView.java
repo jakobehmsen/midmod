@@ -51,7 +51,12 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
 
         setSize(getPreferredSize());
 
-        setBorder(BorderFactory.createDashedBorder(Color.GRAY, 4.0f, 4.0f));
+        setBackground(Color.WHITE);
+        //setBorder(BorderFactory.createDashedBorder(Color.GRAY, 4.0f, 4.0f));
+        setForeground(Color.GREEN);
+        setBorder(new RoundedBorder()); // TODO: Derive arc according to distance to ScopeView
+
+        setOpaque(false);
     }
 
     private Argument createArgument(String name, JComponent view) {
@@ -132,6 +137,8 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
             Argument x = arguments.get(index);
             setupArgument(playgroundView, x);
         });
+
+        ((RoundedBorder)getBorder()).adjustArcSize(this);
     }
 
     private void setupArgument(PlaygroundView playgroundView, Argument x) {
@@ -279,6 +286,7 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
             add(valueView, BorderLayout.CENTER);
 
             setSize(getPreferredSize());
+            setOpaque(false);
         }
 
         @Override

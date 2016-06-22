@@ -249,16 +249,7 @@ public class PlaygroundView extends JPanel {
 
                     targetValueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
 
-                    selection = new JPanel();
-                    selection.setForeground(Color.BLUE);
-                    selection.setBorder(new RoundedBorder());
-                    Point point = SwingUtilities.convertPoint(targetValueView.getParent(), targetValueView.getLocation(), PlaygroundView.this);
-                    selection.setSize(targetValueView.getSize());
-                    selection.setLocation(point);
-                    selection.setOpaque(false);
-                    add(selection, 0);
-                    selection.repaint();
-                    selection.revalidate();
+                    targetValueView.setForeground(Color.BLUE);
 
                     int cursorType = Cursor.HAND_CURSOR;
                     Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
@@ -283,8 +274,9 @@ public class PlaygroundView extends JPanel {
                     glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
                     glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
 
-                    remove(selection);
-                    repaint(selection.getBounds());
+                    targetValueView.setForeground(Color.BLACK);
+
+                    repaint(targetValueView.getBounds());
                     revalidate();
 
                     Point pointInContentPane = SwingUtilities.convertPoint(targetValueView, e.getPoint(), PlaygroundView.this);
@@ -385,15 +377,8 @@ public class PlaygroundView extends JPanel {
                     linking = true;
 
                     functionView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
-                    selection = new JPanel();
-                    selection.setForeground(Color.BLUE);
-                    selection.setBorder(new RoundedBorder());
-                    selection.setSize(functionView.getSize());
-                    selection.setLocation(functionView.getLocation());
-                    selection.setOpaque(false);
-                    add(selection, 0);
-                    selection.repaint();
-                    selection.revalidate();
+
+                    functionView.setForeground(Color.BLUE);
 
                     int cursorType = Cursor.HAND_CURSOR;
                     Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
@@ -420,8 +405,8 @@ public class PlaygroundView extends JPanel {
                     glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
                     glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
 
-                    remove(selection);
-                    repaint(selection.getBounds());
+                    functionView.setForeground(Color.BLACK);
+                    repaint(functionView.getBounds());
                     revalidate();
 
                     Point pointInContentPane = SwingUtilities.convertPoint(valueView, e.getPoint(), PlaygroundView.this);
@@ -463,16 +448,7 @@ public class PlaygroundView extends JPanel {
 
                     targetValueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
 
-                    selection = new JPanel();
-                    selection.setForeground(Color.BLUE);
-                    selection.setBorder(new RoundedBorder());
-                    Point point = SwingUtilities.convertPoint(targetValueView.getParent(), targetValueView.getLocation(), PlaygroundView.this);
-                    selection.setSize(targetValueView.getSize());
-                    selection.setLocation(point);
-                    selection.setOpaque(false);
-                    add(selection, 0);
-                    selection.repaint();
-                    selection.revalidate();
+                    targetValueView.setForeground(Color.BLUE);
 
                     int cursorType = Cursor.HAND_CURSOR;
                     Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
@@ -497,8 +473,8 @@ public class PlaygroundView extends JPanel {
                     glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
                     glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
 
-                    remove(selection);
-                    repaint(selection.getBounds());
+                    targetValueView.setForeground(Color.BLACK);
+                    repaint(targetValueView.getBounds());
                     revalidate();
 
                     Point pointInContentPane = SwingUtilities.convertPoint(targetValueView, e.getPoint(), PlaygroundView.this);
