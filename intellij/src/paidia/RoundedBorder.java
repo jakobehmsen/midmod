@@ -6,13 +6,15 @@ import java.awt.*;
 
 public class RoundedBorder extends AbstractBorder {
     private int arcSize;
+    private Insets insets;
 
     public RoundedBorder() {
-        this(25);
+        this(25, new Insets(5, 5, 5, 5));
     }
 
-    public RoundedBorder(int arcSize) {
+    public RoundedBorder(int arcSize, Insets insets) {
         this.arcSize = arcSize;
+        this.insets = insets;
     }
 
     public int getArcSize() {
@@ -36,17 +38,22 @@ public class RoundedBorder extends AbstractBorder {
         graphics.setColor(c.getForeground());
         graphics.setStroke(new BasicStroke(2));
         graphics.drawRoundRect(0, 0, width-1, height-1, arcs.width, arcs.height);//paint borderd
-        graphics.drawString("sdffsd", 0, 0);
+    }
+
+    public void setInsets(Insets insets) {
+        this.insets = insets;
     }
 
     @Override
     public Insets getBorderInsets(Component c) {
-        if(c instanceof ScopeView)
+        return insets;
+
+        /*if(c instanceof ScopeView)
             return new Insets(5, 5, 5, 5);
         else if(c instanceof JPopupMenu)
             return new Insets(5, 5, 5, 5);
 
-        return new Insets(0, 0, 0, 0);
+        return new Insets(0, 0, 0, 0);*/
     }
 
     public void adjustArcSize(JComponent c) {

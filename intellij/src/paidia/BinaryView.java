@@ -23,6 +23,8 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
         this.operator = operator;
         this.textOperator = textOperator;
         this.reducer = reducer;
+        ((FlowLayout)getLayout()).setHgap(0);
+        ((FlowLayout)getLayout()).setVgap(0);
 
         addContainerListener(new ContainerAdapter() {
             ComponentAdapter componentAdapter;
@@ -46,13 +48,14 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
         });
 
         lhs = createArgument(0, lhsView);
-        add(new JLabel(operator.getFormatted()), 1);
+        JLabel operatorLabel = new JLabel(operator.getFormatted());
+        operatorLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        add(operatorLabel, 1);
         rhs = createArgument(2, rhsView);
 
         //setBorder(BorderFactory.createRaisedSoftBevelBorder());
         setBackground(Color.WHITE);
         setForeground(new Color(220, 220, 220));
-        setBorder(new RoundedBorder());
         //setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
 
         setSize(getPreferredSize());
@@ -63,11 +66,25 @@ public class BinaryView extends JPanel implements ValueView, ValueViewContainer 
     }
 
     @Override
+    public Insets getInsets() {
+        return super.getInsets();
+    }
+
+    @Override
+    public Dimension getPreferredSize() {
+        return super.getPreferredSize();
+    }
+
+    @Override
     public void setup(PlaygroundView playgroundView) {
         setupArgument(playgroundView, 0, lhs);
         setupArgument(playgroundView, 2, rhs);
 
-        ((RoundedBorder)getBorder()).adjustArcSize(this);
+        JComponent closestParentValueView = (JComponent) Stream.iterate(getParent(), c -> c.getParent()).filter(x -> x instanceof ValueView).findFirst().get();
+        if(!(closestParentValueView instanceof ScopeView)) {
+            setBorder(new RoundedBorder());
+            ((RoundedBorder) getBorder()).adjustArcSize(this);
+        }
     }
 
     @Override

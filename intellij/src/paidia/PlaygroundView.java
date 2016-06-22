@@ -46,7 +46,7 @@ public class PlaygroundView extends JPanel {
         mouseToolSelector = new JPopupMenu();
         mouseToolSelector.setOpaque(false);
         mouseToolSelector.setForeground(Color.BLACK);
-        mouseToolSelector.setBorder(new RoundedBorder());
+        mouseToolSelector.setBorder(new RoundedBorder(25, new Insets(5, 5, 5, 5)));
         mouseToolSelector.add(createMouseToolSelector("Write", createWriteMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Move", createMoveMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Reduce", createReduceMouseTool()));
@@ -258,6 +258,7 @@ public class PlaygroundView extends JPanel {
             private JComponent selection;
             private boolean linking;
             private JComponent targetValueView;
+            private Color foreground;
 
             @Override
             public void mousePressed(MouseEvent e) {
@@ -267,6 +268,7 @@ public class PlaygroundView extends JPanel {
 
                     targetValueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
 
+                    foreground = targetValueView.getForeground();
                     targetValueView.setForeground(Color.BLUE);
 
                     int cursorType = Cursor.HAND_CURSOR;
@@ -292,7 +294,7 @@ public class PlaygroundView extends JPanel {
                     glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
                     glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
 
-                    targetValueView.setForeground(Color.BLACK);
+                    targetValueView.setForeground(foreground);
 
                     repaint(targetValueView.getBounds());
                     revalidate();
@@ -387,6 +389,7 @@ public class PlaygroundView extends JPanel {
             private JComponent selection;
             private boolean linking;
             private JComponent functionView;
+            private Color foreground;
 
             @Override
             public void mousePressed(MouseEvent e) {
@@ -396,6 +399,7 @@ public class PlaygroundView extends JPanel {
 
                     functionView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
 
+                    foreground = functionView.getForeground();
                     functionView.setForeground(Color.BLUE);
 
                     int cursorType = Cursor.HAND_CURSOR;
@@ -423,7 +427,7 @@ public class PlaygroundView extends JPanel {
                     glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
                     glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
 
-                    functionView.setForeground(Color.BLACK);
+                    functionView.setForeground(foreground);
                     repaint(functionView.getBounds());
                     revalidate();
 
@@ -457,6 +461,7 @@ public class PlaygroundView extends JPanel {
             private JComponent selection;
             private boolean linking;
             private JComponent targetValueView;
+            private Color foreground;
 
             @Override
             public void mousePressed(MouseEvent e) {
@@ -466,6 +471,7 @@ public class PlaygroundView extends JPanel {
 
                     targetValueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
 
+                    foreground = targetValueView.getForeground();
                     targetValueView.setForeground(Color.BLUE);
 
                     int cursorType = Cursor.HAND_CURSOR;
@@ -491,7 +497,7 @@ public class PlaygroundView extends JPanel {
                     glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
                     glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
 
-                    targetValueView.setForeground(Color.BLACK);
+                    targetValueView.setForeground(foreground);
                     repaint(targetValueView.getBounds());
                     revalidate();
 

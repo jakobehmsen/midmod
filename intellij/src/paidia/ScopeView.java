@@ -18,7 +18,7 @@ public class ScopeView extends CompositeValueView {
 
         //setBorder(BorderFactory.createLineBorder(Color.BLACK, 2, true));
 
-        setBorder(new RoundedBorder());
+        setBorder(new RoundedBorder(25, new Insets(5, 5, 5, 5)));
     }
 
     @Override
@@ -47,6 +47,14 @@ public class ScopeView extends CompositeValueView {
         super.setup(playgroundView);
 
         ((RoundedBorder)getBorder()).adjustArcSize(this);
+
+        getIdentifiers();
+    }
+
+    @Override
+    protected void sendUpdated() {
+        getIdentifiers();
+        super.sendUpdated();
     }
 
     @Override
@@ -103,6 +111,8 @@ public class ScopeView extends CompositeValueView {
                     remove(nameLabel);
 
                 add(editorComponent, BorderLayout.NORTH);
+                editorComponent.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.BLACK));
+                //((RoundedBorder)getBorder()).setInsets(new Insets(5, 4, 0, 4));
 
                 theEditorComponent = editorComponent;
             }
@@ -118,8 +128,10 @@ public class ScopeView extends CompositeValueView {
 
                 if(text.equals("")) {
                     nameLabel = null;
+                    //((RoundedBorder)getBorder()).setInsets(new Insets(1, 4, 1, 4));
                 } else {
                     add(nameLabel, BorderLayout.NORTH);
+                    //((RoundedBorder)getBorder()).setInsets(new Insets(5, 4, 0, 4));
                     nameLabel.setText(text);
                 }
 
@@ -129,8 +141,12 @@ public class ScopeView extends CompositeValueView {
             @Override
             public void cancelEdit() {
                 remove(theEditorComponent);
-                if(!nameWasEmpty)
+                //((RoundedBorder)getBorder()).setInsets(new Insets(1, 4, 1, 4));
+
+                if(!nameWasEmpty) {
                     add(nameLabel, BorderLayout.NORTH);
+                    //((RoundedBorder)getBorder()).setInsets(new Insets(5, 4, 0, 4));
+                }
             }
         }).beginEdit();
     }

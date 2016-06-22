@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
     private JComponent functionView;
@@ -19,6 +20,9 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
     private ValueViewObserver observer;
 
     public ApplyView(JComponent functionView, List<JComponent> arguments) {
+        ((FlowLayout)getLayout()).setHgap(5);
+        ((FlowLayout)getLayout()).setVgap(0);
+
         addContainerListener(new ContainerAdapter() {
             ComponentAdapter componentAdapter;
 
@@ -54,7 +58,7 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
         setBackground(Color.WHITE);
         //setBorder(BorderFactory.createDashedBorder(Color.GRAY, 4.0f, 4.0f));
         setForeground(Color.GREEN);
-        setBorder(new RoundedBorder()); // TODO: Derive arc according to distance to ScopeView
+        //setBorder(new RoundedBorder()); // TODO: Derive arc according to distance to ScopeView
 
         setOpaque(false);
     }
@@ -138,7 +142,13 @@ public class ApplyView extends JPanel implements ValueView, ValueViewContainer {
             setupArgument(playgroundView, x);
         });
 
-        ((RoundedBorder)getBorder()).adjustArcSize(this);
+        JComponent closestParentValueView = (JComponent) Stream.iterate(getParent(), c -> c.getParent()).filter(x -> x instanceof ValueView).findFirst().get();
+        if(!(closestParentValueView instanceof ScopeView)) {
+            setBorder(new RoundedBorder());
+            ((RoundedBorder) getBorder()).adjustArcSize(this);
+        } else {
+            closestParentValueView.setForeground(Color.GREEN);
+        }
     }
 
     private void setupArgument(PlaygroundView playgroundView, Argument x) {
