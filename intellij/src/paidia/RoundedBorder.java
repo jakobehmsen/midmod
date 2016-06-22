@@ -35,12 +35,15 @@ public class RoundedBorder extends AbstractBorder {
         graphics.fillRoundRect(0, 0, width-1, height-1, arcs.width, arcs.height);//paint background
         graphics.setColor(c.getForeground());
         graphics.setStroke(new BasicStroke(2));
-        graphics.drawRoundRect(0, 0, width-1, height-1, arcs.width, arcs.height);//paint border
+        graphics.drawRoundRect(0, 0, width-1, height-1, arcs.width, arcs.height);//paint borderd
+        graphics.drawString("sdffsd", 0, 0);
     }
 
     @Override
     public Insets getBorderInsets(Component c) {
         if(c instanceof ScopeView)
+            return new Insets(5, 5, 5, 5);
+        else if(c instanceof JPopupMenu)
             return new Insets(5, 5, 5, 5);
 
         return new Insets(0, 0, 0, 0);
@@ -62,5 +65,10 @@ public class RoundedBorder extends AbstractBorder {
         if(c.getParent() instanceof JComponent)
             return distanceToFarthestParentWithRoundedBorder((JComponent) c.getParent(), distance);
         return distance;
+    }
+
+    @Override
+    public boolean isBorderOpaque() {
+        return true;
     }
 }

@@ -1,6 +1,7 @@
 package paidia;
 
 import javax.swing.*;
+import javax.swing.plaf.basic.BasicComboPopup;
 import java.awt.*;
 import java.awt.event.*;
 import java.math.BigDecimal;
@@ -43,6 +44,9 @@ public class PlaygroundView extends JPanel {
         currentMouseTool.startTool(this);
 
         mouseToolSelector = new JPopupMenu();
+        mouseToolSelector.setOpaque(false);
+        mouseToolSelector.setForeground(Color.BLACK);
+        mouseToolSelector.setBorder(new RoundedBorder());
         mouseToolSelector.add(createMouseToolSelector("Write", createWriteMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Move", createMoveMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Reduce", createReduceMouseTool()));
@@ -53,7 +57,7 @@ public class PlaygroundView extends JPanel {
 
         // What if each mouse button could be a tool reference, that can be changed on the run?
         // - Then, which one should be used for mouse-over/enter/exit events?
-        this.setComponentPopupMenu(mouseToolSelector);
+        //this.setComponentPopupMenu(mouseToolSelector);
 
         ComponentAdapter componentAdapter = new ComponentAdapter() {
             @Override
@@ -103,14 +107,28 @@ public class PlaygroundView extends JPanel {
                 currentMouseTool.mouseClicked(e);
             }
 
+            boolean isPopupTrigger;
+
             @Override
             public void mousePressed(MouseEvent e) {
                 currentMouseTool.mousePressed(e);
+
+                Point p = SwingUtilities.convertPoint(e.getComponent(), e.getPoint(), PlaygroundView.this);
+
+                if(e.isPopupTrigger()) {
+                    isPopupTrigger = true;
+
+                    mouseToolSelector.show(PlaygroundView.this, p.x, p.y);
+                }
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
                 currentMouseTool.mouseReleased(e);
+
+                if(isPopupTrigger) {
+                    mouseToolSelector.setVisible(false);
+                }
             }
 
             @Override
@@ -605,7 +623,7 @@ public class PlaygroundView extends JPanel {
     }
 
     public void makeEditableByMouse(JComponent valueView) {
-        valueView.setComponentPopupMenu(mouseToolSelector);
+        //valueView.setComponentPopupMenu(mouseToolSelector);
 
         valueView.addMouseListener(currentMouseToolWrapper);
         valueView.addMouseMotionListener(currentMouseToolWrapper);
@@ -614,7 +632,7 @@ public class PlaygroundView extends JPanel {
     public void unmakeEditableByMouse(JComponent valueView) {
         valueView.setComponentPopupMenu(null);
 
-        valueView.removeMouseListener(currentMouseToolWrapper);
+        //valueView.removeMouseListener(currentMouseToolWrapper);
         valueView.removeMouseMotionListener(currentMouseToolWrapper);
     }
 }
