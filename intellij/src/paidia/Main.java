@@ -2,22 +2,115 @@ package paidia;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.List;
+import java.util.stream.Stream;
 
 public class Main {
     public static void main(String[] args) {
         JFrame f = new JFrame("Paidia");
 
-        PlaygroundView playgroundView = new PlaygroundView();
+        JPanel contentPane2 = new JPanel(new BorderLayout());
 
-        f.setContentPane(playgroundView);
+        JToolBar toolBar = new JToolBar();
+
+        contentPane2.add(toolBar, BorderLayout.NORTH);
+        contentPane2.add(new Playground(new MouseToolProvider() {
+            MouseTool selectedMouseTool;
+            JComponent canvas;
+
+            @Override
+            public void setCanvas(JComponent canvas) {
+                this.canvas = canvas;
+
+                addMouseTool("Move", new MouseTool() {
+                    private JComponent targetValueView;
+                    private int mousePressX;
+                    private int mousePressY;
+                    private boolean moving;
+
+                    @Override
+                    public void mousePressed(MouseEvent e) {
+                        JComponent valueView = (JComponent) e.getComponent();
+                        if(e.getButton() == MouseEvent.BUTTON1) {
+                            targetValueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() instanceof Playground).findFirst().get();
+
+                            moving = true;
+                            targetValueView.getParent().setComponentZOrder(targetValueView, 0);
+
+                            int cursorType = Cursor.MOVE_CURSOR;
+                            Component glassPane = f.getGlassPane();
+                            glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                            glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+
+                            mousePressX = e.getX();
+                            mousePressY = e.getY();
+                        }
+                    }
+
+                    @Override
+                    public void mouseDragged(MouseEvent e) {
+                        if(moving) {
+                            canvas.setToolTipText("");
+
+                            int deltaX = e.getX() - mousePressX;
+                            int deltaY = e.getY() - mousePressY;
+
+                            targetValueView.setLocation(targetValueView.getX() + deltaX, targetValueView.getY() + deltaY);
+                        }
+                    }
+
+                    @Override
+                    public void mouseReleased(MouseEvent e) {
+                        if(e.getButton() == MouseEvent.BUTTON1 && moving) {
+                            moving = false;
+                            int cursorType = Cursor.DEFAULT_CURSOR;
+                            Component glassPane = f.getGlassPane();
+                            glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                            glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+                        }
+                    }
+
+                    @Override
+                    public void startTool(JComponent component) {
+                        component.setToolTipText("Press and drag an object to move it.");
+                    }
+                });
+
+                ((JButton)toolBar.getComponents()[0]).doClick();
+            }
+
+            private void addMouseTool(String text, MouseTool mouseTool) {
+                toolBar.add(new AbstractAction(text) {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        if(selectedMouseTool != null)
+                            selectedMouseTool.endTool(canvas);
+                        selectedMouseTool = mouseTool;
+                        selectedMouseTool.startTool(canvas);
+
+                        String title = f.getTitle().split(" - ")[0];
+                        f.setTitle(title + " - " + text);
+                    }
+                });
+            }
+
+            @Override
+            public MouseTool getMouseTool() {
+                return selectedMouseTool;
+            }
+        }), BorderLayout.CENTER);
+
+        /*PlaygroundView playgroundView = new PlaygroundView();
+
+        f.setContentPane(playgroundView);*/
+
+        f.setContentPane(contentPane2);
 
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         f.setSize(1024, 768);
