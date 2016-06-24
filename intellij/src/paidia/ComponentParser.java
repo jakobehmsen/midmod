@@ -326,12 +326,10 @@ public class ComponentParser {
                     int end = operand.start.getStartIndex() - 1;
                     JComponent lhs = value;
                     JComponent rhs = parseComponentBlockPart(operand);
-                    String source = first.start.getInputStream().getText(new Interval(start, end));
 
                     TextContext textOperator = getBinaryTextOperator(operator);
                     Function<ValueView[], ValueView> reducer = getBinaryReducer(operator);
 
-                    //value = new BinaryView(new Text(source, operator), textOperator, lhs, rhs);
                     value = new BinaryView(new Text(operator, operator), textOperator, lhs, rhs, reducer);
                     start = operand.stop.getStopIndex();
                 }
@@ -377,19 +375,6 @@ public class ComponentParser {
             @Override
             public JComponent visitEmbeddedExpression(PaidiaParser.EmbeddedExpressionContext ctx) {
                 return parseComponentBlockPart((ParserRuleContext) ctx.getChild(1));
-
-                /*
-                String prefix = ctx.start.getInputStream().getText(new Interval(
-                    ((TerminalNode) ctx.getChild(0)).getSymbol().getStartIndex(),
-                    ((ParserRuleContext) ctx.getChild(1)).start.getStartIndex() - 1
-                ));
-                String suffix = ctx.start.getInputStream().getText(new Interval(
-                    ((ParserRuleContext) ctx.getChild(1)).stop.getStopIndex() + 1,
-                    ((TerminalNode) ctx.getChild(2)).getSymbol().getStopIndex()
-                ));
-                Value value = parseBlockPart(workspace, ctx.embeddedExpressionContent(), s -> s);
-                return new EmbeddedValue(prefix, suffix, value);
-                */
             }
 
             @Override
@@ -423,5 +408,158 @@ public class ComponentParser {
     private static String parseString(ParserRuleContext ctx) {
         String rawString = ctx.getText().substring(1, ctx.getText().length() - 1);
         return rawString.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
+    }
+
+
+
+    public static Value2 parseValue(String text) {
+        CharStream charStream = new ANTLRInputStream(text);
+        PaidiaLexer lexer = new PaidiaLexer(charStream);
+        CommonTokenStream tokenStream = new CommonTokenStream(lexer);
+        PaidiaParser parser = new PaidiaParser(tokenStream);
+
+        PaidiaParser.BlockContext block = parser.block();
+
+        /*if(block.selector() != null) {
+            if(block.selector().binaryOperator() != null) {
+                String operator = block.selector().binaryOperator().getText();
+                TextContext textOperator = getBinaryTextOperator(operator);
+                Function<ValueView[], ValueView> reducer = getBinaryReducer(operator);
+                return new BinaryView(new Text(operator, operator), textOperator, playgroundView.createDefaultValueView(), playgroundView.createDefaultValueView(), reducer);
+            } else if(block.selector().KW_IF() != null) {
+                return new IfView(new AtomView("true", new Boolean(true)), (ValueView) playgroundView.createDefaultValueView(), (ValueView) playgroundView.createDefaultValueView());
+            }
+        }*/
+
+        return parseValueBlockParts(block.blockPart());
+    }
+
+    private static Value2 parseValueBlockParts(List<PaidiaParser.BlockPartContext> blockPartContexts) {
+        if (blockPartContexts.size() == 0)
+            return null;
+        else if (blockPartContexts.size() == 1) {
+            return parseValueBlockPart(blockPartContexts.get(0));
+        } else {
+            // Multiple parts.
+
+            List<ValueView> expressions = blockPartContexts.stream().map(x -> (ValueView)parseComponentBlockPart(x)).collect(Collectors.toList());
+
+            //return new BlockView(expressions);
+            return new BlockValue2(expressions);
+        }
+    }
+
+    private static Value2 parseValueBlockPart(ParserRuleContext blockPartContext) {
+        return blockPartContext.accept(new PaidiaBaseVisitor<Value2>() {
+            @Override
+            public Value2 visitAssignment(PaidiaParser.AssignmentContext ctx) {
+                String id = ctx.ID().getText();
+                Value2 value = parseValueBlockPart(ctx.expression());
+
+                //return new AssignmentView(id, value);
+                return new AssignmentValue2(id, value);
+            }
+
+            @Override
+            public Value2 visitIfExpression(PaidiaParser.IfExpressionContext ctx) {
+                Value2 condition = parseValueBlockPart(ctx.condition);
+                Value2 trueExpression = parseValueBlockPart(ctx.trueExpression);
+                Value2 falseExpression = parseValueBlockPart(ctx.falseExpression);
+
+                //return new IfView((ValueView) condition, (ValueView)trueExpression, (ValueView)falseExpression);
+                return new IfValue2(condition, trueExpression, falseExpression);
+            }
+
+            private <T extends ParserRuleContext> Value2 visitBinaryExpression(ParserRuleContext first, List<T> operands, Function<T, String> operatorGetter, Function<T, ParserRuleContext> operandGetter) {
+                Value2 value = parseValueBlockPart(first);
+
+                int start = first.stop.getStopIndex() + 1;
+                for (T addExpressionOpContext : operands) {
+                    ParserRuleContext operand = operandGetter.apply(addExpressionOpContext);
+                    String operator = operatorGetter.apply(addExpressionOpContext);
+                    int end = operand.start.getStartIndex() - 1;
+                    Value2 lhs = value;
+                    Value2 rhs = parseValueBlockPart(operand);
+
+                    TextContext textOperator = getBinaryTextOperator(operator);
+                    Function<ValueView[], ValueView> reducer = getBinaryReducer(operator);
+
+                    //value = new BinaryView(new Text(operator, operator), textOperator, lhs, rhs, reducer);
+                    value = new BinaryValue2(new Text(operator, operator), textOperator, lhs, rhs, reducer);
+                    start = operand.stop.getStopIndex();
+                }
+
+                return value;
+            }
+
+            @Override
+            public Value2 visitLogicalOrExpression(PaidiaParser.LogicalOrExpressionContext ctx) {
+                return visitBinaryExpression(ctx.lhs, ctx.logicalOrExpressionOp(), o -> o.OR_OP().getText(), o -> o.logicalAndExpression());
+            }
+
+            @Override
+            public Value2 visitLogicalAndExpression(PaidiaParser.LogicalAndExpressionContext ctx) {
+                return visitBinaryExpression(ctx.lhs, ctx.logicalAndExpressionOp(), o -> o.AND_OP().getText(), o -> o.equalityExpression());
+            }
+
+            @Override
+            public Value2 visitEqualityExpression(PaidiaParser.EqualityExpressionContext ctx) {
+                return visitBinaryExpression(ctx.lhs, ctx.equalityExpressionOp(), o -> o.EQ_OP().getText(), o -> o.relationalExpression());
+            }
+
+            @Override
+            public Value2 visitRelationalExpression(PaidiaParser.RelationalExpressionContext ctx) {
+                return visitBinaryExpression(ctx.lhs, ctx.relationalExpressionOp(), o -> o.REL_OP().getText(), o -> o.addExpression());
+            }
+
+            @Override
+            public Value2 visitAddExpression(PaidiaParser.AddExpressionContext ctx) {
+                return visitBinaryExpression(ctx.lhs, ctx.addExpressionOp(), o -> o.ADD_OP().getText(), o -> o.mulExpression());
+            }
+
+            @Override
+            public Value2 visitMulExpression(PaidiaParser.MulExpressionContext ctx) {
+                return visitBinaryExpression(ctx.lhs, ctx.mulExpressionOp(), o -> o.MUL_OP().getText(), o -> o.raiseExpression());
+            }
+
+            @Override
+            public Value2 visitRaiseExpression(PaidiaParser.RaiseExpressionContext ctx) {
+                return visitBinaryExpression(ctx.lhs, ctx.raiseExpressionOp(), o -> o.RAISE_OP().getText(), o -> o.chainedExpression());
+            }
+
+            @Override
+            public Value2 visitEmbeddedExpression(PaidiaParser.EmbeddedExpressionContext ctx) {
+                return parseValueBlockPart((ParserRuleContext) ctx.getChild(1));
+            }
+
+            @Override
+            public Value2 visitNumber(PaidiaParser.NumberContext ctx) {
+                BigDecimal number;
+
+                try {
+                    number = BigDecimal.valueOf(Long.parseLong(ctx.getText()));
+                } catch (NumberFormatException e) {
+                    number = BigDecimal.valueOf(Double.parseDouble(ctx.getText()));
+                }
+
+                //return new AtomView(ctx.getText(), number);
+                return new AtomValue2(ctx.getText(), ctx.getText(), number);
+            }
+
+            @Override
+            public Value2 visitString(PaidiaParser.StringContext ctx) {
+                String value = parseString(ctx);
+                //return new AtomView(value, ctx.getText(), value);
+                return new AtomValue2(value, ctx.getText(), value);
+            }
+
+            @Override
+            public Value2 visitIdentifier(PaidiaParser.IdentifierContext ctx) {
+                String name = ctx.getText();
+
+                //return new IdentifierView(name);
+                return new IdentifierValue2(name);
+            }
+        });
     }
 }

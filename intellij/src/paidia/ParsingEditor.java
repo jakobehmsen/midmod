@@ -11,9 +11,13 @@ public abstract class ParsingEditor implements Editor {
 
     @Override
     public void endEdit(String text) {
-        JComponent parsedComponent = ComponentParser.parseComponent(text, playgroundView);
-        endEdit(parsedComponent);
+        Value2 parsedValue = ComponentParser.parseValue(text);
+        //JComponent parsedComponent = ComponentParser.parseComponent(text, playgroundView);
+        endEdit(parsedValue);
     }
 
     protected abstract void endEdit(JComponent parsedComponent);
+    protected void endEdit(Value2 parsedValue) {
+
+    }
 }

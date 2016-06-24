@@ -567,6 +567,25 @@ public class PlaygroundView extends JPanel {
             }
 
             @Override
+            protected void endEdit(Value2 parsedValue) {
+                remove(editorComponent);
+
+                ViewBinding2 viewBinding = parsedValue.toView(PlaygroundView.this);
+
+                JComponent scopeView = viewBinding.getComponent();
+
+                //ScopeView scopeView = new ScopeView((ValueView)parsedComponent);
+                scopeView.setLocation(editorComponent.getLocation());
+
+                add(scopeView);
+
+                endEdit.accept(scopeView);
+
+                repaint();
+                revalidate();
+            }
+
+            @Override
             public void cancelEdit() {
                 remove(editorComponent);
                 cancelEdit.run();
