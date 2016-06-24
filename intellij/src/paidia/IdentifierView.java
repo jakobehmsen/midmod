@@ -45,11 +45,8 @@ public class IdentifierView extends JLabel implements ValueView {
     @Override
     public void appendIdentifiers(Set<String> locals, List<String> identifiers) {
         if(!locals.contains(getText())) {
-            setForeground(Color.RED);
             if(!identifiers.contains(getText()))
                 identifiers.add(getText());
-        } else {
-            setForeground(Color.BLACK);
         }
     }
 }
