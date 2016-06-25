@@ -297,6 +297,48 @@ public class ComponentParser {
         return binaryReducers.get(operator);
     }
 
+
+
+    private static Hashtable<String, Function<Value2[], Value2>> binaryReducers2 = new Hashtable<>();
+
+    private static <T> void addBinaryReducer2(String operator, Function<Value2[], Value2> reducer) {
+        binaryReducers2.put(operator, reducer);
+    }
+
+    private static <T> void addBinaryNumberReducer2(String operator, BiFunction<BigDecimal, BigDecimal, T> numberReducer) {
+        addBinaryReducer2(operator, args -> {
+            T result = numberReducer.apply(((BigDecimal)((AtomValue2)args[0]).getValue()), ((BigDecimal)((AtomValue2)args[1]).getValue()));
+            return new AtomValue2(result.toString(), result.toString(), result);
+        });
+    }
+
+    private static <T> void addBinaryBooleanReducer2(String operator, BiFunction<Boolean, Boolean, T> numberReducer) {
+        addBinaryReducer(operator, args -> {
+            T result = numberReducer.apply(((Boolean)((AtomView)args[0]).getValue()), ((Boolean)((AtomView)args[1]).getValue()));
+            return new AtomView(result.toString(), result);
+        });
+    }
+
+    static {
+        addBinaryBooleanReducer2("||", (x, y) -> x || y);
+        addBinaryBooleanReducer2("&&", (x, y) -> x && y);
+        addBinaryNumberReducer2("==", (x, y) -> x.equals(y));
+        addBinaryNumberReducer2("!=", (x, y) -> !x.equals(y));
+        addBinaryNumberReducer2("<", (x, y) -> x.compareTo(y) < 0);
+        addBinaryNumberReducer2(">", (x, y) -> x.compareTo(y) > 0);
+        addBinaryNumberReducer2("<=", (x, y) -> x.compareTo(y) <= 0);
+        addBinaryNumberReducer2(">=", (x, y) -> x.compareTo(y) >= 0);
+        addBinaryNumberReducer2("+", (x, y) -> x.add(y));
+        addBinaryNumberReducer2("-", (x, y) -> x.subtract(y));
+        addBinaryNumberReducer2("*", (x, y) -> x.multiply(y));
+        addBinaryNumberReducer2("/", (x, y) -> x.divide(y, MathContext.DECIMAL128));
+        addBinaryNumberReducer2("^", (x, y) -> x.pow(y.intValue()));
+    }
+
+    private static Function<Value2[], Value2> getBinaryReducer2(String operator) {
+        return binaryReducers2.get(operator);
+    }
+
     private static JComponent parseComponentBlockPart(ParserRuleContext blockPartContext) {
         return blockPartContext.accept(new PaidiaBaseVisitor<JComponent>() {
             @Override
@@ -482,10 +524,10 @@ public class ComponentParser {
                     Value2 rhs = parseValueBlockPart(operand);
 
                     TextContext textOperator = getBinaryTextOperator(operator);
-                    Function<ValueView[], ValueView> reducer = getBinaryReducer(operator);
+                    Function<Value2[], Value2> reducer = getBinaryReducer2(operator);
 
                     //value = new BinaryView(new Text(operator, operator), textOperator, lhs, rhs, reducer);
-                    value = new BinaryValue2(new Text(operator, operator), textOperator, lhs, rhs, reducer);
+                    value = new BinaryValue2(new Text(operator, operator), textOperator, new Value2Holder(lhs), new Value2Holder(rhs), reducer);
                     start = operand.stop.getStopIndex();
                 }
 

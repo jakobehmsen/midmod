@@ -176,10 +176,11 @@ public class PlaygroundView extends JPanel {
 
                         editableView.beginEdit();
                     } else {
-                        ValueViewContainer container = (ValueViewContainer) Stream.iterate(e.getComponent().getParent(), c -> (JComponent)c.getParent()).filter(x -> x instanceof ValueViewContainer).findFirst().get();
-                        editableView = container.getEditorFor((JComponent) e.getComponent());
+                        ((Value2ViewWrapper)e.getComponent()).beginEdit(PlaygroundView.this);
+                        //ValueViewContainer container = (ValueViewContainer) Stream.iterate(e.getComponent().getParent(), c -> (JComponent)c.getParent()).filter(x -> x instanceof ValueViewContainer).findFirst().get();
+                        //editableView = container.getEditorFor((JComponent) e.getComponent());
                     }
-                    editableView.beginEdit();
+                    //editableView.beginEdit();
                 }
             }
 
@@ -303,7 +304,20 @@ public class PlaygroundView extends JPanel {
                     JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
                     Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
                     if(targetComponent != targetValueView) {
-                        ReductionView reduction = new ReductionView(targetValueView);
+                        ReductionValue2 reduction = new ReductionValue2(((Value2ViewWrapper)e.getComponent()).getValueHolder());
+                        JComponent reductionView = new Value2Holder(reduction).toView(PlaygroundView.this).getComponent();
+
+                        if(targetComponent == PlaygroundView.this) {
+                            reductionView.setLocation(pointInTargetComponent);
+                            add(reductionView);
+                        } else {
+                            // Find nearest Value2ViewWrapper
+                            JComponent targetComponentParent = (JComponent) targetComponent.getParent();
+                            // TODO: Should be ValueViewContainer instead of ValueView
+                            ((ValueViewContainer) targetComponentParent).drop(PlaygroundView.this, reductionView, targetComponent);
+                        }
+
+                        /*ReductionView reduction = new ReductionView(targetValueView);
 
                         if(targetComponent == PlaygroundView.this) {
                             ScopeView scopeView = new ScopeView(reduction);
@@ -313,7 +327,7 @@ public class PlaygroundView extends JPanel {
                             JComponent targetComponentParent = (JComponent) targetComponent.getParent();
                             // TODO: Should be ValueViewContainer instead of ValueView
                             ((ValueViewContainer) targetComponentParent).drop(PlaygroundView.this, reduction, targetComponent);
-                        }
+                        }*/
                     }
                 }
             }
@@ -531,7 +545,7 @@ public class PlaygroundView extends JPanel {
         return new AtomView("0", new BigDecimal(0));
     }
 
-    private EditableView createRootEditableView(Supplier<String> textSupplier, Consumer<JComponent> beginEdit, Consumer<JComponent> endEdit, Runnable cancelEdit) {
+    public EditableView createRootEditableView(Supplier<String> textSupplier, Consumer<JComponent> beginEdit, Consumer<JComponent> endEdit, Runnable cancelEdit) {
         return createEditableView(new ParsingEditor(this) {
             JComponent editorComponent;
 
@@ -573,13 +587,16 @@ public class PlaygroundView extends JPanel {
                 ViewBinding2 viewBinding = parsedValue.toView(PlaygroundView.this);
 
                 JComponent scopeView = viewBinding.getComponent();
+                JComponent valueViewWrapper = new Value2Holder(parsedValue).toView(PlaygroundView.this).getComponent();// new Value2ViewWrapper(parsedValue, scopeView);
+
+                //makeEditableByMouse(valueViewWrapper);
 
                 //ScopeView scopeView = new ScopeView((ValueView)parsedComponent);
-                scopeView.setLocation(editorComponent.getLocation());
+                valueViewWrapper.setLocation(editorComponent.getLocation());
 
-                add(scopeView);
+                add(valueViewWrapper);
 
-                endEdit.accept(scopeView);
+                endEdit.accept(valueViewWrapper);
 
                 repaint();
                 revalidate();

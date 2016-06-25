@@ -1,6 +1,7 @@
 package paidia;
 
 import javax.swing.*;
+import java.util.Map;
 
 public class AtomValue2 extends AbstractValue2 {
     private String text;
@@ -17,7 +18,7 @@ public class AtomValue2 extends AbstractValue2 {
     public ViewBinding2 toView(PlaygroundView playgroundView) {
         JLabelValueView2 label = new JLabelValueView2(text);
 
-        playgroundView.makeEditableByMouse(label);
+        //playgroundView.makeEditableByMouse(label);
         label.setSize(label.getPreferredSize());
 
         return new ViewBinding2() {
@@ -26,5 +27,24 @@ public class AtomValue2 extends AbstractValue2 {
                 return label;
             }
         };
+    }
+
+    @Override
+    public String getText() {
+        return text;
+    }
+
+    @Override
+    public String getSource(TextContext textContext) {
+        return source;
+    }
+
+    @Override
+    public Value2 reduce(Map<String, Object> environment) {
+        return this;
+    }
+
+    public Object getValue() {
+        return value;
     }
 }
