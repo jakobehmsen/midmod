@@ -1,10 +1,6 @@
 package paidia;
 
 import javax.swing.*;
-import javax.swing.event.AncestorEvent;
-import javax.swing.event.AncestorListener;
-import java.awt.*;
-import java.awt.event.ComponentAdapter;
 import java.awt.event.HierarchyEvent;
 import java.awt.event.HierarchyListener;
 import java.util.Hashtable;
@@ -59,7 +55,7 @@ public class ReductionValue2 extends AbstractValue2 implements Value2Observer {
     }
 
     @Override
-    public Value2 reduce(Map<String, Object> environment) {
+    public Value2 reduce(Map<String, Value2> environment) {
         return reduction;
     }
 

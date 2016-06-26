@@ -1,6 +1,7 @@
 package paidia;
 
 import javax.swing.*;
+import java.util.List;
 import java.util.Map;
 
 public class Value2Holder extends AbstractValue2 implements Value2Observer {
@@ -49,12 +50,17 @@ public class Value2Holder extends AbstractValue2 implements Value2Observer {
     }
 
     @Override
-    public Value2 reduce(Map<String, Object> environment) {
+    public Value2 reduce(Map<String, Value2> environment) {
         return value.reduce(environment);
     }
 
     @Override
     public void updated() {
         sendUpdated();
+    }
+
+    @Override
+    public void appendParameters(List<String> parameters) {
+        value.appendParameters(parameters);
     }
 }

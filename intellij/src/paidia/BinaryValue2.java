@@ -2,6 +2,7 @@ package paidia;
 
 import javax.swing.*;
 import java.awt.event.*;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -75,12 +76,18 @@ public class BinaryValue2 extends AbstractValue2 implements Value2Observer {
     }
 
     @Override
-    public Value2 reduce(Map<String, Object> environment) {
+    public Value2 reduce(Map<String, Value2> environment) {
         return reducer.apply(new Value2[]{lhs.reduce(environment), rhs.reduce(environment)});
     }
 
     @Override
     public void updated() {
         sendUpdated();
+    }
+
+    @Override
+    public void appendParameters(List<String> parameters) {
+        lhs.appendParameters(parameters);
+        rhs.appendParameters(parameters);
     }
 }

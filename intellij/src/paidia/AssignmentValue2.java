@@ -22,7 +22,7 @@ public class AssignmentValue2 extends AbstractValue2 {
     }
 
     @Override
-    public Value2 reduce(Map<String, Object> environment) {
+    public Value2 reduce(Map<String, Value2> environment) {
         return null;
     }
 }

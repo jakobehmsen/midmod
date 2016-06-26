@@ -449,7 +449,22 @@ public class PlaygroundView extends JPanel {
                     JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
                     Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
                     if(targetComponent != valueView) {
-                        ApplyView applyView = new ApplyView(functionView, ((ValueView)functionView).getIdentifiers().stream().map(x -> createDefaultValueView()).collect(Collectors.toList()));
+                        ApplyValue2 applyValue = new ApplyValue2(((Value2ViewWrapper)functionView).getValueHolder());
+                        ((Value2ViewWrapper)functionView).getValueHolder().getParameters().forEach(x ->
+                            applyValue.setArgument(x, new Value2Holder(new AtomValue2("0", "0", new BigDecimal(0)))));
+
+                        JComponent applyView = new Value2Holder(applyValue).toView(PlaygroundView.this).getComponent();
+
+                        if(targetComponent == PlaygroundView.this) {
+                            //ScopeView scopeView = new ScopeView(applyView);
+                            applyView.setLocation(pointInTargetComponent);
+                            add(applyView);
+                        } else {
+                            JComponent targetComponentParent = (JComponent) targetComponent.getParent();
+                            ((ValueViewContainer) targetComponentParent).drop(PlaygroundView.this, applyView, targetComponent);
+                        }
+
+                        /*ApplyView applyView = new ApplyView(functionView, ((ValueView)functionView).getIdentifiers().stream().map(x -> createDefaultValueView()).collect(Collectors.toList()));
 
                         if(targetComponent == PlaygroundView.this) {
                             ScopeView scopeView = new ScopeView(applyView);
@@ -458,7 +473,7 @@ public class PlaygroundView extends JPanel {
                         } else {
                             JComponent targetComponentParent = (JComponent) targetComponent.getParent();
                             ((ValueViewContainer) targetComponentParent).drop(PlaygroundView.this, applyView, targetComponent);
-                        }
+                        }*/
                     }
                 }
             }
