@@ -1,23 +1,25 @@
 package paidia;
 
 import javax.swing.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ContainerAdapter;
-import java.awt.event.ContainerEvent;
+import java.awt.*;
+import java.awt.event.*;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class ApplyValue2 extends AbstractValue2 implements Value2Observer {
     private Value2 value;
     private Hashtable<String, Value2> arguments;
+    private Supplier<Value2> argumentProvider;
 
-    public ApplyValue2(Value2 value) {
+    public ApplyValue2(Value2 value, Supplier<Value2> argumentProvider) {
         this.value = value;
         value.addObserver(this);
         arguments = new Hashtable<>();
+        this.argumentProvider= argumentProvider;
     }
 
     public void setArgument(String name, Value2 value) {
@@ -61,37 +63,70 @@ public class ApplyValue2 extends AbstractValue2 implements Value2Observer {
             }
         });
 
-        arguments.entrySet().forEach(x -> {
-            JPanel argument = new JPanel();
+        Runnable addArguments = () -> {
+            value.getParameters().forEach(x -> {
+                JPanel argument = new JPanel();
 
-            argument.addContainerListener(new ContainerAdapter() {
-                ComponentAdapter componentAdapter;
+                ((FlowLayout)argument.getLayout()).setHgap(0);
+                ((FlowLayout)argument.getLayout()).setVgap(0);
 
-                @Override
-                public void componentAdded(ContainerEvent e) {
-                    componentAdapter = new ComponentAdapter() {
-                        @Override
-                        public void componentResized(ComponentEvent e) {
-                            argument.setSize(argument.getPreferredSize());
-                        }
-                    };
+                argument.addContainerListener(new ContainerAdapter() {
+                    ComponentAdapter componentAdapter;
 
-                    e.getChild().addComponentListener(componentAdapter);
-                    argument.setSize(argument.getPreferredSize());
-                }
+                    @Override
+                    public void componentAdded(ContainerEvent e) {
+                        componentAdapter = new ComponentAdapter() {
+                            @Override
+                            public void componentResized(ComponentEvent e) {
+                                argument.setSize(argument.getPreferredSize());
+                            }
+                        };
 
-                @Override
-                public void componentRemoved(ContainerEvent e) {
-                    e.getChild().removeComponentListener(componentAdapter);
-                    argument.setSize(argument.getPreferredSize());
-                }
+                        e.getChild().addComponentListener(componentAdapter);
+                        argument.setSize(argument.getPreferredSize());
+                    }
+
+                    @Override
+                    public void componentRemoved(ContainerEvent e) {
+                        e.getChild().removeComponentListener(componentAdapter);
+                        argument.setSize(argument.getPreferredSize());
+                    }
+                });
+
+                argument.add(new JLabel(x + " = "));
+                Value2 value = arguments.get(x);
+                argument.add(value.toView(playgroundView).getComponent());
+
+                view.add(argument);
             });
+        };
 
-            argument.add(new JLabel(x.getKey() + " = "));
-            argument.add(x.getValue().toView(playgroundView).getComponent());
+        view.addHierarchyListener(new HierarchyListener() {
+            Value2Observer observer = () -> {
+                view.removeAll();
+                addArguments.run();
 
-            view.add(argument);
+                view.revalidate();
+                view.repaint();
+            };
+
+            boolean lastDisplayable;
+
+            @Override
+            public void hierarchyChanged(HierarchyEvent e) {
+                if(e.getChanged() == view && view.isDisplayable() != lastDisplayable) {
+                    if(!lastDisplayable) {
+                        addObserver(observer);
+                    } else {
+                        removeObserver(observer);
+                    }
+
+                    lastDisplayable = view.isDisplayable();
+                }
+            }
         });
+
+        addArguments.run();
 
         return new ViewBinding2() {
             @Override
@@ -123,7 +158,10 @@ public class ApplyValue2 extends AbstractValue2 implements Value2Observer {
 
     @Override
     public void updated() {
-        // Did parameters change?
+        List<String> parameters = value.getParameters();
+
+        parameters.stream().filter(x -> !arguments.containsKey(x)).forEach(x -> setArgument(x, argumentProvider.get()));
+        arguments.keySet().stream().filter(x -> !parameters.contains(x)).forEach(x -> setArgument(x, null));
 
         sendUpdated();
     }

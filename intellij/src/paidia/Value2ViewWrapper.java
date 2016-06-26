@@ -1,6 +1,7 @@
 package paidia;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ContainerAdapter;
@@ -15,6 +16,9 @@ public class Value2ViewWrapper extends JPanel {
         this.value2Holder = value2Holder;
         //this.value = value;
         this.view = view;
+
+        ((FlowLayout)getLayout()).setHgap(0);
+        ((FlowLayout)getLayout()).setVgap(0);
 
         addContainerListener(new ContainerAdapter() {
             ComponentAdapter componentAdapter;

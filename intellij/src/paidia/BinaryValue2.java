@@ -1,6 +1,7 @@
 package paidia;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,9 @@ public class BinaryValue2 extends AbstractValue2 implements Value2Observer {
     public ViewBinding2 toView(PlaygroundView playgroundView) {
         JPanel view = new JPanel();
 
+        ((FlowLayout)view.getLayout()).setHgap(0);
+        ((FlowLayout)view.getLayout()).setVgap(0);
+
         view.addContainerListener(new ContainerAdapter() {
             ComponentAdapter componentAdapter;
 
@@ -52,7 +56,7 @@ public class BinaryValue2 extends AbstractValue2 implements Value2Observer {
         });
 
         view.add(lhs.toView(playgroundView).getComponent());
-        view.add(new JLabel(operator.getRaw()));
+        view.add(new JLabel(" " + operator.getRaw() + " "));
         view.add(rhs.toView(playgroundView).getComponent());
 
         return new ViewBinding2() {

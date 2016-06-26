@@ -24,14 +24,18 @@ public class ReductionValue2 extends AbstractValue2 implements Value2Observer {
             Value2Observer observer = () ->
                 label.setText(reduction.getText());
 
+            boolean lastDisplayable;
+
             @Override
             public void hierarchyChanged(HierarchyEvent e) {
-                if (e.getChanged() == label && (e.getChangeFlags() & HierarchyEvent.PARENT_CHANGED) != 0) {
-                    if(e.getChangedParent() != null) {
+                if(e.getChanged() == label && label.isDisplayable() != lastDisplayable) {
+                    if(!lastDisplayable) {
                         addObserver(observer);
                     } else {
                         removeObserver(observer);
                     }
+
+                    lastDisplayable = label.isDisplayable();
                 }
             }
         });

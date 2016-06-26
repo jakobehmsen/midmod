@@ -449,7 +449,7 @@ public class PlaygroundView extends JPanel {
                     JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
                     Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
                     if(targetComponent != valueView) {
-                        ApplyValue2 applyValue = new ApplyValue2(((Value2ViewWrapper)functionView).getValueHolder());
+                        ApplyValue2 applyValue = new ApplyValue2(((Value2ViewWrapper)functionView).getValueHolder(), () -> new Value2Holder(new AtomValue2("0", "0", new BigDecimal(0))));
                         ((Value2ViewWrapper)functionView).getValueHolder().getParameters().forEach(x ->
                             applyValue.setArgument(x, new Value2Holder(new AtomValue2("0", "0", new BigDecimal(0)))));
 
