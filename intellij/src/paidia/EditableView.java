@@ -92,6 +92,10 @@ public class EditableView {
         editor.cancelEdit();
     }
 
+    public void commitEdit() {
+        editor.endEdit(editorComponent.getText());
+    }
+
     //private ArrayList<Consumer<ValueView>> listeners = new ArrayList<>();
 
     /*public void addChangeListener(Consumer<ValueView> listener) {

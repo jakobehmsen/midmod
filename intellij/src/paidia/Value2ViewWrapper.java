@@ -63,6 +63,8 @@ public class Value2ViewWrapper extends JPanel {
             public void beginEdit(JComponent editorComponent) {
                 this.editorComponent = editorComponent;
 
+                editorComponent.setSize(view.getPreferredSize());
+
                 remove(view);
                 add(editorComponent);
 
