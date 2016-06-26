@@ -13,6 +13,7 @@ import java.math.MathContext;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -454,7 +455,7 @@ public class ComponentParser {
 
 
 
-    public static Value2 parseValue(String text) {
+    public static Value2 parseValue(String text, Function<Value2, Value2> valueProvider) {
         CharStream charStream = new ANTLRInputStream(text);
         PaidiaLexer lexer = new PaidiaLexer(charStream);
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
@@ -462,16 +463,16 @@ public class ComponentParser {
 
         PaidiaParser.BlockContext block = parser.block();
 
-        /*if(block.selector() != null) {
+        if(block.selector() != null) {
             if(block.selector().binaryOperator() != null) {
                 String operator = block.selector().binaryOperator().getText();
                 TextContext textOperator = getBinaryTextOperator(operator);
-                Function<ValueView[], ValueView> reducer = getBinaryReducer(operator);
-                return new BinaryView(new Text(operator, operator), textOperator, playgroundView.createDefaultValueView(), playgroundView.createDefaultValueView(), reducer);
+                Function<Value2[], Value2> reducer = getBinaryReducer2(operator);
+                return new BinaryValue2(new Text(operator, operator), textOperator, valueProvider.apply(new AtomValue2("0", "0", new BigDecimal(0))), valueProvider.apply(new AtomValue2("0", "0", new BigDecimal(0))), reducer);
             } else if(block.selector().KW_IF() != null) {
-                return new IfView(new AtomView("true", new Boolean(true)), (ValueView) playgroundView.createDefaultValueView(), (ValueView) playgroundView.createDefaultValueView());
+                return new IfValue2(valueProvider.apply(new AtomValue2("true", "true", new Boolean(true))), valueProvider.apply(new AtomValue2("0", "0", new BigDecimal(0))), valueProvider.apply(new AtomValue2("0", "0", new BigDecimal(0))));
             }
-        }*/
+        }
 
         return parseValueBlockParts(block.blockPart());
     }

@@ -29,6 +29,8 @@ public class BinaryValue2 extends AbstractValue2 implements Value2Observer {
     public ViewBinding2 toView(PlaygroundView playgroundView) {
         JPanel view = new JPanel();
 
+        view.setAlignmentX(Component.LEFT_ALIGNMENT);
+
         ((FlowLayout)view.getLayout()).setHgap(0);
         ((FlowLayout)view.getLayout()).setVgap(0);
 

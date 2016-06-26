@@ -40,6 +40,8 @@ public class ApplyValue2 extends AbstractValue2 implements Value2Observer {
     public ViewBinding2 toView(PlaygroundView playgroundView) {
         JPanel view = new JPanel();
 
+        view.setAlignmentX(Component.LEFT_ALIGNMENT);
+
         view.addContainerListener(new ContainerAdapter() {
             ComponentAdapter componentAdapter;
 
@@ -101,29 +103,12 @@ public class ApplyValue2 extends AbstractValue2 implements Value2Observer {
             });
         };
 
-        view.addHierarchyListener(new HierarchyListener() {
-            Value2Observer observer = () -> {
-                view.removeAll();
-                addArguments.run();
+        ComponentUtil.addObserverCleanupLogic(this, view, () -> {
+            view.removeAll();
+            addArguments.run();
 
-                view.revalidate();
-                view.repaint();
-            };
-
-            boolean lastDisplayable;
-
-            @Override
-            public void hierarchyChanged(HierarchyEvent e) {
-                if(e.getChanged() == view && view.isDisplayable() != lastDisplayable) {
-                    if(!lastDisplayable) {
-                        addObserver(observer);
-                    } else {
-                        removeObserver(observer);
-                    }
-
-                    lastDisplayable = view.isDisplayable();
-                }
-            }
+            view.revalidate();
+            view.repaint();
         });
 
         addArguments.run();

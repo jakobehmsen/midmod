@@ -11,7 +11,7 @@ public abstract class ParsingEditor implements Editor {
 
     @Override
     public void endEdit(String text) {
-        Value2 parsedValue = ComponentParser.parseValue(text);
+        Value2 parsedValue = ComponentParser.parseValue(text, value -> new Value2Holder(value));
         //JComponent parsedComponent = ComponentParser.parseComponent(text, playgroundView);
         endEdit(parsedValue);
     }

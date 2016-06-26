@@ -20,6 +20,9 @@ public class Value2ViewWrapper extends JPanel {
         ((FlowLayout)getLayout()).setHgap(0);
         ((FlowLayout)getLayout()).setVgap(0);
 
+        setAlignmentX(Component.LEFT_ALIGNMENT);
+        setAlignmentY(Component.TOP_ALIGNMENT);
+
         addContainerListener(new ContainerAdapter() {
             ComponentAdapter componentAdapter;
 

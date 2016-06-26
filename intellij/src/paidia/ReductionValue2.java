@@ -20,25 +20,8 @@ public class ReductionValue2 extends AbstractValue2 implements Value2Observer {
     public ViewBinding2 toView(PlaygroundView playgroundView) {
         JLabel label = new JLabel(reduction.getText());
 
-        label.addHierarchyListener(new HierarchyListener() {
-            Value2Observer observer = () ->
-                label.setText(reduction.getText());
-
-            boolean lastDisplayable;
-
-            @Override
-            public void hierarchyChanged(HierarchyEvent e) {
-                if(e.getChanged() == label && label.isDisplayable() != lastDisplayable) {
-                    if(!lastDisplayable) {
-                        addObserver(observer);
-                    } else {
-                        removeObserver(observer);
-                    }
-
-                    lastDisplayable = label.isDisplayable();
-                }
-            }
-        });
+        ComponentUtil.addObserverCleanupLogic(this, label, () ->
+            label.setText(reduction.getText()));
 
         return new ViewBinding2() {
             @Override
