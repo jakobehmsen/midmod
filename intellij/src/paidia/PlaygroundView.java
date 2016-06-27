@@ -193,7 +193,6 @@ public class PlaygroundView extends JPanel {
             public void endTool(JComponent component) {
                 if(currentEditableView != null) {
                     currentEditableView.commitEdit();
-                    currentEditableView = null;
                     //currentEditableView.cancelEdit();
                 }
             }
@@ -646,9 +645,10 @@ public class PlaygroundView extends JPanel {
 
             @Override
             public void beginEdit(JComponent editorComponent) {
-                if(currentEditableView != null)
+                if(currentEditableView != null) {
                     currentEditableView.commitEdit();
                     //currentEditableView.cancelEdit();
+                }
 
                 editor.beginEdit(editorComponent);
 

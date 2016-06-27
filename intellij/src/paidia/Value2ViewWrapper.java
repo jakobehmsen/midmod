@@ -9,19 +9,14 @@ import java.awt.event.ContainerEvent;
 
 public class Value2ViewWrapper extends JPanel {
     private Value2Holder value2Holder;
-    //private Value2 value;
     private JComponent view;
 
     public Value2ViewWrapper(Value2Holder value2Holder, JComponent view) {
         this.value2Holder = value2Holder;
-        //this.value = value;
         this.view = view;
 
         ((FlowLayout)getLayout()).setHgap(0);
         ((FlowLayout)getLayout()).setVgap(0);
-
-        setAlignmentX(Component.LEFT_ALIGNMENT);
-        setAlignmentY(Component.TOP_ALIGNMENT);
 
         addContainerListener(new ContainerAdapter() {
             ComponentAdapter componentAdapter;
@@ -95,13 +90,11 @@ public class Value2ViewWrapper extends JPanel {
                 ViewBinding2 viewBinding = parsedValue.toView(playgroundView);
 
                 JComponent scopeView = viewBinding.getComponent();
-                //JComponent valueViewWrapper = new Value2ViewWrapper(parsedValue, scopeView);
 
-                //ScopeView scopeView = new ScopeView((ValueView)parsedComponent);
                 scopeView.setLocation(editorComponent.getLocation());
 
                 value2Holder.setValue(parsedValue);
-                //value = parsedValue;
+
                 add(scopeView);
                 view = scopeView;
 

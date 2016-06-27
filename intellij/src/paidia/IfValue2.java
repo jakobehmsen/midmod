@@ -54,7 +54,10 @@ public class IfValue2 extends AbstractValue2 implements Value2Observer {
     }
 
     private JComponent createLine(String keyword, JComponent child) {
-        Box b = Box.createHorizontalBox();
+        JPanel b = new JPanel();
+        b.setLayout(new BoxLayout(b, BoxLayout.X_AXIS));
+
+        b.setAlignmentY(Component.TOP_ALIGNMENT);
 
         b.addContainerListener(new ContainerAdapter() {
             ComponentAdapter componentAdapter;
@@ -65,22 +68,38 @@ public class IfValue2 extends AbstractValue2 implements Value2Observer {
                     @Override
                     public void componentResized(ComponentEvent e) {
                         b.setSize(b.getPreferredSize());
+
+                        b.repaint();
+                        b.revalidate();
                     }
                 };
 
                 e.getChild().addComponentListener(componentAdapter);
+                b.setSize(b.getPreferredSize());
+
+                b.repaint();
+                b.revalidate();
             }
 
             @Override
             public void componentRemoved(ContainerEvent e) {
                 e.getChild().removeComponentListener(componentAdapter);
+                b.setSize(b.getPreferredSize());
+
+                b.repaint();
+                b.revalidate();
             }
         });
 
         JComponent keywordComponent = createKeywordComponent(keyword);
 
+        keywordComponent.setAlignmentY(Component.TOP_ALIGNMENT);
+
         b.add(keywordComponent);
         b.add(Box.createHorizontalStrut(5));
+
+        child.setAlignmentY(Component.TOP_ALIGNMENT);
+
         b.add(child);
         b.add(Box.createHorizontalGlue());
 
