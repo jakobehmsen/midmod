@@ -125,7 +125,8 @@ public class ClassValue extends AbstractValue2 implements Value2Observer {
                 ViewBinding2 viewBinding = parsedValue.toView(playgroundView);
 
                 JComponent scopeView = viewBinding.getComponent();
-                JComponent valueViewWrapper = new Value2Holder(parsedValue).toView(playgroundView).getComponent();// new Value2ViewWrapper(parsedValue, scopeView);
+                Value2Holder value2Holder = new Value2Holder(parsedValue);
+                JComponent valueViewWrapper = value2Holder.toView(playgroundView).getComponent();// new Value2ViewWrapper(parsedValue, scopeView);
 
                 valueViewWrapper.setLocation(editorComponent.getLocation());
 
@@ -134,7 +135,7 @@ public class ClassValue extends AbstractValue2 implements Value2Observer {
                 value2ViewWrapper.repaint();
                 value2ViewWrapper.revalidate();
 
-                addValue(location, parsedValue);
+                addValue(location, value2Holder);
             }
 
             @Override
@@ -186,7 +187,7 @@ public class ClassValue extends AbstractValue2 implements Value2Observer {
 
         ClassValue classValue = new ClassValue();
 
-        values.forEach(x -> classValue.addValue(x.location, x.value.reduce(environment)));
+        values.forEach(x -> classValue.addValue(x.location, new ReductionValue2(x.value)));
 
         return classValue;
     }
