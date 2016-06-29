@@ -603,6 +603,11 @@ public class ComponentParser {
                 //return new IdentifierView(name);
                 return new IdentifierValue2(name);
             }
+
+            @Override
+            public Value2 visitClassLiteral(PaidiaParser.ClassLiteralContext ctx) {
+                return new ClassValue();
+            }
         });
     }
 }

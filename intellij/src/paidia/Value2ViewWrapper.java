@@ -10,6 +10,7 @@ import java.awt.event.ContainerEvent;
 public class Value2ViewWrapper extends JPanel {
     private Value2Holder value2Holder;
     private JComponent view;
+    private Value2 value;
 
     public Value2ViewWrapper(Value2Holder value2Holder, JComponent view) {
         this.value2Holder = value2Holder;
@@ -48,72 +49,29 @@ public class Value2ViewWrapper extends JPanel {
         return value2Holder.getValue();
     }
 
-    public void beginEdit(PlaygroundView playgroundView) {
-        playgroundView.createEditableView(new ParsingEditor(playgroundView) {
-            JComponent editorComponent;
+    public void beginEdit(PlaygroundView playgroundView, Point location) {
+        Editor editor = getValue().createEditor(playgroundView, location, this);
 
-            @Override
-            public String getText() {
-                return getValue().getText();
-            }
-
-            @Override
-            public void beginEdit(JComponent editorComponent) {
-                this.editorComponent = editorComponent;
-
-                editorComponent.setSize(view.getPreferredSize());
-
-                remove(view);
-                add(editorComponent);
-
-                repaint();
-                revalidate();
-            }
-
-            @Override
-            public void endEdit(JComponent parsedComponent) {
-                remove(editorComponent);
-
-                ScopeView scopeView = new ScopeView((ValueView)parsedComponent);
-                scopeView.setLocation(editorComponent.getLocation());
-
-                add(scopeView);
-
-                repaint();
-                revalidate();
-            }
-
-            @Override
-            protected void endEdit(Value2 parsedValue) {
-                remove(editorComponent);
-
-                ViewBinding2 viewBinding = parsedValue.toView(playgroundView);
-
-                JComponent scopeView = viewBinding.getComponent();
-
-                scopeView.setLocation(editorComponent.getLocation());
-
-                value2Holder.setValue(parsedValue);
-
-                add(scopeView);
-                view = scopeView;
-
-                repaint();
-                revalidate();
-            }
-
-            @Override
-            public void cancelEdit() {
-                remove(editorComponent);
-                add(view);
-
-                repaint();
-                revalidate();
-            }
-        }).beginEdit();
+        playgroundView.createEditableView(editor).beginEdit();
     }
 
-    public Value2 getValueHolder() {
+    public Value2Holder getValueHolder() {
         return value2Holder;
+    }
+
+    public JComponent getView() {
+        return view;
+    }
+
+    public void setValue(Value2 value) {
+        value2Holder.setValue(value);
+    }
+
+    public void setView(JComponent view) {
+        this.view = view;
+    }
+
+    public void drop(PlaygroundView playgroundView, Value2ViewWrapper droppedComponent, Point location) {
+        getValue().drop(playgroundView, droppedComponent, location, this);
     }
 }

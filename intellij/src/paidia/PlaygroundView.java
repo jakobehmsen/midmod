@@ -1,13 +1,11 @@
 package paidia;
 
 import javax.swing.*;
-import javax.swing.plaf.basic.BasicComboPopup;
 import java.awt.*;
 import java.awt.event.*;
 import java.math.BigDecimal;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class PlaygroundView extends JPanel {
@@ -50,6 +48,7 @@ public class PlaygroundView extends JPanel {
         mouseToolSelector.add(createMouseToolSelector("Write", createWriteMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Move", createMoveMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Reduce", createReduceMouseTool()));
+        mouseToolSelector.add(createMouseToolSelector("Instantiate", createInstantiateMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Delete", createDeleteMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Name", createNameMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Apply", createApplyMouseTool()));
@@ -176,7 +175,7 @@ public class PlaygroundView extends JPanel {
 
                         editableView.beginEdit();
                     } else {
-                        ((Value2ViewWrapper)e.getComponent()).beginEdit(PlaygroundView.this);
+                        ((Value2ViewWrapper)e.getComponent()).beginEdit(PlaygroundView.this, e.getPoint());
                         //ValueViewContainer container = (ValueViewContainer) Stream.iterate(e.getComponent().getParent(), c -> (JComponent)c.getParent()).filter(x -> x instanceof ValueViewContainer).findFirst().get();
                         //editableView = container.getEditorFor((JComponent) e.getComponent());
                     }
@@ -301,34 +300,97 @@ public class PlaygroundView extends JPanel {
                     repaint(targetValueView.getBounds());
                     revalidate();
 
-                    Point pointInContentPane = SwingUtilities.convertPoint(targetValueView, e.getPoint(), PlaygroundView.this);
+                    Point pointInContentPane = SwingUtilities.convertPoint(e.getComponent(), e.getPoint(), PlaygroundView.this);
                     JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
                     Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
                     if(targetComponent != targetValueView) {
                         ReductionValue2 reduction = new ReductionValue2(((Value2ViewWrapper)e.getComponent()).getValueHolder());
-                        JComponent reductionView = new Value2Holder(reduction).toView(PlaygroundView.this).getComponent();
+                        Value2ViewWrapper reductionView = (Value2ViewWrapper) new Value2Holder(reduction).toView(PlaygroundView.this).getComponent();
 
                         if(targetComponent == PlaygroundView.this) {
                             reductionView.setLocation(pointInTargetComponent);
                             add(reductionView);
                         } else {
                             // Find nearest Value2ViewWrapper
-                            JComponent targetComponentParent = (JComponent) targetComponent.getParent();
+                            Value2ViewWrapper targetComponentParent = (Value2ViewWrapper) Stream.iterate(targetComponent, c -> (JComponent)c.getParent()).filter(x -> x instanceof Value2ViewWrapper).findFirst().get();
                             // TODO: Should be ValueViewContainer instead of ValueView
-                            ((ValueViewContainer) targetComponentParent).drop(PlaygroundView.this, reductionView, targetComponent);
+                            targetComponentParent.drop(PlaygroundView.this, reductionView, pointInTargetComponent);
                         }
+                    }
+                }
+            }
 
-                        /*ReductionView reduction = new ReductionView(targetValueView);
+            @Override
+            public void startTool(JComponent component) {
+                component.setToolTipText("Press and drag an object to reduce it as an expression.");
+            }
+        };
+    }
 
-                        if(targetComponent == PlaygroundView.this) {
-                            ScopeView scopeView = new ScopeView(reduction);
-                            scopeView.setLocation(pointInTargetComponent);
-                            add(scopeView);
-                        } else {
-                            JComponent targetComponentParent = (JComponent) targetComponent.getParent();
-                            // TODO: Should be ValueViewContainer instead of ValueView
-                            ((ValueViewContainer) targetComponentParent).drop(PlaygroundView.this, reduction, targetComponent);
-                        }*/
+    private MouseTool createInstantiateMouseTool() {
+        return new MouseTool() {
+            private JComponent selection;
+            private boolean linking;
+            private JComponent targetValueView;
+            private Color foreground;
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                JComponent valueView = (JComponent) e.getComponent();
+                if(e.getButton() == MouseEvent.BUTTON1) {
+                    linking = true;
+
+                    targetValueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
+
+                    foreground = targetValueView.getForeground();
+                    targetValueView.setForeground(Color.BLUE);
+
+                    int cursorType = Cursor.HAND_CURSOR;
+                    Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
+                    glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                    glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+                }
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if(linking) {
+                    PlaygroundView.this.setToolTipText("");
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if(e.getButton() == MouseEvent.BUTTON1 && linking) {
+                    linking = false;
+                    int cursorType = Cursor.DEFAULT_CURSOR;
+                    Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
+                    glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                    glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+
+                    targetValueView.setForeground(foreground);
+
+                    repaint(targetValueView.getBounds());
+                    revalidate();
+
+                    Point pointInContentPane = SwingUtilities.convertPoint(e.getComponent(), e.getPoint(), PlaygroundView.this);
+                    JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
+                    Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
+                    if(targetComponent != targetValueView) {
+                        if(((Value2ViewWrapper)e.getComponent()).getValue() instanceof ClassValue) {
+                            Value2 instance = ((ClassValue)((Value2ViewWrapper)e.getComponent()).getValue()).instantiate();
+                            Value2ViewWrapper reductionView = (Value2ViewWrapper) new Value2Holder(instance).toView(PlaygroundView.this).getComponent();
+
+                            if(targetComponent == PlaygroundView.this) {
+                                reductionView.setLocation(pointInTargetComponent);
+                                add(reductionView);
+                            } else {
+                                // Find nearest Value2ViewWrapper
+                                Value2ViewWrapper targetComponentParent = (Value2ViewWrapper) Stream.iterate(targetComponent, c -> (JComponent)c.getParent()).filter(x -> x instanceof Value2ViewWrapper).findFirst().get();
+                                // TODO: Should be ValueViewContainer instead of ValueView
+                                targetComponentParent.drop(PlaygroundView.this, reductionView, pointInTargetComponent);
+                            }
+                        }
                     }
                 }
             }
