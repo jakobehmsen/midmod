@@ -9,7 +9,6 @@ import java.awt.event.ContainerEvent;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class ClassValue extends AbstractValue2 implements Value2Observer {
     private static class PositionedValue {
@@ -22,22 +21,37 @@ public class ClassValue extends AbstractValue2 implements Value2Observer {
         }
     }
 
-    private ArrayList<PositionedValue> values = new ArrayList<>();
+    private ArrayList<PositionedValue> selectorValues = new ArrayList<>();
+    private ArrayList<PositionedValue> behaviorValues = new ArrayList<>();
 
-    public void addValue(Point location, Value2 value) {
-        values.add(new PositionedValue(location, value));
+    public void addSelectorValue(Point location, Value2 value) {
+        selectorValues.add(new PositionedValue(location, value));
+    }
+
+    public void addBehaviorValue(Point location, Value2 value) {
+        behaviorValues.add(new PositionedValue(location, value));
     }
 
     @Override
     public ViewBinding2 toView(PlaygroundView playgroundView) {
-        JPanel view = new JPanel(null);
+        JPanel view = new JPanel();
+        view.setLayout(new BoxLayout(view, BoxLayout.Y_AXIS));
+
+        JPanel selectorView = new JPanel(null);
+        selectorView.setPreferredSize(new Dimension(200, 75));
+        selectorView.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.BLACK));
+
+        JPanel behaviorView = new JPanel(null);
+        behaviorView.setPreferredSize(new Dimension(200, 75));
+
+        view.add(selectorView);
+        view.add(behaviorView);
 
         view.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
-        view.setPreferredSize(new Dimension(200, 150));
         view.setSize(view.getPreferredSize());
 
-        values.forEach(x -> {
+        selectorValues.forEach(x -> {
             JComponent component = new Value2Holder(x.value).toView(playgroundView).getComponent();
             component.setLocation(x.location);
             view.add(component);
@@ -79,9 +93,22 @@ public class ClassValue extends AbstractValue2 implements Value2Observer {
         };
     }
 
+    private int parameterId;
+
     @Override
     public Editor createEditor(PlaygroundView playgroundView, Point location, Value2ViewWrapper value2ViewWrapper) {
-        return new ParsingEditor(playgroundView) {
+        JComponent targetComponent = (JComponent) value2ViewWrapper.getView().getComponentAt(location.x, location.y);
+        Point targetLocation = SwingUtilities.convertPoint(value2ViewWrapper.getView(), location, targetComponent);
+        int componentIndex = value2ViewWrapper.getView().getComponentZOrder(targetComponent);
+
+        ParseContext parseContext = new ParseContext() {
+            @Override
+            public ParameterValue newParameter() {
+                return new ParameterValue(parameterId++);
+            }
+        };
+
+        return new ParsingEditor(playgroundView, parseContext) {
             JComponent editorComponent;
 
             @Override
@@ -93,74 +120,89 @@ public class ClassValue extends AbstractValue2 implements Value2Observer {
             public void beginEdit(JComponent editorComponent) {
                 this.editorComponent = editorComponent;
 
-                editorComponent.setLocation(location);
+                editorComponent.setLocation(targetLocation);
                 editorComponent.setSize(200, 15);
                 //editorComponent.setPreferredSize(editorComponent.getSize());
                 //editorComponent.setSize(value2ViewWrapper.getView().getPreferredSize());
 
                 //value2ViewWrapper.remove(value2ViewWrapper.getView());
-                value2ViewWrapper.getView().add(editorComponent);
+                targetComponent.add(editorComponent);
 
-                value2ViewWrapper.repaint();
-                value2ViewWrapper.revalidate();
+                targetComponent.repaint();
+                targetComponent.revalidate();
             }
 
             @Override
             public void endEdit(JComponent parsedComponent) {
-                value2ViewWrapper.getView().remove(editorComponent);
+                targetComponent.remove(editorComponent);
 
                 ScopeView scopeView = new ScopeView((ValueView)parsedComponent);
                 scopeView.setLocation(editorComponent.getLocation());
 
-                value2ViewWrapper.getView().add(scopeView);
+                targetComponent.add(scopeView);
 
-                value2ViewWrapper.repaint();
-                value2ViewWrapper.revalidate();
+                targetComponent.repaint();
+                targetComponent.revalidate();
             }
 
             @Override
             protected void endEdit(Value2 parsedValue) {
-                value2ViewWrapper.getView().remove(editorComponent);
+                targetComponent.remove(editorComponent);
 
-                ViewBinding2 viewBinding = parsedValue.toView(playgroundView);
-
-                JComponent scopeView = viewBinding.getComponent();
                 Value2Holder value2Holder = new Value2Holder(parsedValue);
                 JComponent valueViewWrapper = value2Holder.toView(playgroundView).getComponent();// new Value2ViewWrapper(parsedValue, scopeView);
 
                 valueViewWrapper.setLocation(editorComponent.getLocation());
 
-                value2ViewWrapper.getView().add(valueViewWrapper);
+                targetComponent.add(valueViewWrapper);
 
-                value2ViewWrapper.repaint();
-                value2ViewWrapper.revalidate();
+                targetComponent.repaint();
+                targetComponent.revalidate();
 
-                addValue(location, value2Holder);
+                switch(componentIndex) {
+                    case 0:
+                        addSelectorValue(targetLocation, value2Holder);
+                        break;
+                    case 1:
+                        addBehaviorValue(targetLocation, value2Holder);
+                        break;
+                }
             }
 
             @Override
             public void cancelEdit() {
-                value2ViewWrapper.getView().remove(editorComponent);
+                targetComponent.remove(editorComponent);
                 //value2ViewWrapper.add(value2ViewWrapper.getView());
 
-                value2ViewWrapper.repaint();
-                value2ViewWrapper.revalidate();
+                targetComponent.repaint();
+                targetComponent.revalidate();
             }
         };
     }
 
     @Override
     public void drop(PlaygroundView playgroundView, Value2ViewWrapper droppedComponent, Point location, Value2ViewWrapper value2ViewWrapper) {
+        JComponent targetComponent = (JComponent) value2ViewWrapper.getView().getComponentAt(location.x, location.y);
+        Point targetLocation = SwingUtilities.convertPoint(value2ViewWrapper.getView(), location, targetComponent);
+        int componentIndex = value2ViewWrapper.getView().getComponentZOrder(targetComponent);
+
         droppedComponent.getValue().addObserver(this);
-        droppedComponent.setLocation(location);
-        value2ViewWrapper.getView().add(droppedComponent);
+        droppedComponent.setLocation(targetLocation);
+        targetComponent.add(droppedComponent);
 
-        value2ViewWrapper.getView().revalidate();
-        value2ViewWrapper.getView().repaint();
+        targetComponent.revalidate();
+        targetComponent.repaint();
 
-        ((ClassValue)value2ViewWrapper.getValue()).addValue(location, droppedComponent.getValue());
+        ((ClassValue)value2ViewWrapper.getValue()).addSelectorValue(location, droppedComponent.getValue());
 
-        addValue(location, droppedComponent.getValue());
+        switch(componentIndex) {
+            case 0:
+                ((ClassValue)value2ViewWrapper.getValue()).addSelectorValue(location, droppedComponent.getValue());
+                break;
+            case 1:
+                ((ClassValue)value2ViewWrapper.getValue()).addBehaviorValue(location, droppedComponent.getValue());
+                break;
+        }
     }
 
     @Override
@@ -177,7 +219,7 @@ public class ClassValue extends AbstractValue2 implements Value2Observer {
     public Value2 reduce(Map<String, Value2> environment) {
         ClassValue classValue = new ClassValue();
 
-        values.forEach(x -> classValue.addValue(x.location, x.value.reduce(environment)));
+        selectorValues.forEach(x -> classValue.addSelectorValue(x.location, x.value.reduce(environment)));
 
         return classValue;
     }
@@ -187,7 +229,7 @@ public class ClassValue extends AbstractValue2 implements Value2Observer {
 
         ClassValue classValue = new ClassValue();
 
-        values.forEach(x -> classValue.addValue(x.location, new ReductionValue2(x.value)));
+        selectorValues.forEach(x -> classValue.addSelectorValue(x.location, new ReductionValue2(x.value)));
 
         return classValue;
     }

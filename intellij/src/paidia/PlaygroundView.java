@@ -302,8 +302,9 @@ public class PlaygroundView extends JPanel {
 
                     Point pointInContentPane = SwingUtilities.convertPoint(e.getComponent(), e.getPoint(), PlaygroundView.this);
                     JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
+                    targetComponent = Stream.iterate(targetComponent, c -> (JComponent)c.getParent()).filter(x -> x instanceof Value2ViewWrapper).findFirst().get();
                     Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
-                    if(targetComponent != targetValueView) {
+                    //if(targetComponent != targetValueView) {
                         ReductionValue2 reduction = new ReductionValue2(((Value2ViewWrapper)e.getComponent()).getValueHolder());
                         Value2ViewWrapper reductionView = (Value2ViewWrapper) new Value2Holder(reduction).toView(PlaygroundView.this).getComponent();
 
@@ -316,7 +317,7 @@ public class PlaygroundView extends JPanel {
                             // TODO: Should be ValueViewContainer instead of ValueView
                             targetComponentParent.drop(PlaygroundView.this, reductionView, pointInTargetComponent);
                         }
-                    }
+                    //}
                 }
             }
 

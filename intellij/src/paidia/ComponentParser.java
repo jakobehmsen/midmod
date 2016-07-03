@@ -13,7 +13,6 @@ import java.math.MathContext;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -455,7 +454,7 @@ public class ComponentParser {
 
 
 
-    public static Value2 parseValue(String text, Function<Value2, Value2> valueProvider) {
+    public static Value2 parseValue(String text, Function<Value2, Value2> valueProvider, ParseContext parseContext) {
         CharStream charStream = new ANTLRInputStream(text);
         PaidiaLexer lexer = new PaidiaLexer(charStream);
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
@@ -474,14 +473,14 @@ public class ComponentParser {
             }
         }
 
-        return parseValueBlockParts(block.blockPart());
+        return parseValueBlockParts(block.blockPart(), parseContext);
     }
 
-    private static Value2 parseValueBlockParts(List<PaidiaParser.BlockPartContext> blockPartContexts) {
+    private static Value2 parseValueBlockParts(List<PaidiaParser.BlockPartContext> blockPartContexts, ParseContext parseContext) {
         if (blockPartContexts.size() == 0)
             return null;
         else if (blockPartContexts.size() == 1) {
-            return parseValueBlockPart(blockPartContexts.get(0));
+            return parseValueBlockPart(blockPartContexts.get(0), parseContext);
         } else {
             // Multiple parts.
 
@@ -492,12 +491,12 @@ public class ComponentParser {
         }
     }
 
-    private static Value2 parseValueBlockPart(ParserRuleContext blockPartContext) {
+    private static Value2 parseValueBlockPart(ParserRuleContext blockPartContext, ParseContext parseContext) {
         return blockPartContext.accept(new PaidiaBaseVisitor<Value2>() {
             @Override
             public Value2 visitAssignment(PaidiaParser.AssignmentContext ctx) {
                 String id = ctx.ID().getText();
-                Value2 value = parseValueBlockPart(ctx.expression());
+                Value2 value = parseValueBlockPart(ctx.expression(), parseContext);
 
                 //return new AssignmentView(id, value);
                 return new AssignmentValue2(id, value);
@@ -505,16 +504,16 @@ public class ComponentParser {
 
             @Override
             public Value2 visitIfExpression(PaidiaParser.IfExpressionContext ctx) {
-                Value2 condition = parseValueBlockPart(ctx.condition);
-                Value2 trueExpression = parseValueBlockPart(ctx.trueExpression);
-                Value2 falseExpression = parseValueBlockPart(ctx.falseExpression);
+                Value2 condition = parseValueBlockPart(ctx.condition, parseContext);
+                Value2 trueExpression = parseValueBlockPart(ctx.trueExpression, parseContext);
+                Value2 falseExpression = parseValueBlockPart(ctx.falseExpression, parseContext);
 
                 //return new IfView((ValueView) condition, (ValueView)trueExpression, (ValueView)falseExpression);
                 return new IfValue2(condition, trueExpression, falseExpression);
             }
 
             private <T extends ParserRuleContext> Value2 visitBinaryExpression(ParserRuleContext first, List<T> operands, Function<T, String> operatorGetter, Function<T, ParserRuleContext> operandGetter) {
-                Value2 value = parseValueBlockPart(first);
+                Value2 value = parseValueBlockPart(first, parseContext);
 
                 int start = first.stop.getStopIndex() + 1;
                 for (T addExpressionOpContext : operands) {
@@ -522,7 +521,7 @@ public class ComponentParser {
                     String operator = operatorGetter.apply(addExpressionOpContext);
                     int end = operand.start.getStartIndex() - 1;
                     Value2 lhs = value;
-                    Value2 rhs = parseValueBlockPart(operand);
+                    Value2 rhs = parseValueBlockPart(operand, parseContext);
 
                     TextContext textOperator = getBinaryTextOperator(operator);
                     Function<Value2[], Value2> reducer = getBinaryReducer2(operator);
@@ -572,7 +571,7 @@ public class ComponentParser {
 
             @Override
             public Value2 visitEmbeddedExpression(PaidiaParser.EmbeddedExpressionContext ctx) {
-                return parseValueBlockPart((ParserRuleContext) ctx.getChild(1));
+                return parseValueBlockPart((ParserRuleContext) ctx.getChild(1), parseContext);
             }
 
             @Override
@@ -607,6 +606,11 @@ public class ComponentParser {
             @Override
             public Value2 visitClassLiteral(PaidiaParser.ClassLiteralContext ctx) {
                 return new ClassValue();
+            }
+
+            @Override
+            public Value2 visitParameter(PaidiaParser.ParameterContext ctx) {
+                return parseContext.newParameter();
             }
         });
     }
