@@ -16,6 +16,6 @@ public abstract class AbstractValue2 implements Value2 {
     }
 
     protected void sendUpdated() {
-        observers.forEach(x -> x.updated());
+        new ArrayList<>(observers).forEach(x -> x.updated());
     }
 }

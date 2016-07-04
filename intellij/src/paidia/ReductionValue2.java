@@ -1,6 +1,7 @@
 package paidia;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.*;
 import java.util.Hashtable;
 import java.util.Map;
@@ -42,12 +43,15 @@ public class ReductionValue2 extends AbstractValue2 implements Value2Observer {
             }
         });
 
-        view.add(value.toView(playgroundView).getComponent());
+        ((FlowLayout)view.getLayout()).setHgap(0);
+        ((FlowLayout)view.getLayout()).setVgap(0);
+
+        view.add(reduction.toView(playgroundView).getComponent());
         //JLabel label = new JLabel(reduction.getText());
 
         ComponentUtil.addObserverCleanupLogic(this, view, () -> {
             view.removeAll();
-            view.add(value.toView(playgroundView).getComponent());
+            view.add(reduction.toView(playgroundView).getComponent());
         });
 
         return new ViewBinding2() {

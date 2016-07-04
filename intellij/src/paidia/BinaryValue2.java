@@ -34,6 +34,12 @@ public class BinaryValue2 extends AbstractValue2 implements Value2Observer {
         ((FlowLayout)view.getLayout()).setHgap(0);
         ((FlowLayout)view.getLayout()).setVgap(0);
 
+        ComponentUtil.addObserverCleanupLogic(this, view, () -> {
+            view.setSize(view.getPreferredSize());
+            view.revalidate();
+            view.repaint();
+        });
+
         view.addContainerListener(new ContainerAdapter() {
             ComponentAdapter componentAdapter;
 

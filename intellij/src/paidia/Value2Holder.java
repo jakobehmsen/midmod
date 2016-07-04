@@ -63,4 +63,11 @@ public class Value2Holder extends AbstractValue2 implements Value2Observer {
     public void appendParameters(List<String> parameters) {
         value.appendParameters(parameters);
     }
+
+    @Override
+    public Value2 forApplication() {
+        //return new Value2Holder(value.forApplication());
+
+        return value.forApplication();
+    }
 }

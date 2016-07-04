@@ -302,16 +302,17 @@ public class PlaygroundView extends JPanel {
 
                     Point pointInContentPane = SwingUtilities.convertPoint(e.getComponent(), e.getPoint(), PlaygroundView.this);
                     JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
-                    targetComponent = Stream.iterate(targetComponent, c -> (JComponent)c.getParent()).filter(x -> x instanceof Value2ViewWrapper).findFirst().get();
-                    Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
                     //if(targetComponent != targetValueView) {
                         ReductionValue2 reduction = new ReductionValue2(((Value2ViewWrapper)e.getComponent()).getValueHolder());
                         Value2ViewWrapper reductionView = (Value2ViewWrapper) new Value2Holder(reduction).toView(PlaygroundView.this).getComponent();
 
                         if(targetComponent == PlaygroundView.this) {
+                            Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
                             reductionView.setLocation(pointInTargetComponent);
                             add(reductionView);
                         } else {
+                            targetComponent = Stream.iterate(targetComponent, c -> (JComponent)c.getParent()).filter(x -> x instanceof Value2ViewWrapper).findFirst().get();
+                            Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
                             // Find nearest Value2ViewWrapper
                             Value2ViewWrapper targetComponentParent = (Value2ViewWrapper) Stream.iterate(targetComponent, c -> (JComponent)c.getParent()).filter(x -> x instanceof Value2ViewWrapper).findFirst().get();
                             // TODO: Should be ValueViewContainer instead of ValueView
@@ -513,19 +514,36 @@ public class PlaygroundView extends JPanel {
                     JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
                     Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
                     if(targetComponent != valueView) {
-                        ApplyValue2 applyValue = new ApplyValue2(((Value2ViewWrapper)functionView).getValueHolder(), () -> new Value2Holder(new AtomValue2("0", "0", new BigDecimal(0))));
-                        ((Value2ViewWrapper)functionView).getValueHolder().getParameters().forEach(x ->
-                            applyValue.setArgument(x, new Value2Holder(new AtomValue2("0", "0", new BigDecimal(0)))));
+                        if(!(((Value2ViewWrapper)functionView).getValue() instanceof ClassValue)) {
+                            ApplyValue2 applyValue = new ApplyValue2(((Value2ViewWrapper) functionView).getValueHolder(), () -> new Value2Holder(new AtomValue2("0", "0", new BigDecimal(0))));
+                            ((Value2ViewWrapper) functionView).getValueHolder().getParameters().forEach(x ->
+                                applyValue.setArgument(x, new Value2Holder(new AtomValue2("0", "0", new BigDecimal(0)))));
 
-                        JComponent applyView = new Value2Holder(applyValue).toView(PlaygroundView.this).getComponent();
+                            JComponent applyView = new Value2Holder(applyValue).toView(PlaygroundView.this).getComponent();
 
-                        if(targetComponent == PlaygroundView.this) {
-                            //ScopeView scopeView = new ScopeView(applyView);
-                            applyView.setLocation(pointInTargetComponent);
-                            add(applyView);
+                            if (targetComponent == PlaygroundView.this) {
+                                //ScopeView scopeView = new ScopeView(applyView);
+                                applyView.setLocation(pointInTargetComponent);
+                                add(applyView);
+                            } else {
+                                JComponent targetComponentParent = (JComponent) targetComponent.getParent();
+                                ((ValueViewContainer) targetComponentParent).drop(PlaygroundView.this, applyView, targetComponent);
+                            }
                         } else {
-                            JComponent targetComponentParent = (JComponent) targetComponent.getParent();
-                            ((ValueViewContainer) targetComponentParent).drop(PlaygroundView.this, applyView, targetComponent);
+                            ApplyClassValue2 applyValue = new ApplyClassValue2((ClassValue) ((Value2ViewWrapper) functionView).getValueHolder().getValue(), () -> new Value2Holder(new AtomValue2("0", "0", new BigDecimal(0))));
+                            //((Value2ViewWrapper) functionView).getValueHolder().getParameters().forEach(x ->
+                            //    applyValue.setArgument(x, new Value2Holder(new AtomValue2("0", "0", new BigDecimal(0)))));
+
+                            JComponent applyView = new Value2Holder(applyValue).toView(PlaygroundView.this).getComponent();
+
+                            if (targetComponent == PlaygroundView.this) {
+                                //ScopeView scopeView = new ScopeView(applyView);
+                                applyView.setLocation(pointInTargetComponent);
+                                add(applyView);
+                            } else {
+                                JComponent targetComponentParent = (JComponent) targetComponent.getParent();
+                                ((ValueViewContainer) targetComponentParent).drop(PlaygroundView.this, applyView, targetComponent);
+                            }
                         }
 
                         /*ApplyView applyView = new ApplyView(functionView, ((ValueView)functionView).getIdentifiers().stream().map(x -> createDefaultValueView()).collect(Collectors.toList()));

@@ -9,8 +9,54 @@ import java.awt.event.ContainerEvent;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.List;
 
 public class ClassValue extends AbstractValue2 implements Value2Observer {
+    public List<ParameterValue> getClassParameters() {
+        return parameters;
+    }
+
+    public Value2 getSelectorAsApplication() {
+        return new AbstractValue2() {
+            @Override
+            public ViewBinding2 toView(PlaygroundView playgroundView) {
+                JPanel view = new JPanel(null);
+
+                view.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+
+                view.setPreferredSize(new Dimension(200, 75));
+
+                selectorValues.forEach(x -> {
+                    JComponent selectorPartView = x.value.forApplication().toView(playgroundView).getComponent();
+                    selectorPartView.setLocation(x.location);
+                    view.add(selectorPartView);
+                });
+
+                return new ViewBinding2() {
+                    @Override
+                    public JComponent getComponent() {
+                        return view;
+                    }
+                };
+            }
+
+            @Override
+            public String getText() {
+                return null;
+            }
+
+            @Override
+            public String getSource(TextContext textContext) {
+                return null;
+            }
+
+            @Override
+            public Value2 reduce(Map<String, Value2> environment) {
+                return null;
+            }
+        };
+    }
+
     private static class PositionedValue {
         private Point location;
         private Value2 value;
@@ -94,6 +140,7 @@ public class ClassValue extends AbstractValue2 implements Value2Observer {
     }
 
     private int parameterId;
+    private ArrayList<ParameterValue> parameters = new ArrayList<>();
 
     @Override
     public Editor createEditor(PlaygroundView playgroundView, Point location, Value2ViewWrapper value2ViewWrapper) {
@@ -104,7 +151,11 @@ public class ClassValue extends AbstractValue2 implements Value2Observer {
         ParseContext parseContext = new ParseContext() {
             @Override
             public ParameterValue newParameter() {
-                return new ParameterValue(parameterId++);
+                ParameterValue parameter = new ParameterValue(parameterId++);
+
+                parameters.add(parameter);
+
+                return parameter;
             }
         };
 

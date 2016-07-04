@@ -14,6 +14,11 @@ public class AtomValue2 extends AbstractValue2 {
         this.value = value;
     }
 
+    public AtomValue2(Object value) {
+        this(value.toString(), value.toString(), value);
+    }
+
+
     @Override
     public ViewBinding2 toView(PlaygroundView playgroundView) {
         JLabelValueView2 label = new JLabelValueView2(text);

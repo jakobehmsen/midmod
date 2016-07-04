@@ -94,15 +94,19 @@ public interface Value2 {
     }
 
     default void drop(PlaygroundView playgroundView, Value2ViewWrapper droppedComponent, Point location, Value2ViewWrapper value2ViewWrapper) {
-        value2ViewWrapper.setValue(droppedComponent.getValue());
         value2ViewWrapper.setView(droppedComponent.getView());
         value2ViewWrapper.removeAll();
         value2ViewWrapper.add(droppedComponent.getView());
+        value2ViewWrapper.setValue(droppedComponent.getValue());
         value2ViewWrapper.revalidate();
         value2ViewWrapper.repaint();
 
         /*Value2ViewWrapper targetComponentParent = (Value2ViewWrapper) Stream.iterate(value2ViewWrapper.getParent(), c -> (JComponent)c.getParent()).filter(x -> x instanceof Value2ViewWrapper).findFirst().get();
         location = SwingUtilities.convertPoint(value2ViewWrapper, location, targetComponentParent);
         targetComponentParent.drop(playgroundView, droppedComponent, location);*/
+    }
+
+    default Value2 forApplication() {
+        return this;
     }
 }
