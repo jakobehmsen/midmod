@@ -4,7 +4,7 @@ import javax.swing.*;
 import java.util.List;
 import java.util.Map;
 
-public class Value2Holder extends AbstractValue2 implements Value2Observer {
+public class Value2Holder extends AbstractValue2 implements Value2Observer, ValueHolderInterface {
     private Value2 value;
 
     public Value2Holder(Value2 value) {
@@ -12,6 +12,7 @@ public class Value2Holder extends AbstractValue2 implements Value2Observer {
         this.value.addObserver(this);
     }
 
+    @Override
     public void setValue(Value2 value) {
         this.value.removeObserver(this);
         this.value = value;
@@ -19,6 +20,7 @@ public class Value2Holder extends AbstractValue2 implements Value2Observer {
         sendUpdated();
     }
 
+    @Override
     public Value2 getValue() {
         return value;
     }

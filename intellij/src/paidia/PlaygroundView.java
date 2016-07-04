@@ -776,4 +776,10 @@ public class PlaygroundView extends JPanel {
         //valueView.removeMouseListener(currentMouseToolWrapper);
         valueView.removeMouseMotionListener(currentMouseToolWrapper);
     }
+
+    private int frameId;
+
+    public int nextFrameId() {
+        return frameId++;
+    }
 }

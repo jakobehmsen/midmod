@@ -157,6 +157,11 @@ public class ClassValue extends AbstractValue2 implements Value2Observer {
 
                 return parameter;
             }
+
+            @Override
+            public IdProvider newIdProviderForFrame() {
+                return null;
+            }
         };
 
         return new ParsingEditor(playgroundView, parseContext) {

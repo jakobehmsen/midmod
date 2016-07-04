@@ -8,11 +8,11 @@ import java.awt.event.ContainerAdapter;
 import java.awt.event.ContainerEvent;
 
 public class Value2ViewWrapper extends JPanel {
-    private Value2Holder value2Holder;
+    private ValueHolderInterface value2Holder;
     private JComponent view;
     private Value2 value;
 
-    public Value2ViewWrapper(Value2Holder value2Holder, JComponent view) {
+    public Value2ViewWrapper(ValueHolderInterface value2Holder, JComponent view) {
         this.value2Holder = value2Holder;
         this.view = view;
 
@@ -55,7 +55,7 @@ public class Value2ViewWrapper extends JPanel {
         playgroundView.createEditableView(editor).beginEdit();
     }
 
-    public Value2Holder getValueHolder() {
+    public ValueHolderInterface getValueHolder() {
         return value2Holder;
     }
 

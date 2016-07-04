@@ -605,7 +605,8 @@ public class ComponentParser {
 
             @Override
             public Value2 visitClassLiteral(PaidiaParser.ClassLiteralContext ctx) {
-                return new ClassValue();
+                //return new ClassValue();
+                return new FrameValue(null, parseContext.newIdProviderForFrame());
             }
 
             @Override
