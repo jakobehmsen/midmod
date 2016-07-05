@@ -75,8 +75,8 @@ public interface Value2 {
 
                 value2ViewWrapper.setValue(parsedValue);
 
-                value2ViewWrapper.add(scopeView);
-                value2ViewWrapper.setView(scopeView);
+                //value2ViewWrapper.add(scopeView);
+                //value2ViewWrapper.setView(scopeView);
 
                 value2ViewWrapper.repaint();
                 value2ViewWrapper.revalidate();

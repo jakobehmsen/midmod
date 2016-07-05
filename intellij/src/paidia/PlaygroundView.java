@@ -681,14 +681,8 @@ public class PlaygroundView extends JPanel {
             protected void endEdit(Value2 parsedValue) {
                 remove(editorComponent);
 
-                ViewBinding2 viewBinding = parsedValue.toView(PlaygroundView.this);
+                JComponent valueViewWrapper = new Value2Holder(parsedValue).toView(PlaygroundView.this).getComponent();
 
-                JComponent scopeView = viewBinding.getComponent();
-                JComponent valueViewWrapper = new Value2Holder(parsedValue).toView(PlaygroundView.this).getComponent();// new Value2ViewWrapper(parsedValue, scopeView);
-
-                //makeEditableByMouse(valueViewWrapper);
-
-                //ScopeView scopeView = new ScopeView((ValueView)parsedComponent);
                 valueViewWrapper.setLocation(editorComponent.getLocation());
 
                 add(valueViewWrapper);

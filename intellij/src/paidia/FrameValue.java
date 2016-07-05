@@ -11,12 +11,24 @@ import java.util.Hashtable;
 import java.util.Map;
 
 public class FrameValue extends AbstractValue2 {
+    private interface FrameValueObserver extends Value2Observer {
+        default void updated() { }
+
+        void addedSlot(String id);
+    }
+
     private static class Slot extends AbstractValue2 implements Value2Observer, ValueHolderInterface {
+        private interface SlotObserver extends Value2Observer {
+            default void updated() { }
+
+            void setValue();
+        }
+
         private FrameValue frame;
         private String id;
         private Point location;
         private Value2 value;
-        private ArrayList<Runnable> prototypeSlotUpdated = new ArrayList<>();
+        //private ArrayList<Runnable> prototypeSlotUpdated = new ArrayList<>();
 
         private Slot(FrameValue frame, String id, Point location, Value2 value) {
             this.frame = frame;
@@ -25,20 +37,25 @@ public class FrameValue extends AbstractValue2 {
             this.value = value;
 
             if(value == null)
-                frame.prototype.getSlot(id).addObserver(this);
+                frame.prototype.getSlot(id).addObserver(slotUpdatedObserver);
+
+            getValue().addObserver(this);
         }
 
         @Override
         public ViewBinding2 toView(PlaygroundView playgroundView) {
             Value2ViewWrapper value2ViewWrapper = new Value2ViewWrapper(this, getValue().toView(playgroundView).getComponent());
 
-            prototypeSlotUpdated.add(() -> {
-                value2ViewWrapper.removeAll();
-                JComponent valueView = getValue().toView(playgroundView).getComponent();
-                value2ViewWrapper.add(valueView);
-                value2ViewWrapper.setView(valueView);
-                value2ViewWrapper.revalidate();
-                value2ViewWrapper.repaint();
+            addObserver(new SlotObserver() {
+                @Override
+                public void setValue() {
+                    value2ViewWrapper.removeAll();
+                    JComponent valueView = getValue().toView(playgroundView).getComponent();
+                    value2ViewWrapper.add(valueView);
+                    value2ViewWrapper.setView(valueView);
+                    value2ViewWrapper.revalidate();
+                    value2ViewWrapper.repaint();
+                }
             });
 
             /*ComponentUtil.addObserverCleanupLogic(this, value2ViewWrapper, () -> {
@@ -62,10 +79,32 @@ public class FrameValue extends AbstractValue2 {
             return value != null ? value : frame.prototype.getSlot(id).getValue();
         }
 
+        private SlotObserver slotUpdatedObserver = new SlotObserver() {
+            @Override
+            public void setValue() {
+                sendUpdatedFor(SlotObserver.class, x -> x.setValue());
+            }
+        };
+
         @Override
         public void setValue(Value2 value) {
+            getValue().removeObserver(this);
+
+            if(frame.prototype != null) {
+                // If defining local value for slot
+                if (this.value == null && value != null)
+                    frame.prototype.getSlot(id).removeObserver(slotUpdatedObserver);
+                // Else if undefining local value for slot
+                else if (this.value != null && value == null)
+                    frame.prototype.getSlot(id).addObserver(slotUpdatedObserver);
+            }
+
             this.value = value;
+            getValue().addObserver(this);
             sendUpdated();
+
+            sendUpdatedFor(SlotObserver.class, x -> x.setValue());
+            //frame.sendUpdated();
         }
 
         private Point getLocation() {
@@ -89,7 +128,6 @@ public class FrameValue extends AbstractValue2 {
 
         @Override
         public void updated() {
-            prototypeSlotUpdated.forEach(x -> x.run());
             sendUpdated();
         }
     }
@@ -111,8 +149,23 @@ public class FrameValue extends AbstractValue2 {
         String slotId = idProvider.nextId();
         Slot slot = new Slot(this, slotId, location, value);
         slots.put(slotId, slot);
+        // When this is sent, then reductions are updated, that is views are constructed from scratch
+        // It should be possible to just derive a frame
         sendUpdated();
+        sendUpdatedFor(FrameValueObserver.class, x -> x.addedSlot(slotId));
         return slot;
+    }
+
+    public Slot addSlot(String id) {
+        Slot slot = new Slot(this, id, null, null);
+        slots.put(id, slot);
+        sendUpdated();
+        sendSlotUpdated(id);
+        return slot;
+    }
+
+    private void sendSlotUpdated(String id) {
+        sendUpdatedFor(FrameValueObserver.class, x -> x.addedSlot(id));
     }
 
     @Override
@@ -152,6 +205,14 @@ public class FrameValue extends AbstractValue2 {
             view.add(slotView);
         });
 
+        ComponentUtil.addObserverCleanupLogic(this, view, new FrameValueObserver() {
+            @Override
+            public void addedSlot(String id) {
+                JComponent slotView = getSlot(id).toView(playgroundView).getComponent();
+                view.add(slotView);
+            }
+        });
+
         ComponentUtil.addObserverCleanupLogic(this, view, () -> {
             view.revalidate();
             view.repaint();
@@ -181,11 +242,10 @@ public class FrameValue extends AbstractValue2 {
 
         this.slots.entrySet().forEach(x -> derivedFrame.slots.put(x.getKey(), new Slot(derivedFrame, x.getKey(), null, null)));
 
-        this.addObserver(new Value2Observer() {
+        this.addObserver(new FrameValueObserver() {
             @Override
-            public void updated() {
-                // Add missing slots
-                // Remove additional slots
+            public void addedSlot(String id) {
+                derivedFrame.addSlot(id);
             }
         });
 
@@ -255,9 +315,9 @@ public class FrameValue extends AbstractValue2 {
 
                 //valueViewWrapper.setLocation(editorComponent.getLocation());
 
-                Slot slot = newSlot(targetLocation, parsedValue);
+                newSlot(targetLocation, parsedValue);
 
-                targetComponent.add(slot.toView(playgroundView).getComponent());
+                //targetComponent.add(slot.toView(playgroundView).getComponent());
 
                 targetComponent.repaint();
                 targetComponent.revalidate();
