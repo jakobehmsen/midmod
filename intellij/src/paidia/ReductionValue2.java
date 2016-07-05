@@ -52,6 +52,8 @@ public class ReductionValue2 extends AbstractValue2 implements Value2Observer {
         ComponentUtil.addObserverCleanupLogic(this, view, () -> {
             view.removeAll();
             view.add(reduction.toView(playgroundView).getComponent());
+            view.revalidate();
+            view.repaint();
         });
 
         return new ViewBinding2() {
@@ -81,5 +83,10 @@ public class ReductionValue2 extends AbstractValue2 implements Value2Observer {
     public void updated() {
         reduction = value.reduce(new Hashtable<>());
         sendUpdated();
+    }
+
+    @Override
+    public Value2 shadowed(FrameValue frame) {
+        return new ReductionValue2(value.shadowed(frame));
     }
 }

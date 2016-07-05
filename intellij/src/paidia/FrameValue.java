@@ -18,16 +18,17 @@ public class FrameValue extends AbstractValue2 {
     }
 
     private static class Slot extends AbstractValue2 implements Value2Observer, ValueHolderInterface {
-        private interface SlotObserver extends Value2Observer {
+        /*private interface SlotObserver extends Value2Observer {
             default void updated() { }
 
             void setValue();
-        }
+        }*/
 
         private FrameValue frame;
         private String id;
         private Point location;
         private Value2 value;
+        private Value2 shadowedValue;
         //private ArrayList<Runnable> prototypeSlotUpdated = new ArrayList<>();
 
         private Slot(FrameValue frame, String id, Point location, Value2 value) {
@@ -36,17 +37,20 @@ public class FrameValue extends AbstractValue2 {
             this.location = location;
             this.value = value;
 
-            if(value == null)
+            //if(frame.prototype != null)
+            //    Slot.this.shadowedValue = frame.prototype.getSlot(id).getValue().shadowed(frame);
+            if(value == null) {
                 frame.prototype.getSlot(id).addObserver(slotUpdatedObserver);
+            }
 
             getValue().addObserver(this);
         }
 
         @Override
         public ViewBinding2 toView(PlaygroundView playgroundView) {
-            Value2ViewWrapper value2ViewWrapper = new Value2ViewWrapper(this, getValue().toView(playgroundView).getComponent());
+            Value2ViewWrapper value2ViewWrapper = new Value2ViewWrapper(playgroundView, this, getValue().toView(playgroundView).getComponent());
 
-            addObserver(new SlotObserver() {
+            /*addObserver(new SlotObserver() {
                 @Override
                 public void setValue() {
                     value2ViewWrapper.removeAll();
@@ -56,7 +60,7 @@ public class FrameValue extends AbstractValue2 {
                     value2ViewWrapper.revalidate();
                     value2ViewWrapper.repaint();
                 }
-            });
+            });*/
 
             /*ComponentUtil.addObserverCleanupLogic(this, value2ViewWrapper, () -> {
                 value2ViewWrapper.setView(getValue().toView(playgroundView).getComponent());
@@ -76,13 +80,33 @@ public class FrameValue extends AbstractValue2 {
 
         @Override
         public Value2 getValue() {
-            return value != null ? value : frame.prototype.getSlot(id).getValue();
+            if(frame.prototype != null && shadowedValue == null) {
+                Slot.this.shadowedValue = frame.prototype.getSlot(id).getValue().shadowed(frame);
+            }
+
+            //return value != null ? value : frame.prototype.getSlot(id).getValue();
+            return value != null ? value : shadowedValue;
         }
 
-        private SlotObserver slotUpdatedObserver = new SlotObserver() {
+        private ValueHolderInterface.ValueHolderObserver slotUpdatedObserver = new ValueHolderInterface.ValueHolderObserver() {
+            @Override
+            public void updated() {
+                if(value == null) {
+                    if (frame.prototype != null)
+                        Slot.this.shadowedValue = frame.prototype.getSlot(id).getValue().shadowed(frame);
+                    frame.sendUpdated();
+                    sendUpdated();
+                    sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setValue());
+                }
+            }
+
             @Override
             public void setValue() {
-                sendUpdatedFor(SlotObserver.class, x -> x.setValue());
+                if(frame.prototype != null)
+                    Slot.this.shadowedValue = frame.prototype.getSlot(id).getValue().shadowed(frame);
+                frame.sendUpdated();
+                sendUpdated();
+                sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setValue());
             }
         };
 
@@ -101,9 +125,9 @@ public class FrameValue extends AbstractValue2 {
 
             this.value = value;
             getValue().addObserver(this);
+            frame.sendUpdated();
             sendUpdated();
-
-            sendUpdatedFor(SlotObserver.class, x -> x.setValue());
+            sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setValue());
             //frame.sendUpdated();
         }
 
@@ -130,6 +154,11 @@ public class FrameValue extends AbstractValue2 {
         public void updated() {
             sendUpdated();
         }
+
+        @Override
+        public Value2 shadowed(FrameValue frame) {
+            return frame.getSlot(id);
+        }
     }
 
     private Slot getSlot(String id) {
@@ -150,7 +179,7 @@ public class FrameValue extends AbstractValue2 {
         Slot slot = new Slot(this, slotId, location, value);
         slots.put(slotId, slot);
         // When this is sent, then reductions are updated, that is views are constructed from scratch
-        // It should be possible to just derive a frame
+        // It should be possible to just derive a frame; i.e. a new tool should be made for this
         sendUpdated();
         sendUpdatedFor(FrameValueObserver.class, x -> x.addedSlot(slotId));
         return slot;
@@ -183,17 +212,27 @@ public class FrameValue extends AbstractValue2 {
                     @Override
                     public void componentResized(ComponentEvent e) {
                         view.setSize(view.getPreferredSize());
+
+                        view.revalidate();
+                        view.repaint();
+                        System.out.println("Frame component resized");
                     }
                 };
 
                 e.getChild().addComponentListener(componentAdapter);
                 view.setSize(view.getPreferredSize());
+
+                view.revalidate();
+                view.repaint();
             }
 
             @Override
             public void componentRemoved(ContainerEvent e) {
                 e.getChild().removeComponentListener(componentAdapter);
                 view.setSize(view.getPreferredSize());
+
+                view.revalidate();
+                view.repaint();
             }
         });
 
@@ -240,7 +279,25 @@ public class FrameValue extends AbstractValue2 {
     public Value2 reduce(Map<String, Value2> environment) {
         FrameValue derivedFrame = new FrameValue(this, idProvider.forNewFrame());
 
-        this.slots.entrySet().forEach(x -> derivedFrame.slots.put(x.getKey(), new Slot(derivedFrame, x.getKey(), null, null)));
+        this.slots.entrySet().forEach(x -> derivedFrame.slots.put(x.getKey(), new Slot(derivedFrame, x.getKey(), x.getValue().getLocation(), x.getValue().getValue().reduce(environment))));
+
+        /*this.addObserver(new FrameValueObserver() {
+            @Override
+            public void addedSlot(String id) {
+                derivedFrame.addSlot(id);
+            }
+        });*/
+
+        return derivedFrame;
+    }
+
+    @Override
+    public Value2 derive() {
+        FrameValue derivedFrame = new FrameValue(this, idProvider.forNewFrame());
+
+        this.slots.entrySet().forEach(x -> {
+            derivedFrame.slots.put(x.getKey(), (Slot)x.getValue().shadowed(derivedFrame));
+        });
 
         this.addObserver(new FrameValueObserver() {
             @Override
@@ -332,5 +389,28 @@ public class FrameValue extends AbstractValue2 {
                 targetComponent.revalidate();
             }
         };
+    }
+
+    @Override
+    public void drop(PlaygroundView playgroundView, Value2ViewWrapper droppedComponent, Point location, Value2ViewWrapper value2ViewWrapper) {
+        JComponent targetComponent = value2ViewWrapper.getView();
+        Point targetLocation = location;
+
+        newSlot(targetLocation, value2ViewWrapper.getValue());
+
+
+        /*targetComponent.revalidate();
+        targetComponent.repaint();
+
+        ((ClassValue)value2ViewWrapper.getValue()).addSelectorValue(location, droppedComponent.getValue());
+
+        switch(componentIndex) {
+            case 0:
+                ((ClassValue)value2ViewWrapper.getValue()).addSelectorValue(location, droppedComponent.getValue());
+                break;
+            case 1:
+                ((ClassValue)value2ViewWrapper.getValue()).addBehaviorValue(location, droppedComponent.getValue());
+                break;
+        }*/
     }
 }

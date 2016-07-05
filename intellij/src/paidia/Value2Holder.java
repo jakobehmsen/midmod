@@ -18,6 +18,7 @@ public class Value2Holder extends AbstractValue2 implements Value2Observer, Valu
         this.value = value;
         this.value.addObserver(this);
         sendUpdated();
+        sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setValue());
     }
 
     @Override
@@ -27,7 +28,7 @@ public class Value2Holder extends AbstractValue2 implements Value2Observer, Valu
 
     @Override
     public ViewBinding2 toView(PlaygroundView playgroundView) {
-        Value2ViewWrapper value2ViewWrapper = new Value2ViewWrapper(this, value.toView(playgroundView).getComponent());
+        Value2ViewWrapper value2ViewWrapper = new Value2ViewWrapper(playgroundView, this, value.toView(playgroundView).getComponent());
 
         playgroundView.makeEditableByMouse(value2ViewWrapper);
 
@@ -71,5 +72,10 @@ public class Value2Holder extends AbstractValue2 implements Value2Observer, Valu
         //return new Value2Holder(value.forApplication());
 
         return value.forApplication();
+    }
+
+    @Override
+    public Value2 shadowed(FrameValue frame) {
+        return value.shadowed(frame);
     }
 }

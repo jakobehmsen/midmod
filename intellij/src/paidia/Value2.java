@@ -18,6 +18,10 @@ public interface Value2 {
     void addObserver(Value2Observer observer);
     void removeObserver(Value2Observer observer);
 
+    default Value2 derive() {
+        return this;
+    }
+
     default List<String> getParameters() {
         ArrayList<String> parameters = new ArrayList<>();
         appendParameters(parameters);
@@ -26,6 +30,10 @@ public interface Value2 {
 
     default void appendParameters(List<String> parameters) {
 
+    }
+
+    default Value2 shadowed(FrameValue frame) {
+        return this;
     }
 
     default Editor createEditor(PlaygroundView playgroundView, Point location, Value2ViewWrapper value2ViewWrapper) {

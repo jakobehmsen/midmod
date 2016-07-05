@@ -48,7 +48,7 @@ public class PlaygroundView extends JPanel {
         mouseToolSelector.add(createMouseToolSelector("Write", createWriteMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Move", createMoveMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Reduce", createReduceMouseTool()));
-        mouseToolSelector.add(createMouseToolSelector("Instantiate", createInstantiateMouseTool()));
+        mouseToolSelector.add(createMouseToolSelector("Derive", createDeriveMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Delete", createDeleteMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Name", createNameMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Apply", createApplyMouseTool()));
@@ -63,6 +63,7 @@ public class PlaygroundView extends JPanel {
             public void componentResized(ComponentEvent e) {
                 e.getComponent().revalidate();
                 e.getComponent().repaint();
+                System.out.println("Playground component resized");
             }
         };
 
@@ -329,7 +330,7 @@ public class PlaygroundView extends JPanel {
         };
     }
 
-    private MouseTool createInstantiateMouseTool() {
+    private MouseTool createDeriveMouseTool() {
         return new MouseTool() {
             private JComponent selection;
             private boolean linking;
@@ -379,7 +380,20 @@ public class PlaygroundView extends JPanel {
                     JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
                     Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
                     if(targetComponent != targetValueView) {
-                        if(((Value2ViewWrapper)e.getComponent()).getValue() instanceof ClassValue) {
+                        Value2 derivation = ((Value2ViewWrapper)e.getComponent()).getValue().derive();
+                        Value2ViewWrapper reductionView = (Value2ViewWrapper) new Value2Holder(derivation).toView(PlaygroundView.this).getComponent();
+
+                        if(targetComponent == PlaygroundView.this) {
+                            reductionView.setLocation(pointInTargetComponent);
+                            add(reductionView);
+                        } else {
+                            // Find nearest Value2ViewWrapper
+                            Value2ViewWrapper targetComponentParent = (Value2ViewWrapper) Stream.iterate(targetComponent, c -> (JComponent)c.getParent()).filter(x -> x instanceof Value2ViewWrapper).findFirst().get();
+                            // TODO: Should be ValueViewContainer instead of ValueView
+                            targetComponentParent.drop(PlaygroundView.this, reductionView, pointInTargetComponent);
+                        }
+
+                        /*if(((Value2ViewWrapper)e.getComponent()).getValue() instanceof ClassValue) {
                             Value2 instance = ((ClassValue)((Value2ViewWrapper)e.getComponent()).getValue()).instantiate();
                             Value2ViewWrapper reductionView = (Value2ViewWrapper) new Value2Holder(instance).toView(PlaygroundView.this).getComponent();
 
@@ -392,7 +406,7 @@ public class PlaygroundView extends JPanel {
                                 // TODO: Should be ValueViewContainer instead of ValueView
                                 targetComponentParent.drop(PlaygroundView.this, reductionView, pointInTargetComponent);
                             }
-                        }
+                        }*/
                     }
                 }
             }

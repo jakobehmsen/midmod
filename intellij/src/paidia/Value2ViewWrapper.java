@@ -8,11 +8,12 @@ import java.awt.event.ContainerAdapter;
 import java.awt.event.ContainerEvent;
 
 public class Value2ViewWrapper extends JPanel {
+    private PlaygroundView playgroundView;
     private ValueHolderInterface value2Holder;
     private JComponent view;
     private Value2 value;
 
-    public Value2ViewWrapper(ValueHolderInterface value2Holder, JComponent view) {
+    public Value2ViewWrapper(PlaygroundView playgroundView, ValueHolderInterface value2Holder, JComponent view) {
         this.value2Holder = value2Holder;
         this.view = view;
 
@@ -28,6 +29,7 @@ public class Value2ViewWrapper extends JPanel {
                     @Override
                     public void componentResized(ComponentEvent e) {
                         setSize(getPreferredSize());
+                        System.out.println("Value2ViewWrapper component resized");
                     }
                 };
 
@@ -43,6 +45,18 @@ public class Value2ViewWrapper extends JPanel {
         });
 
         add(view);
+
+        value2Holder.addObserver(new ValueHolderInterface.ValueHolderObserver() {
+            @Override
+            public void setValue() {
+                removeAll();
+                JComponent valueView = getValue().toView(playgroundView).getComponent();
+                add(valueView);
+                setView(valueView);
+                revalidate();
+                repaint();
+            }
+        });
     }
 
     public Value2 getValue() {
