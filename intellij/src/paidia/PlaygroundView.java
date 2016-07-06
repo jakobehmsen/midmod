@@ -206,11 +206,31 @@ public class PlaygroundView extends JPanel {
             private int mousePressY;
             private boolean moving;
 
+
+
+            private Value2ViewWrapper nearestMovable(JComponent component) {
+                Value2ViewWrapper viewWrapper = nearestValue2ViewWrapper(component);
+
+                while(true) {
+                    Value2ViewWrapper parentViewWrapper = nearestValue2ViewWrapper((JComponent) viewWrapper.getParent());
+
+                    if (parentViewWrapper != null && !parentViewWrapper.getValue().canMove(parentViewWrapper, viewWrapper)) {
+                        viewWrapper = parentViewWrapper;
+                    } else {
+                        return viewWrapper;
+                    }
+                }
+
+                //return component.getParent() == PlaygroundView.this ||
+                //    (component instanceof Value2ViewWrapper && ((Value2ViewWrapper)component).getValue().)
+            }
+
             @Override
             public void mousePressed(MouseEvent e) {
                 JComponent valueView = (JComponent) e.getComponent();
                 if(e.getButton() == MouseEvent.BUTTON1) {
-                    targetValueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
+                    //targetValueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
+                    targetValueView = nearestMovable((JComponent) e.getComponent());
 
                     moving = true;
                     targetValueView.getParent().setComponentZOrder(targetValueView, 0);
@@ -255,6 +275,14 @@ public class PlaygroundView extends JPanel {
         };
     }
 
+    private Value2ViewWrapper nearestValue2ViewWrapper(JComponent component) {
+        Container container = Stream.iterate((Container)component,
+            c -> c.getParent())
+            .filter(x -> x instanceof Value2ViewWrapper || x instanceof JFrame).findFirst().get();
+
+        return container instanceof Value2ViewWrapper ? (Value2ViewWrapper) container : null;
+    }
+
     private MouseTool createReduceMouseTool() {
         return new MouseTool() {
             private JComponent selection;
@@ -268,7 +296,10 @@ public class PlaygroundView extends JPanel {
                 if(e.getButton() == MouseEvent.BUTTON1) {
                     linking = true;
 
-                    targetValueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
+                    targetValueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x ->
+                        x.getParent() == PlaygroundView.this
+                        || nearestValue2ViewWrapper((JComponent) x.getParent()).getValue().canReduceFrom())
+                        .findFirst().get();
 
                     foreground = targetValueView.getForeground();
                     targetValueView.setForeground(Color.BLUE);
@@ -304,7 +335,7 @@ public class PlaygroundView extends JPanel {
                     Point pointInContentPane = SwingUtilities.convertPoint(e.getComponent(), e.getPoint(), PlaygroundView.this);
                     JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
                     //if(targetComponent != targetValueView) {
-                        ReductionValue2 reduction = new ReductionValue2(((Value2ViewWrapper)e.getComponent()).getValueHolder());
+                        ReductionValue2 reduction = new ReductionValue2(((Value2ViewWrapper)targetValueView).getValueHolder());
                         Value2ViewWrapper reductionView = (Value2ViewWrapper) new Value2Holder(reduction).toView(PlaygroundView.this).getComponent();
 
                         if(targetComponent == PlaygroundView.this) {

@@ -117,4 +117,12 @@ public interface Value2 {
     default Value2 forApplication() {
         return this;
     }
+
+    default boolean canMove(Value2ViewWrapper parentViewWrapper, Value2ViewWrapper viewWrapper) {
+        return false;
+    }
+
+    default boolean canReduceFrom() {
+        return false;
+    }
 }

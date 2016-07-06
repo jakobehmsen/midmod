@@ -396,7 +396,7 @@ public class FrameValue extends AbstractValue2 {
         JComponent targetComponent = value2ViewWrapper.getView();
         Point targetLocation = location;
 
-        newSlot(targetLocation, value2ViewWrapper.getValue());
+        newSlot(targetLocation, droppedComponent.getValue());
 
 
         /*targetComponent.revalidate();
@@ -412,5 +412,17 @@ public class FrameValue extends AbstractValue2 {
                 ((ClassValue)value2ViewWrapper.getValue()).addBehaviorValue(location, droppedComponent.getValue());
                 break;
         }*/
+    }
+
+    @Override
+    public boolean canMove(Value2ViewWrapper parentViewWrapper, Value2ViewWrapper viewWrapper) {
+        // TODO: When viewWrapper is moved, then update the location of the slot, such that the location can be
+        // forwarded to derivations
+        return true;
+    }
+
+    @Override
+    public boolean canReduceFrom() {
+        return true;
     }
 }
