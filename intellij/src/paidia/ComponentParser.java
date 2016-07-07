@@ -1,10 +1,13 @@
 package paidia;
 
-import org.antlr.v4.runtime.ANTLRInputStream;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.atn.ATNConfigSet;
+import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.misc.Interval;
+import org.antlr.v4.runtime.misc.NotNull;
+import org.antlr.v4.runtime.misc.Nullable;
+import org.antlr.v4.runtime.tree.ErrorNode;
+import org.antlr.v4.runtime.tree.ParseTreeListener;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import javax.swing.*;
@@ -461,6 +464,33 @@ public class ComponentParser {
         PaidiaParser parser = new PaidiaParser(tokenStream);
 
         PaidiaParser.BlockContext block = parser.block();
+
+        ArrayList<String> errors = new ArrayList<>();
+
+        parser.addErrorListener(new BaseErrorListener() {
+            @Override
+            public void syntaxError(@NotNull Recognizer<?, ?> recognizer, @Nullable Object offendingSymbol, int line, int charPositionInLine, @NotNull String msg, @Nullable RecognitionException e) {
+                errors.add(msg);
+            }
+
+            @Override
+            public void reportAmbiguity(@NotNull Parser recognizer, @NotNull DFA dfa, int startIndex, int stopIndex, boolean exact, @Nullable BitSet ambigAlts, @NotNull ATNConfigSet configs) {
+                errors.add("Bla bla");
+            }
+
+            @Override
+            public void reportAttemptingFullContext(@NotNull Parser recognizer, @NotNull DFA dfa, int startIndex, int stopIndex, @Nullable BitSet conflictingAlts, @NotNull ATNConfigSet configs) {
+                errors.add("Bla bla 2");
+            }
+
+            @Override
+            public void reportContextSensitivity(@NotNull Parser recognizer, @NotNull DFA dfa, int startIndex, int stopIndex, int prediction, @NotNull ATNConfigSet configs) {
+                errors.add("Bla bla 3");
+            }
+        });
+
+        if(parser.getNumberOfSyntaxErrors() > 0)
+            return null;
 
         if(block.selector() != null) {
             if(block.selector().binaryOperator() != null) {

@@ -42,7 +42,7 @@ public interface Value2 {
 
             @Override
             public String getText() {
-                return value2ViewWrapper.getValue().getText();
+                return value2ViewWrapper.getValue().getSource(new DefaultTextContext());
             }
 
             @Override

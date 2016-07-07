@@ -20,6 +20,8 @@ public class EditableView {
         this.editor = editor;
     }
 
+    private boolean isErrorState;
+
     public Editor getEditor() {
         return editor;
     }
@@ -34,7 +36,13 @@ public class EditableView {
 
         editorComponent.registerKeyboardAction(e1 -> {
             String text = editorComponent.getText();
-            editor.endEdit(text);
+            try {
+                editor.endEdit(text);
+            } catch (Exception e) {
+                isErrorState = true;
+                editorComponent.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, Color.RED));
+                editorComponent.setToolTipText(e.getMessage());
+            }
             //JComponent parsedComponent = textParseHandler.parse(editorComponent, text);
             //editor.endEdit(parsedComponent);
             //listeners.forEach(x -> x.accept((ValueView)parsedComponent));
@@ -56,6 +64,11 @@ public class EditableView {
         editorComponent.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
+                if(isErrorState) {
+                    editorComponent.setBorder(null);
+                    editorComponent.setToolTipText("");
+                }
+
                 Dimension preferredSize = editorComponent.getUI().getPreferredSize(editorComponent);
                 if(editorComponent.getSize().width < preferredSize.width ||
                     editorComponent.getSize().height < preferredSize.height) {
