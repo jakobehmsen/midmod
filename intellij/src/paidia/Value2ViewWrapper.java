@@ -56,6 +56,13 @@ public class Value2ViewWrapper extends JPanel {
                 revalidate();
                 repaint();
             }
+
+            @Override
+            public void setLocation() {
+                if(!endingMove) {
+                    Value2ViewWrapper.this.setLocation(getValueHolder().getLocation());
+                }
+            }
         });
     }
 
@@ -87,5 +94,17 @@ public class Value2ViewWrapper extends JPanel {
 
     public void drop(PlaygroundView playgroundView, Value2ViewWrapper droppedComponent, Point location) {
         getValue().drop(playgroundView, droppedComponent, location, this);
+    }
+
+    public void startMove() {
+
+    }
+
+    private boolean endingMove;
+
+    public void endMove() {
+        endingMove = true;
+        getValueHolder().setLocation(getLocation());
+        endingMove = false;
     }
 }

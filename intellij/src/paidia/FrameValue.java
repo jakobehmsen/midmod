@@ -102,11 +102,22 @@ public class FrameValue extends AbstractValue2 {
 
             @Override
             public void setValue() {
-                if(frame.prototype != null)
-                    Slot.this.shadowedValue = frame.prototype.getSlot(id).getValue().shadowed(frame);
-                frame.sendUpdated();
-                sendUpdated();
-                sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setValue());
+                if(value == null) {
+                    if (frame.prototype != null)
+                        Slot.this.shadowedValue = frame.prototype.getSlot(id).getValue().shadowed(frame);
+                    frame.sendUpdated();
+                    sendUpdated();
+                    sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setValue());
+                }
+            }
+
+            @Override
+            public void setLocation() {
+                if(Slot.this.location == null) {
+                    frame.sendUpdated();
+                    sendUpdated();
+                    sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setLocation());
+                }
             }
         };
 
@@ -114,14 +125,14 @@ public class FrameValue extends AbstractValue2 {
         public void setValue(Value2 value) {
             getValue().removeObserver(this);
 
-            if(frame.prototype != null) {
+            /*if(frame.prototype != null) {
                 // If defining local value for slot
                 if (this.value == null && value != null)
                     frame.prototype.getSlot(id).removeObserver(slotUpdatedObserver);
                 // Else if undefining local value for slot
                 else if (this.value != null && value == null)
                     frame.prototype.getSlot(id).addObserver(slotUpdatedObserver);
-            }
+            }*/
 
             this.value = value;
             getValue().addObserver(this);
@@ -131,7 +142,16 @@ public class FrameValue extends AbstractValue2 {
             //frame.sendUpdated();
         }
 
-        private Point getLocation() {
+        @Override
+        public void setLocation(Point location) {
+            this.location = location;
+
+            frame.sendUpdated();
+            sendUpdated();
+            sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setLocation());
+        }
+
+        public Point getLocation() {
             return location != null ? location : frame.prototype.getSlot(id).getLocation();
         }
 

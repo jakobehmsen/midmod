@@ -242,6 +242,8 @@ public class PlaygroundView extends JPanel {
 
                     mousePressX = e.getX();
                     mousePressY = e.getY();
+
+                    ((Value2ViewWrapper)targetValueView).startMove();
                 }
             }
 
@@ -265,6 +267,8 @@ public class PlaygroundView extends JPanel {
                     Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
                     glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
                     glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+
+                    ((Value2ViewWrapper)targetValueView).endMove();
                 }
             }
 
