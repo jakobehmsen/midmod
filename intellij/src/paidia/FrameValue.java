@@ -94,9 +94,9 @@ public class FrameValue extends AbstractValue2 {
                 if(value == null) {
                     if (frame.prototype != null)
                         Slot.this.shadowedValue = frame.prototype.getSlot(id).getValue().shadowed(frame);
-                    frame.sendUpdated();
-                    sendUpdated();
                     sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setValue());
+                    sendUpdated();
+                    frame.sendUpdated();
                 }
             }
 
@@ -105,18 +105,18 @@ public class FrameValue extends AbstractValue2 {
                 if(value == null) {
                     if (frame.prototype != null)
                         Slot.this.shadowedValue = frame.prototype.getSlot(id).getValue().shadowed(frame);
-                    frame.sendUpdated();
-                    sendUpdated();
                     sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setValue());
+                    sendUpdated();
+                    frame.sendUpdated();
                 }
             }
 
             @Override
             public void setLocation() {
                 if(Slot.this.location == null) {
-                    frame.sendUpdated();
-                    sendUpdated();
                     sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setLocation());
+                    sendUpdated();
+                    frame.sendUpdated();
                 }
             }
         };
@@ -136,9 +136,9 @@ public class FrameValue extends AbstractValue2 {
 
             this.value = value;
             getValue().addObserver(this);
-            frame.sendUpdated();
-            sendUpdated();
             sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setValue());
+            sendUpdated();
+            frame.sendUpdated();
             //frame.sendUpdated();
         }
 
@@ -146,9 +146,9 @@ public class FrameValue extends AbstractValue2 {
         public void setLocation(Point location) {
             this.location = location;
 
-            frame.sendUpdated();
-            sendUpdated();
             sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setLocation());
+            sendUpdated();
+            frame.sendUpdated();
         }
 
         public Point getLocation() {
