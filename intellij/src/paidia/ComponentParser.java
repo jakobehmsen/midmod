@@ -463,11 +463,12 @@ public class ComponentParser {
         CommonTokenStream tokenStream = new CommonTokenStream(lexer);
         PaidiaParser parser = new PaidiaParser(tokenStream);
 
-        PaidiaParser.BlockContext block = parser.block();
+        lexer.removeErrorListeners();
+        parser.removeErrorListeners();
 
         ArrayList<String> errors = new ArrayList<>();
 
-        parser.addErrorListener(new BaseErrorListener() {
+        BaseErrorListener errorListener = new BaseErrorListener() {
             @Override
             public void syntaxError(@NotNull Recognizer<?, ?> recognizer, @Nullable Object offendingSymbol, int line, int charPositionInLine, @NotNull String msg, @Nullable RecognitionException e) {
                 errors.add(msg);
@@ -487,9 +488,14 @@ public class ComponentParser {
             public void reportContextSensitivity(@NotNull Parser recognizer, @NotNull DFA dfa, int startIndex, int stopIndex, int prediction, @NotNull ATNConfigSet configs) {
                 errors.add("Bla bla 3");
             }
-        });
+        };
 
-        if(parser.getNumberOfSyntaxErrors() > 0)
+        lexer.addErrorListener(errorListener);
+        parser.addErrorListener(errorListener);
+
+        PaidiaParser.BlockContext block = parser.block();
+
+        if(errors.size() > 0)
             return null;
 
         if(block.selector() != null) {
