@@ -47,6 +47,7 @@ public class PlaygroundView extends JPanel {
         mouseToolSelector.setBorder(new RoundedBorder(25, new Insets(5, 5, 5, 5)));
         mouseToolSelector.add(createMouseToolSelector("Write", createWriteMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Move", createMoveMouseTool()));
+        mouseToolSelector.add(createMouseToolSelector("Resize", createResizeMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Reduce", createReduceMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Derive", createDeriveMouseTool()));
         mouseToolSelector.add(createMouseToolSelector("Delete", createDeleteMouseTool()));
@@ -147,6 +148,12 @@ public class PlaygroundView extends JPanel {
                 if(e.getComponent() != PlaygroundView.this)
                     currentMouseTool.mouseExited(e);
             }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                //if(e.getComponent() != PlaygroundView.this)
+                    currentMouseTool.mouseMoved(e);
+            }
         };
     }
 
@@ -206,31 +213,23 @@ public class PlaygroundView extends JPanel {
             private int mousePressY;
             private boolean moving;
 
+            private boolean canMove(JComponent x) {
+                if(x.getParent() == PlaygroundView.this)
+                    return true;
 
-
-            private Value2ViewWrapper nearestMovable(JComponent component) {
-                Value2ViewWrapper viewWrapper = nearestValue2ViewWrapper(component);
-
-                while(true) {
-                    Value2ViewWrapper parentViewWrapper = nearestValue2ViewWrapper((JComponent) viewWrapper.getParent());
-
-                    if (parentViewWrapper != null && !parentViewWrapper.getValue().canMove(parentViewWrapper, viewWrapper)) {
-                        viewWrapper = parentViewWrapper;
-                    } else {
-                        return viewWrapper;
-                    }
+                if(x instanceof Value2ViewWrapper) {
+                    Value2ViewWrapper parentViewWrapper = nearestValue2ViewWrapper((JComponent) x.getParent());
+                    return parentViewWrapper.getValue().canMove(parentViewWrapper, (Value2ViewWrapper)x);
                 }
 
-                //return component.getParent() == PlaygroundView.this ||
-                //    (component instanceof Value2ViewWrapper && ((Value2ViewWrapper)component).getValue().)
+                return false;
             }
 
             @Override
             public void mousePressed(MouseEvent e) {
                 JComponent valueView = (JComponent) e.getComponent();
                 if(e.getButton() == MouseEvent.BUTTON1) {
-                    //targetValueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> x.getParent() == PlaygroundView.this).findFirst().get();
-                    targetValueView = nearestMovable((JComponent) e.getComponent());
+                    targetValueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> canMove(x)).findFirst().get();
 
                     moving = true;
                     targetValueView.getParent().setComponentZOrder(targetValueView, 0);
@@ -275,6 +274,197 @@ public class PlaygroundView extends JPanel {
             @Override
             public void startTool(JComponent component) {
                 component.setToolTipText("Press and drag an object to move it.");
+            }
+        };
+    }
+
+    private static final int NORTH = 0;
+    private static final int SOUTH = 1;
+    private static final int WEST = 0;
+    private static final int EAST = 1;
+    private static final int CENTER = 2;
+
+    private MouseTool createResizeMouseTool() {
+        return new MouseTool() {
+            private int hLocation;
+            private int vLocation;
+            private int marginSize = 5;
+
+            private JComponent targetValueView;
+            private int mousePressX;
+            private int mousePressY;
+            private boolean moving;
+
+            private boolean canResize(Container x) {
+                if(x.getParent() == PlaygroundView.this)
+                    return true;
+
+                if(x instanceof Value2ViewWrapper) {
+                    Value2ViewWrapper parentViewWrapper = nearestValue2ViewWrapper((JComponent) x.getParent());
+                    return parentViewWrapper.getValue().canMove(parentViewWrapper, (Value2ViewWrapper)x);
+                }
+
+                return false;
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                JComponent valueView = (JComponent) e.getComponent();
+
+                Container targetValueView = Stream.iterate((Container)valueView, c -> c.getParent()).filter(x -> x == PlaygroundView.this || canResize(x)).findFirst().get();
+
+                if(targetValueView == PlaygroundView.this) {
+                    setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+                    return;
+                }
+
+                Point locationInTarget = SwingUtilities.convertPoint(valueView, e.getPoint(), targetValueView);
+
+                if(locationInTarget.x < marginSize)
+                    hLocation = WEST;
+                else if(locationInTarget.x >= targetValueView.getWidth() - marginSize)
+                    hLocation = EAST;
+                else
+                    hLocation = CENTER;
+
+                if(locationInTarget.y < marginSize)
+                    vLocation = NORTH;
+                else if(locationInTarget.y >= targetValueView.getHeight() - marginSize)
+                    vLocation = SOUTH;
+                else
+                    vLocation = CENTER;
+
+                switch(hLocation) {
+                    case WEST:
+                        switch(vLocation) {
+                            case NORTH:
+                                setCursor(Cursor.getPredefinedCursor(Cursor.NW_RESIZE_CURSOR));
+                                break;
+                            case CENTER:
+                                setCursor(Cursor.getPredefinedCursor(Cursor.W_RESIZE_CURSOR));
+                                break;
+                            case SOUTH:
+                                setCursor(Cursor.getPredefinedCursor(Cursor.SW_RESIZE_CURSOR));
+                                break;
+                        }
+                        break;
+                    case CENTER:
+                        switch(vLocation) {
+                            case NORTH:
+                                setCursor(Cursor.getPredefinedCursor(Cursor.N_RESIZE_CURSOR));
+                                break;
+                            case CENTER:
+                                setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+                                break;
+                            case SOUTH:
+                                setCursor(Cursor.getPredefinedCursor(Cursor.S_RESIZE_CURSOR));
+                                break;
+                        }
+                        break;
+                    case EAST:
+                        switch(vLocation) {
+                            case NORTH:
+                                setCursor(Cursor.getPredefinedCursor(Cursor.NE_RESIZE_CURSOR));
+                                break;
+                            case CENTER:
+                                setCursor(Cursor.getPredefinedCursor(Cursor.E_RESIZE_CURSOR));
+                                break;
+                            case SOUTH:
+                                setCursor(Cursor.getPredefinedCursor(Cursor.SE_RESIZE_CURSOR));
+                                break;
+                        }
+                        break;
+                }
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                JComponent valueView = (JComponent) e.getComponent();
+                if(e.getButton() == MouseEvent.BUTTON1) {
+                    targetValueView = Stream.iterate(valueView, c -> (JComponent)c.getParent()).filter(x -> canResize(x)).findFirst().get();
+
+                    moving = true;
+                    targetValueView.getParent().setComponentZOrder(targetValueView, 0);
+
+                    int cursorType = Cursor.MOVE_CURSOR;
+                    Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
+                    glassPane.setCursor(getCursor());
+                    glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+
+                    mousePressX = e.getX();
+                    mousePressY = e.getY();
+
+                    ((Value2ViewWrapper)targetValueView).startMove();
+                }
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if(moving) {
+                    PlaygroundView.this.setToolTipText("");
+
+                    int deltaX = 0;
+                    int deltaY = 0;
+                    int deltaWidth = 0;
+                    int deltaHeight = 0;
+
+                    if(hLocation == CENTER && vLocation == CENTER) {
+                        deltaX = e.getX() - mousePressX;
+                        deltaY = e.getY() - mousePressY;
+                    } else {
+                        switch(vLocation) {
+                            case NORTH:
+                                deltaY = e.getY() - mousePressY;
+                                deltaHeight = deltaY * -1;
+
+                                break;
+                            case SOUTH:
+                                deltaHeight = e.getY() - targetValueView.getHeight();
+
+                                break;
+                        }
+
+                        switch(hLocation) {
+                            case WEST:
+                                deltaX = e.getX() - mousePressX;
+                                deltaWidth = deltaX * -1;
+
+                                break;
+                            case EAST:
+                                deltaWidth = e.getX() - targetValueView.getWidth();
+
+                                break;
+                        }
+                    }
+
+                    targetValueView.setLocation(targetValueView.getX() + deltaX, targetValueView.getY() + deltaY);
+                    ((Value2ViewWrapper)targetValueView).getView().setSize(targetValueView.getWidth() + deltaWidth, targetValueView.getHeight() + deltaHeight);
+                    ((Value2ViewWrapper)targetValueView).getView().setPreferredSize(((Value2ViewWrapper)targetValueView).getView().getSize());
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if(e.getButton() == MouseEvent.BUTTON1 && moving) {
+                    moving = false;
+                    int cursorType = Cursor.DEFAULT_CURSOR;
+                    Component glassPane = ((RootPaneContainer)getTopLevelAncestor()).getGlassPane();
+                    glassPane.setCursor(Cursor.getPredefinedCursor(cursorType));
+                    glassPane.setVisible(cursorType != Cursor.DEFAULT_CURSOR);
+
+                    ((Value2ViewWrapper)targetValueView).endMove();
+                }
+            }
+
+            @Override
+            public void startTool(JComponent component) {
+                component.setToolTipText("Press and drag an object to resize it.");
+            }
+
+            @Override
+            public void endTool(JComponent component) {
+                super.endTool(component);
+                setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
             }
         };
     }
