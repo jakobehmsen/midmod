@@ -342,7 +342,7 @@ public class FrameValue extends AbstractValue2 {
 
             @Override
             public IdProvider newIdProviderForFrame() {
-                return null;
+                return idProvider.forNewFrame();
             }
         };
 
