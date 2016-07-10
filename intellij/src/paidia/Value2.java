@@ -18,6 +18,10 @@ public interface Value2 {
     void addObserver(Value2Observer observer);
     void removeObserver(Value2Observer observer);
 
+    default Value2 reduce() {
+        return new ReductionValue2(this);
+    }
+
     default Value2 derive() {
         return this;
     }

@@ -29,7 +29,6 @@ public class Value2ViewWrapper extends JPanel {
                     @Override
                     public void componentResized(ComponentEvent e) {
                         setSize(getPreferredSize());
-                        System.out.println("Value2ViewWrapper component resized");
                     }
                 };
 

@@ -64,7 +64,6 @@ public class PlaygroundView extends JPanel {
             public void componentResized(ComponentEvent e) {
                 e.getComponent().revalidate();
                 e.getComponent().repaint();
-                System.out.println("Playground component resized");
             }
         };
 
@@ -529,7 +528,15 @@ public class PlaygroundView extends JPanel {
                     Point pointInContentPane = SwingUtilities.convertPoint(e.getComponent(), e.getPoint(), PlaygroundView.this);
                     JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
                     //if(targetComponent != targetValueView) {
+                        /*
+                        Changes should be passed when values are updated.
+                        E.g. when value holder changes its held values, a "HeldValueChange" should be send out.
+                             and any values from the held value should be forwarded.
+                        This way, frames should could be derived from the proxied via value holders.
+                        I.e., via forwarded changes such add "AddedSlot".
+                        */
                         ReductionValue2 reduction = new ReductionValue2(((Value2ViewWrapper)targetValueView).getValueHolder());
+                        //Value2 reduction =
                         Value2ViewWrapper reductionView = (Value2ViewWrapper) new Value2Holder(reduction).toView(PlaygroundView.this).getComponent();
 
                         if(targetComponent == PlaygroundView.this) {

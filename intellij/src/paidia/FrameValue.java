@@ -8,6 +8,7 @@ import java.awt.event.ContainerAdapter;
 import java.awt.event.ContainerEvent;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.function.Function;
 
 public class FrameValue extends AbstractValue2 {
     private interface FrameValueObserver extends Value2Observer {
@@ -241,10 +242,25 @@ public class FrameValue extends AbstractValue2 {
     }
 
     @Override
+    public Value2 reduce() {
+        return reduce(new Hashtable<>());
+    }
+
+    @Override
     public Value2 reduce(Map<String, Value2> environment) {
-        FrameValue derivedFrame = new FrameValue(idProvider.forNewFrame());
+        /*FrameValue derivedFrame = new FrameValue(idProvider.forNewFrame());
 
         this.slots.entrySet().forEach(x -> derivedFrame.slots.put(x.getKey(), new Slot(derivedFrame, x.getKey(), x.getValue().getLocation(), x.getValue().getValue().reduce(environment))));
+
+        return derivedFrame;*/
+
+        FrameValue derivedFrame = new FrameValue(idProvider.forNewFrame());
+
+        deriveFrame(this, derivedFrame, value -> {
+            // Should be derived value?
+            // Should be editable value?
+            return value.reduce(environment);
+        });
 
         return derivedFrame;
     }
@@ -253,21 +269,25 @@ public class FrameValue extends AbstractValue2 {
     public Value2 derive() {
         FrameValue derivedFrame = new FrameValue(idProvider.forNewFrame());
 
-        deriveFrame(this, derivedFrame);
+        deriveFrame(this, derivedFrame, value -> {
+            // Should be derived value?
+            // Should be editable value?
+            return value;
+        });
 
         return derivedFrame;
     }
 
-    private static void deriveFrame(FrameValue parent, FrameValue child) {
+    private static void deriveFrame(FrameValue parent, FrameValue child, Function<Value2, Value2> valueRelation) {
         parent.addObserver(new FrameValueObserver() {
             @Override
             public void addedSlot(String id) {
-                deriveNewSlot(parent, child, id);
+                deriveNewSlot(parent, child, id, valueRelation);
             }
         });
 
         parent.slots.entrySet().forEach(x -> {
-            deriveNewSlot(parent, child, x.getKey());
+            deriveNewSlot(parent, child, x.getKey(), valueRelation);
         });
     }
 
@@ -276,7 +296,7 @@ public class FrameValue extends AbstractValue2 {
         private boolean hasValue;
     }
 
-    private static void deriveNewSlot(FrameValue parent, FrameValue child, String id) {
+    private static void deriveNewSlot(FrameValue parent, FrameValue child, String id, Function<Value2, Value2> valueRelation) {
         Slot parentSlot = parent.getSlot(id);
         Slot childSlot = new Slot(child, id, parentSlot.getLocation(), parentSlot.getValue());
         child.addSlot(childSlot);
@@ -300,9 +320,8 @@ public class FrameValue extends AbstractValue2 {
             public void setValue() {
                 if(!parentChildSlot.hasValue) {
                     childSlot.removeObserver(childObserver);
-                    // Should be derived value?
-                    // Should be editable value?
-                    childSlot.setValue(parentSlot.getValue()/*.derive()*/);
+                    Value2 value = valueRelation.apply(parentSlot.getValue());
+                    childSlot.setValue(value);
                     childSlot.addObserver(childObserver);
                 }
             }
