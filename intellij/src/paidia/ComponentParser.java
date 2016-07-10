@@ -6,8 +6,6 @@ import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.misc.Nullable;
-import org.antlr.v4.runtime.tree.ErrorNode;
-import org.antlr.v4.runtime.tree.ParseTreeListener;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import javax.swing.*;
@@ -642,7 +640,7 @@ public class ComponentParser {
             @Override
             public Value2 visitClassLiteral(PaidiaParser.ClassLiteralContext ctx) {
                 //return new ClassValue();
-                return new FrameValue(null, parseContext.newIdProviderForFrame());
+                return new FrameValue(parseContext.newIdProviderForFrame());
             }
 
             @Override
