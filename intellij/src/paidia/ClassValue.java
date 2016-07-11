@@ -126,7 +126,7 @@ public class ClassValue extends AbstractValue2 implements Value2Observer {
             }
         });
 
-        ComponentUtil.addObserverCleanupLogic(this, view, () -> {
+        ComponentUtil.addObserverCleanupLogic(this, view, (Change change) -> {
             view.revalidate();
             view.repaint();
         });
@@ -291,7 +291,7 @@ public class ClassValue extends AbstractValue2 implements Value2Observer {
     }
 
     @Override
-    public void updated() {
+    public void updated(Change change) {
         sendUpdated();
     }
 }

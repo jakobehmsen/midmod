@@ -1,5 +1,5 @@
 package paidia;
 
 public interface Value2Observer {
-    void updated();
+    void updated(Change change);
 }

@@ -129,4 +129,6 @@ public interface Value2 {
     default boolean canReduceFrom() {
         return false;
     }
+
+    default Value2 getHeldValueOrSelf() { return this; }
 }

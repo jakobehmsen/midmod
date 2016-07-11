@@ -11,10 +11,17 @@ import java.util.Map;
 import java.util.function.Function;
 
 public class FrameValue extends AbstractValue2 {
-    private interface FrameValueObserver extends Value2Observer {
-        default void updated() { }
+    public static class NewSlotChange extends Change {
+        private String id;
 
-        void addedSlot(String id);
+        public NewSlotChange(Value2 source, String id) {
+            super(source);
+            this.id = id;
+        }
+
+        public String getId() {
+            return id;
+        }
     }
 
     private static class Slot extends AbstractValue2 implements Value2Observer, ValueHolderInterface {
@@ -24,11 +31,21 @@ public class FrameValue extends AbstractValue2 {
         private Value2 value;
 
         private Slot(FrameValue frame, String id, Point location, Value2 value) {
+            this(frame, id, location, value, true);
+        }
+
+        private Slot(FrameValue frame, String id, Point location, Value2 value, boolean initialize) {
             this.frame = frame;
             this.id = id;
             this.location = location;
             this.value = value;
 
+            if(initialize) {
+                initialize();
+            }
+        }
+
+        public void initialize() {
             getValue().addObserver(this);
         }
 
@@ -52,43 +69,13 @@ public class FrameValue extends AbstractValue2 {
             return value;
         }
 
-        private ValueHolderInterface.ValueHolderObserver slotUpdatedObserver = new ValueHolderInterface.ValueHolderObserver() {
-            @Override
-            public void updated() {
-                if(value == null) {
-                    sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setValue());
-                    sendUpdated();
-                    frame.sendUpdated();
-                }
-            }
-
-            @Override
-            public void setValue() {
-                if(value == null) {
-                    sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setValue());
-                    sendUpdated();
-                    frame.sendUpdated();
-                }
-            }
-
-            @Override
-            public void setLocation() {
-                if(Slot.this.location == null) {
-                    sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setLocation());
-                    sendUpdated();
-                    frame.sendUpdated();
-                }
-            }
-        };
-
         @Override
         public void setValue(Value2 value) {
             getValue().removeObserver(this);
 
             this.value = value;
             getValue().addObserver(this);
-            sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setValue());
-            sendUpdated();
+            sendUpdated(new ValueHolderInterface.HeldValueChange(Slot.this));
             frame.sendUpdated();
         }
 
@@ -96,8 +83,7 @@ public class FrameValue extends AbstractValue2 {
         public void setLocation(Point location) {
             this.location = location;
 
-            sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setLocation());
-            sendUpdated();
+            sendUpdated(new ValueHolderInterface.HeldLocationChange(Slot.this));
             frame.sendUpdated();
         }
 
@@ -121,7 +107,7 @@ public class FrameValue extends AbstractValue2 {
         }
 
         @Override
-        public void updated() {
+        public void updated(Change change) {
             sendUpdated();
         }
 
@@ -148,19 +134,17 @@ public class FrameValue extends AbstractValue2 {
         slots.put(slotId, slot);
         // When this is sent, then reductions are updated, that is views are constructed from scratch
         // It should be possible to just derive a frame; i.e. a new tool should be made for this
-        sendUpdated();
-        sendUpdatedFor(FrameValueObserver.class, x -> x.addedSlot(slotId));
+        sendUpdated(new NewSlotChange(this, slotId));
         return slot;
     }
 
     public void addSlot(Slot slot) {
         slots.put(slot.id, slot);
-        sendUpdated();
         sendSlotUpdated(slot.id);
     }
 
     private void sendSlotUpdated(String id) {
-        sendUpdatedFor(FrameValueObserver.class, x -> x.addedSlot(id));
+        sendUpdated(new NewSlotChange(this, id));
     }
 
     @Override
@@ -210,15 +194,18 @@ public class FrameValue extends AbstractValue2 {
             view.add(slotView);
         });
 
-        ComponentUtil.addObserverCleanupLogic(this, view, new FrameValueObserver() {
+        ComponentUtil.addObserverCleanupLogic(this, view, new Value2Observer() {
             @Override
-            public void addedSlot(String id) {
-                JComponent slotView = getSlot(id).toView(playgroundView).getComponent();
-                view.add(slotView);
+            public void updated(Change change) {
+                if(change instanceof NewSlotChange) {
+                    String id = ((NewSlotChange)change).getId();
+                    JComponent slotView = getSlot(id).toView(playgroundView).getComponent();
+                    view.add(slotView);
+                }
             }
         });
 
-        ComponentUtil.addObserverCleanupLogic(this, view, () -> {
+        ComponentUtil.addObserverCleanupLogic(this, view, (Change change) -> {
             view.revalidate();
             view.repaint();
         });
@@ -248,12 +235,6 @@ public class FrameValue extends AbstractValue2 {
 
     @Override
     public Value2 reduce(Map<String, Value2> environment) {
-        /*FrameValue derivedFrame = new FrameValue(idProvider.forNewFrame());
-
-        this.slots.entrySet().forEach(x -> derivedFrame.slots.put(x.getKey(), new Slot(derivedFrame, x.getKey(), x.getValue().getLocation(), x.getValue().getValue().reduce(environment))));
-
-        return derivedFrame;*/
-
         FrameValue derivedFrame = new FrameValue(idProvider.forNewFrame());
 
         deriveFrame(this, derivedFrame, value -> {
@@ -272,23 +253,33 @@ public class FrameValue extends AbstractValue2 {
         deriveFrame(this, derivedFrame, value -> {
             // Should be derived value?
             // Should be editable value?
-            return value;
+            return value.shadowed(derivedFrame);
         });
 
         return derivedFrame;
     }
 
     private static void deriveFrame(FrameValue parent, FrameValue child, Function<Value2, Value2> valueRelation) {
-        parent.addObserver(new FrameValueObserver() {
+        parent.addObserver(new Value2Observer() {
             @Override
-            public void addedSlot(String id) {
-                deriveNewSlot(parent, child, id, valueRelation);
+            public void updated(Change change) {
+                if(change instanceof NewSlotChange) {
+                    deriveNewSlot(parent, child, ((NewSlotChange)change).getId(), valueRelation);
+                }
             }
         });
 
         parent.slots.entrySet().forEach(x -> {
             deriveNewSlot(parent, child, x.getKey(), valueRelation);
         });
+
+        child.slots.entrySet().forEach(x -> {
+            x.getValue().setValue(valueRelation.apply(x.getValue().getValue()));
+        });
+    }
+
+    private void declareSlot(String id) {
+        slots.put(id, new Slot(this, id, null, null, false));
     }
 
     private static class ParentChildSlot {
@@ -303,35 +294,33 @@ public class FrameValue extends AbstractValue2 {
 
         ParentChildSlot parentChildSlot = new ParentChildSlot();
 
-        ValueHolderInterface.ValueHolderObserver childObserver = new ValueHolderInterface.ValueHolderObserver() {
+        Value2Observer childObserver = new Value2Observer() {
             @Override
-            public void setValue() {
-                parentChildSlot.hasValue = true;
-            }
-
-            @Override
-            public void setLocation() {
-                parentChildSlot.hasLocation = true;
+            public void updated(Change change) {
+                if(change instanceof ValueHolderInterface.HeldValueChange) {
+                    parentChildSlot.hasValue = true;
+                } else if(change instanceof ValueHolderInterface.HeldLocationChange) {
+                    parentChildSlot.hasLocation = true;
+                }
             }
         };
 
-        parentSlot.addObserver(new ValueHolderInterface.ValueHolderObserver() {
+        parentSlot.addObserver(new Value2Observer() {
             @Override
-            public void setValue() {
-                if(!parentChildSlot.hasValue) {
-                    childSlot.removeObserver(childObserver);
-                    Value2 value = valueRelation.apply(parentSlot.getValue());
-                    childSlot.setValue(value);
-                    childSlot.addObserver(childObserver);
-                }
-            }
-
-            @Override
-            public void setLocation() {
-                if(!parentChildSlot.hasLocation) {
-                    childSlot.removeObserver(childObserver);
-                    childSlot.setLocation(parentSlot.getLocation());
-                    childSlot.addObserver(childObserver);
+            public void updated(Change change) {
+                if(change instanceof ValueHolderInterface.HeldValueChange) {
+                    if(!parentChildSlot.hasValue) {
+                        childSlot.removeObserver(childObserver);
+                        Value2 value = valueRelation.apply(parentSlot.getValue());
+                        childSlot.setValue(value);
+                        childSlot.addObserver(childObserver);
+                    }
+                } else if(change instanceof ValueHolderInterface.HeldLocationChange) {
+                    if(!parentChildSlot.hasLocation) {
+                        childSlot.removeObserver(childObserver);
+                        childSlot.setLocation(parentSlot.getLocation());
+                        childSlot.addObserver(childObserver);
+                    }
                 }
             }
         });

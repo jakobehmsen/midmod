@@ -34,7 +34,7 @@ public class BinaryValue2 extends AbstractValue2 implements Value2Observer {
         ((FlowLayout)view.getLayout()).setHgap(0);
         ((FlowLayout)view.getLayout()).setVgap(0);
 
-        ComponentUtil.addObserverCleanupLogic(this, view, () -> {
+        ComponentUtil.addObserverCleanupLogic(this, view, (Change change) -> {
             view.setSize(view.getPreferredSize());
             view.revalidate();
             view.repaint();
@@ -94,7 +94,7 @@ public class BinaryValue2 extends AbstractValue2 implements Value2Observer {
     }
 
     @Override
-    public void updated() {
+    public void updated(Change change) {
         sendUpdated();
     }
 

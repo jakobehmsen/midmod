@@ -45,21 +45,20 @@ public class Value2ViewWrapper extends JPanel {
 
         add(view);
 
-        value2Holder.addObserver(new ValueHolderInterface.ValueHolderObserver() {
+        ComponentUtil.addObserverCleanupLogic(value2Holder, this, new Value2Observer() {
             @Override
-            public void setValue() {
-                removeAll();
-                JComponent valueView = getValue().toView(playgroundView).getComponent();
-                add(valueView);
-                setView(valueView);
-                revalidate();
-                repaint();
-            }
-
-            @Override
-            public void setLocation() {
-                if(!endingMove) {
-                    Value2ViewWrapper.this.setLocation(getValueHolder().getLocation());
+            public void updated(Change change) {
+                if(change instanceof ValueHolderInterface.HeldValueChange) {
+                    removeAll();
+                    JComponent valueView = getValue().toView(playgroundView).getComponent();
+                    add(valueView);
+                    setView(valueView);
+                    revalidate();
+                    repaint();
+                } else if(change instanceof ValueHolderInterface.HeldLocationChange) {
+                    if(!endingMove) {
+                        Value2ViewWrapper.this.setLocation(getValueHolder().getLocation());
+                    }
                 }
             }
         });

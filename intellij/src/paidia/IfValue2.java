@@ -127,7 +127,7 @@ public class IfValue2 extends AbstractValue2 implements Value2Observer {
     }
 
     @Override
-    public void updated() {
+    public void updated(Change change) {
         sendUpdated();
     }
 

@@ -116,7 +116,7 @@ public class ApplyClassValue2 extends AbstractValue2 implements Value2Observer {
             });*/
         };
 
-        ComponentUtil.addObserverCleanupLogic(this, view, () -> {
+        ComponentUtil.addObserverCleanupLogic(this, view, (Change change) -> {
             view.removeAll();
             addArguments.run();
 
@@ -155,7 +155,7 @@ public class ApplyClassValue2 extends AbstractValue2 implements Value2Observer {
     }
 
     @Override
-    public void updated() {
+    public void updated(Change change) {
         List<String> parameters = value.getParameters();
 
         parameters.stream().filter(x -> !arguments.containsKey(x)).forEach(x -> setArgument(x, argumentProvider.get()));

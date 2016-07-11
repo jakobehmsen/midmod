@@ -17,10 +17,14 @@ public abstract class AbstractValue2 implements Value2 {
     }
 
     protected void sendUpdated() {
-        new ArrayList<>(observers).forEach(x -> x.updated());
+        sendUpdated(new Change(this));
     }
 
-    protected <T> void sendUpdatedFor(Class<T> c, Consumer<T> sender) {
-        new ArrayList<>(observers).stream().filter(x -> c.isInstance(x)).forEach(x -> sender.accept((T)x));
+    protected void sendUpdated(Change change) {
+        new ArrayList<>(observers).forEach(x -> x.updated(change));
     }
+
+    /*protected <T> void sendUpdatedFor(Class<T> c, Consumer<T> sender) {
+        new ArrayList<>(observers).stream().filter(x -> c.isInstance(x)).forEach(x -> sender.accept((T)x));
+    }*/
 }

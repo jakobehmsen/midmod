@@ -12,7 +12,7 @@ public class ReductionValue2 extends AbstractValue2 implements Value2Observer {
 
     public ReductionValue2(Value2 value) {
         this.value = value;
-        updated();
+        updated(new Change(this));
         value.addObserver(this);
     }
 
@@ -49,7 +49,7 @@ public class ReductionValue2 extends AbstractValue2 implements Value2Observer {
         view.add(reduction.toView(playgroundView).getComponent());
         //JLabel label = new JLabel(reduction.getText());
 
-        ComponentUtil.addObserverCleanupLogic(this, view, () -> {
+        ComponentUtil.addObserverCleanupLogic(this, view, (Change change) -> {
             view.removeAll();
             view.add(reduction.toView(playgroundView).getComponent());
             view.revalidate();
@@ -80,9 +80,9 @@ public class ReductionValue2 extends AbstractValue2 implements Value2Observer {
     }
 
     @Override
-    public void updated() {
+    public void updated(Change change) {
         reduction = value.reduce(new Hashtable<>());
-        sendUpdated();
+        sendUpdated(change);
     }
 
     @Override

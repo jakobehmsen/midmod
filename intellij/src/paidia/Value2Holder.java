@@ -18,8 +18,8 @@ public class Value2Holder extends AbstractValue2 implements Value2Observer, Valu
         this.value.removeObserver(this);
         this.value = value;
         this.value.addObserver(this);
-        sendUpdated();
-        sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setValue());
+        sendUpdated(new ValueHolderInterface.HeldValueChange(this));
+        //sendUpdatedFor(ValueHolderInterface.ValueHolderObserver.class, o -> o.setValue());
     }
 
     @Override
@@ -59,8 +59,8 @@ public class Value2Holder extends AbstractValue2 implements Value2Observer, Valu
     }
 
     @Override
-    public void updated() {
-        sendUpdated();
+    public void updated(Change change) {
+        sendUpdated(change);
     }
 
     @Override
