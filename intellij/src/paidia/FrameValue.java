@@ -108,7 +108,7 @@ public class FrameValue extends AbstractValue2 {
 
         @Override
         public void updated(Change change) {
-            sendUpdated();
+            sendUpdated(change);
         }
 
         @Override
@@ -237,10 +237,10 @@ public class FrameValue extends AbstractValue2 {
     public Value2 reduce(Map<String, Value2> environment) {
         FrameValue derivedFrame = new FrameValue(idProvider.forNewFrame());
 
-        deriveFrame(this, derivedFrame, value -> {
+        deriveFrame(this, derivedFrame, slot -> {
             // Should be derived value?
             // Should be editable value?
-            return value.reduce(environment);
+            return slot.reduce();
         });
 
         return derivedFrame;
@@ -250,16 +250,16 @@ public class FrameValue extends AbstractValue2 {
     public Value2 derive() {
         FrameValue derivedFrame = new FrameValue(idProvider.forNewFrame());
 
-        deriveFrame(this, derivedFrame, value -> {
+        deriveFrame(this, derivedFrame, slot -> {
             // Should be derived value?
             // Should be editable value?
-            return value.shadowed(derivedFrame);
+            return slot.getValue().shadowed(derivedFrame);
         });
 
         return derivedFrame;
     }
 
-    private static void deriveFrame(FrameValue parent, FrameValue child, Function<Value2, Value2> valueRelation) {
+    private static void deriveFrame(FrameValue parent, FrameValue child, Function<Slot, Value2> valueRelation) {
         parent.addObserver(new Value2Observer() {
             @Override
             public void updated(Change change) {
@@ -274,7 +274,8 @@ public class FrameValue extends AbstractValue2 {
         });
 
         child.slots.entrySet().forEach(x -> {
-            x.getValue().setValue(valueRelation.apply(x.getValue().getValue()));
+            Slot parentSlot = parent.slots.get(x.getKey());
+            x.getValue().setValue(valueRelation.apply(parentSlot));
         });
     }
 
@@ -287,7 +288,7 @@ public class FrameValue extends AbstractValue2 {
         private boolean hasValue;
     }
 
-    private static void deriveNewSlot(FrameValue parent, FrameValue child, String id, Function<Value2, Value2> valueRelation) {
+    private static void deriveNewSlot(FrameValue parent, FrameValue child, String id, Function<Slot, Value2> valueRelation) {
         Slot parentSlot = parent.getSlot(id);
         Slot childSlot = new Slot(child, id, parentSlot.getLocation(), parentSlot.getValue());
         child.addSlot(childSlot);
@@ -311,7 +312,7 @@ public class FrameValue extends AbstractValue2 {
                 if(change instanceof ValueHolderInterface.HeldValueChange) {
                     if(!parentChildSlot.hasValue) {
                         childSlot.removeObserver(childObserver);
-                        Value2 value = valueRelation.apply(parentSlot.getValue());
+                        Value2 value = valueRelation.apply(parentSlot);
                         childSlot.setValue(value);
                         childSlot.addObserver(childObserver);
                     }

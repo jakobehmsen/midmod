@@ -1,6 +1,8 @@
 package paidia;
 
 import java.awt.*;
+import java.util.Hashtable;
+import java.util.Map;
 
 public interface ValueHolderInterface extends Value2 {
     void setLocation(Point location);
@@ -32,5 +34,18 @@ public interface ValueHolderInterface extends Value2 {
     @Override
     default Value2 getHeldValueOrSelf() {
         return getValue();
+    }
+
+
+
+    @Override
+    default Value2 derive() {
+        return new ProjectionValue(this, v -> ((ValueHolderInterface)v).getValue().derive());
+    }
+
+    @Override
+    default Value2 reduce() {
+        return new ProjectionValue(this, v ->
+            ((ValueHolderInterface)v).getValue().reduce(new Hashtable<>()));
     }
 }

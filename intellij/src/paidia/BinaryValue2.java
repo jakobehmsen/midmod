@@ -90,12 +90,16 @@ public class BinaryValue2 extends AbstractValue2 implements Value2Observer {
 
     @Override
     public Value2 reduce(Map<String, Value2> environment) {
+        /*return new ProjectionValue(this, v -> {
+            return reducer.apply(new Value2[]{lhs.reduce(environment), rhs.reduce(environment)});
+        });*/
+
         return reducer.apply(new Value2[]{lhs.reduce(environment), rhs.reduce(environment)});
     }
 
     @Override
     public void updated(Change change) {
-        sendUpdated();
+        sendUpdated(change);
     }
 
     @Override

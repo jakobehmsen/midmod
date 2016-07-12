@@ -2,6 +2,7 @@ package paidia;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 

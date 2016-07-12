@@ -535,7 +535,8 @@ public class PlaygroundView extends JPanel {
                         This way, frames should could be derived from the proxied via value holders.
                         I.e., via forwarded changes such add "AddedSlot".
                         */
-                        ReductionValue2 reduction = new ReductionValue2(((Value2ViewWrapper)targetValueView).getValueHolder());
+                        Value2 reduction = ((Value2ViewWrapper)e.getComponent()).getValueHolder().reduce();
+                        //ReductionValue2 reduction = new ReductionValue2(((Value2ViewWrapper)targetValueView).getValueHolder());
                         //Value2 reduction =
                         Value2ViewWrapper reductionView = (Value2ViewWrapper) new Value2Holder(reduction).toView(PlaygroundView.this).getComponent();
 
@@ -612,7 +613,11 @@ public class PlaygroundView extends JPanel {
                     JComponent targetComponent = (JComponent) findComponentAt(pointInContentPane);
                     Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
                     if(targetComponent != targetValueView) {
-                        Value2 derivation = ((Value2ViewWrapper)e.getComponent()).getValue().derive();
+                        Value2 derivation = ((Value2ViewWrapper)e.getComponent()).getValueHolder().derive();
+                        //Value2 derivation = ((Value2ViewWrapper)e.getComponent()).getValue().derive();
+                        /*ProjectionValue projectionValue = new ProjectionValue(((Value2ViewWrapper)e.getComponent()).getValueHolder(), v -> {
+                            return ((Value2HolderInterface)v).getValue().derive();
+                        });*/
                         Value2ViewWrapper reductionView = (Value2ViewWrapper) new Value2Holder(derivation).toView(PlaygroundView.this).getComponent();
 
                         if(targetComponent == PlaygroundView.this) {
