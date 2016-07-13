@@ -265,17 +265,27 @@ public class FrameValue extends AbstractValue2 {
             public void updated(Change change) {
                 if(change instanceof NewSlotChange) {
                     deriveNewSlot(parent, child, ((NewSlotChange)change).getId(), valueRelation);
+                    Slot childSlot = child.getSlot(((NewSlotChange)change).getId());
+                    Slot parentSlot = parent.getSlot(((NewSlotChange)change).getId());
+                    childSlot.setValue(valueRelation.apply(parentSlot));
                 }
             }
         });
 
+        Hashtable<String, ParentChildSlotRelation> parentChildSlotMap = new Hashtable<>();
+
         parent.slots.entrySet().forEach(x -> {
-            deriveNewSlot(parent, child, x.getKey(), valueRelation);
+            ParentChildSlotRelation parentChildSlotRelation = deriveNewSlot(parent, child, x.getKey(), valueRelation);
+            parentChildSlotMap.put(x.getKey(), parentChildSlotRelation);
         });
 
         child.slots.entrySet().forEach(x -> {
+            ParentChildSlotRelation parentChildSlotRelation = parentChildSlotMap.get(x.getKey());
             Slot parentSlot = parent.slots.get(x.getKey());
+
+            parentChildSlotRelation.suspend();
             x.getValue().setValue(valueRelation.apply(parentSlot));
+            parentChildSlotRelation.resume();
         });
     }
 
@@ -288,7 +298,12 @@ public class FrameValue extends AbstractValue2 {
         private boolean hasValue;
     }
 
-    private static void deriveNewSlot(FrameValue parent, FrameValue child, String id, Function<Slot, Value2> valueRelation) {
+    private interface ParentChildSlotRelation {
+        void suspend();
+        void resume();
+    }
+
+    private static ParentChildSlotRelation deriveNewSlot(FrameValue parent, FrameValue child, String id, Function<Slot, Value2> valueRelation) {
         Slot parentSlot = parent.getSlot(id);
         Slot childSlot = new Slot(child, id, parentSlot.getLocation(), parentSlot.getValue());
         child.addSlot(childSlot);
@@ -327,6 +342,18 @@ public class FrameValue extends AbstractValue2 {
         });
 
         childSlot.addObserver(childObserver);
+
+        return new ParentChildSlotRelation() {
+            @Override
+            public void suspend() {
+                childSlot.removeObserver(childObserver);
+            }
+
+            @Override
+            public void resume() {
+                childSlot.addObserver(childObserver);
+            }
+        };
     }
 
     @Override
