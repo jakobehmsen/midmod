@@ -972,7 +972,11 @@ public class PlaygroundView extends JPanel {
             @Override
             public void beginEdit(JComponent editorComponent) {
                 if(currentEditableView != null) {
-                    currentEditableView.commitEdit();
+                    try {
+                        currentEditableView.commitEdit();
+                    } catch(Exception e) {
+                        currentEditableView.cancelEdit();
+                    }
                     //currentEditableView.cancelEdit();
                 }
 
