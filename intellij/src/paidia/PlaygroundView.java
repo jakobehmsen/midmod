@@ -538,10 +538,11 @@ public class PlaygroundView extends JPanel {
                         Value2 reduction = ((Value2ViewWrapper)e.getComponent()).getValueHolder().reduce();
                         //ReductionValue2 reduction = new ReductionValue2(((Value2ViewWrapper)targetValueView).getValueHolder());
                         //Value2 reduction =
-                        Value2ViewWrapper reductionView = (Value2ViewWrapper) new Value2Holder(reduction).toView(PlaygroundView.this).getComponent();
+                        //Value2ViewWrapper reductionView = (Value2ViewWrapper) new Value2Holder(reduction).toView(PlaygroundView.this).getComponent();
 
                         if(targetComponent == PlaygroundView.this) {
                             Point pointInTargetComponent = SwingUtilities.convertPoint(PlaygroundView.this, pointInContentPane, targetComponent);
+                            Value2ViewWrapper reductionView = (Value2ViewWrapper) new Value2Holder(reduction).toView(PlaygroundView.this).getComponent();
                             reductionView.setLocation(pointInTargetComponent);
                             add(reductionView);
                         } else {
@@ -550,7 +551,7 @@ public class PlaygroundView extends JPanel {
                             // Find nearest Value2ViewWrapper
                             Value2ViewWrapper targetComponentParent = (Value2ViewWrapper) Stream.iterate(targetComponent, c -> (JComponent)c.getParent()).filter(x -> x instanceof Value2ViewWrapper).findFirst().get();
                             // TODO: Should be ValueViewContainer instead of ValueView
-                            targetComponentParent.drop(PlaygroundView.this, reductionView, pointInTargetComponent);
+                            targetComponentParent.drop(PlaygroundView.this, reduction, pointInTargetComponent);
                         }
                     //}
                 }
@@ -618,16 +619,17 @@ public class PlaygroundView extends JPanel {
                         /*ProjectionValue projectionValue = new ProjectionValue(((Value2ViewWrapper)e.getComponent()).getValueHolder(), v -> {
                             return ((Value2HolderInterface)v).getValue().derive();
                         });*/
-                        Value2ViewWrapper reductionView = (Value2ViewWrapper) new Value2Holder(derivation).toView(PlaygroundView.this).getComponent();
+                        //Value2ViewWrapper reductionView = (Value2ViewWrapper) new Value2Holder(derivation).toView(PlaygroundView.this).getComponent();
 
                         if(targetComponent == PlaygroundView.this) {
+                            Value2ViewWrapper reductionView = (Value2ViewWrapper) new Value2Holder(derivation).toView(PlaygroundView.this).getComponent();
                             reductionView.setLocation(pointInTargetComponent);
                             add(reductionView);
                         } else {
                             // Find nearest Value2ViewWrapper
                             Value2ViewWrapper targetComponentParent = (Value2ViewWrapper) Stream.iterate(targetComponent, c -> (JComponent)c.getParent()).filter(x -> x instanceof Value2ViewWrapper).findFirst().get();
                             // TODO: Should be ValueViewContainer instead of ValueView
-                            targetComponentParent.drop(PlaygroundView.this, reductionView, pointInTargetComponent);
+                            targetComponentParent.drop(PlaygroundView.this, derivation, pointInTargetComponent);
                         }
 
                         /*if(((Value2ViewWrapper)e.getComponent()).getValue() instanceof ClassValue) {

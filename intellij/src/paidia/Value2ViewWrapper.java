@@ -90,8 +90,8 @@ public class Value2ViewWrapper extends JPanel {
         this.view = view;
     }
 
-    public void drop(PlaygroundView playgroundView, Value2ViewWrapper droppedComponent, Point location) {
-        getValue().drop(playgroundView, droppedComponent, location, this);
+    public void drop(PlaygroundView playgroundView, Value2 droppedValue, Point location) {
+        getValue().drop(playgroundView, droppedValue, location, this);
     }
 
     public void startMove() {

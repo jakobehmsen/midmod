@@ -61,6 +61,10 @@ public class Value2Holder extends AbstractValue2 implements Value2Observer, Valu
 
     @Override
     public void updated(Change change) {
+        // Don't forward location changes
+        if(change instanceof ValueHolderInterface.HeldLocationChange)
+            return;
+
         sendUpdated(change);
     }
 

@@ -5,7 +5,6 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 public interface Value2 {
     ViewBinding2 toView(PlaygroundView playgroundView);
@@ -105,11 +104,13 @@ public interface Value2 {
         };
     }
 
-    default void drop(PlaygroundView playgroundView, Value2ViewWrapper droppedComponent, Point location, Value2ViewWrapper value2ViewWrapper) {
-        value2ViewWrapper.setView(droppedComponent.getView());
+    default void drop(PlaygroundView playgroundView, Value2 droppedValue, Point location, Value2ViewWrapper value2ViewWrapper) {
+        Value2ViewWrapper droppedComponentView = (Value2ViewWrapper) new Value2Holder(droppedValue).toView(playgroundView).getComponent();
+
+        value2ViewWrapper.setView(droppedComponentView);
         value2ViewWrapper.removeAll();
-        value2ViewWrapper.add(droppedComponent.getView());
-        value2ViewWrapper.setValue(droppedComponent.getValue());
+        value2ViewWrapper.add(droppedComponentView);
+        value2ViewWrapper.setValue(droppedValue);
         value2ViewWrapper.revalidate();
         value2ViewWrapper.repaint();
 

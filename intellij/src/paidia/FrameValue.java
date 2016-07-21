@@ -264,10 +264,13 @@ public class FrameValue extends AbstractValue2 {
             @Override
             public void updated(Change change) {
                 if(change instanceof NewSlotChange) {
-                    deriveNewSlot(parent, child, ((NewSlotChange)change).getId(), valueRelation);
+                    ParentChildSlotRelation parentChildSlotRelation = deriveNewSlot(parent, child, ((NewSlotChange)change).getId(), valueRelation);
                     Slot childSlot = child.getSlot(((NewSlotChange)change).getId());
                     Slot parentSlot = parent.getSlot(((NewSlotChange)change).getId());
+
+                    parentChildSlotRelation.suspend();
                     childSlot.setValue(valueRelation.apply(parentSlot));
+                    parentChildSlotRelation.resume();
                 }
             }
         });
@@ -428,11 +431,11 @@ public class FrameValue extends AbstractValue2 {
     }
 
     @Override
-    public void drop(PlaygroundView playgroundView, Value2ViewWrapper droppedComponent, Point location, Value2ViewWrapper value2ViewWrapper) {
+    public void drop(PlaygroundView playgroundView, Value2 droppedValue, Point location, Value2ViewWrapper value2ViewWrapper) {
         JComponent targetComponent = value2ViewWrapper.getView();
         Point targetLocation = location;
 
-        newSlot(targetLocation, droppedComponent.getValue());
+        newSlot(targetLocation, droppedValue);
     }
 
     @Override
