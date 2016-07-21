@@ -23,7 +23,7 @@ public interface Value2 {
     }
 
     default Value2 derive() {
-        return this;
+        return shadowed(new FrameValue(null));
     }
 
     default List<String> getParameters() {
