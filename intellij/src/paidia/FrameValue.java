@@ -6,8 +6,8 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ContainerAdapter;
 import java.awt.event.ContainerEvent;
-import java.util.Hashtable;
-import java.util.Map;
+import java.util.*;
+import java.util.List;
 import java.util.function.Function;
 
 public class FrameValue extends AbstractValue2 {
@@ -112,9 +112,16 @@ public class FrameValue extends AbstractValue2 {
         }
 
         @Override
-        public Value2 shadowed(FrameValue frame) {
-            return frame.getSlot(id);
+        public Value2 shadowed(List<FrameValue> frames) {
+            FrameValue frameWithSlot = frames.stream().filter(x -> x.hasSlot(id)).findFirst().get();
+
+            // Find frames with slot; bind to that slot
+            return frameWithSlot.getSlot(id);
         }
+    }
+
+    private boolean hasSlot(String id) {
+        return slots.containsKey(id);
     }
 
     private Slot getSlot(String id) {
@@ -248,12 +255,32 @@ public class FrameValue extends AbstractValue2 {
 
     @Override
     public Value2 derive() {
-        FrameValue derivedFrame = new FrameValue(idProvider.forNewFrame());
+        /*FrameValue derivedFrame = new FrameValue(idProvider.forNewFrame());
 
         deriveFrame(this, derivedFrame, slot -> {
             // Should be derived value?
             // Should be editable value?
             return slot.getValue().shadowed(derivedFrame);
+        });
+
+        return derivedFrame;*/
+
+        return shadowed(Arrays.asList());
+    }
+
+    @Override
+    public Value2 shadowed(java.util.List<FrameValue> frames) {
+        FrameValue derivedFrame = new FrameValue(idProvider.forNewFrame());
+
+        List<FrameValue> newFrames = new ArrayList<>();
+
+        newFrames.addAll(frames);
+        newFrames.add(derivedFrame);
+
+        deriveFrame(this, derivedFrame, slot -> {
+            // Should be derived value?
+            // Should be editable value?
+            return slot.getValue().shadowed(newFrames);
         });
 
         return derivedFrame;

@@ -40,7 +40,9 @@ public interface ValueHolderInterface extends Value2 {
 
     @Override
     default Value2 derive() {
-        return new ProjectionValue(this, v -> ((ValueHolderInterface)v).getValue().derive());
+        return getValue().derive();
+
+        //return new ProjectionValue(this, v -> ((ValueHolderInterface)v).getValue().derive());
     }
 
     @Override

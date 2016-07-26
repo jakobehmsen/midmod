@@ -109,7 +109,7 @@ public class BinaryValue2 extends AbstractValue2 implements Value2Observer {
     }
 
     @Override
-    public Value2 shadowed(FrameValue frame) {
-        return new BinaryValue2(operator, textOperator, lhs.shadowed(frame), rhs.shadowed(frame), reducer);
+    public Value2 shadowed(List<FrameValue> frames) {
+        return new BinaryValue2(operator, textOperator, lhs.shadowed(frames), rhs.shadowed(frames), reducer);
     }
 }

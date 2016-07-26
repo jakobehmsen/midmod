@@ -6,7 +6,7 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ContainerAdapter;
 import java.awt.event.ContainerEvent;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
 public class ProjectionValue extends AbstractValue2 implements Value2Observer {
@@ -95,7 +95,7 @@ public class ProjectionValue extends AbstractValue2 implements Value2Observer {
     }
 
     @Override
-    public Value2 shadowed(FrameValue frame) {
-        return new ReductionValue2(source.shadowed(frame));
+    public Value2 shadowed(java.util.List<FrameValue> frames) {
+        return new ReductionValue2(source.shadowed(frames));
     }
 }

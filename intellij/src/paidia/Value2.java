@@ -3,6 +3,7 @@ package paidia;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -22,7 +23,7 @@ public interface Value2 {
     }
 
     default Value2 derive() {
-        return shadowed(new FrameValue(null));
+        return shadowed(Arrays.asList(new FrameValue(null)));
     }
 
     default List<String> getParameters() {
@@ -35,7 +36,7 @@ public interface Value2 {
 
     }
 
-    default Value2 shadowed(FrameValue frame) {
+    default Value2 shadowed(List<FrameValue> frames) {
         return this;
     }
 

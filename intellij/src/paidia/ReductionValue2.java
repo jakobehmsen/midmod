@@ -3,8 +3,7 @@ package paidia;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.Hashtable;
-import java.util.Map;
+import java.util.*;
 
 public class ReductionValue2 extends AbstractValue2 implements Value2Observer {
     private Value2 value;
@@ -86,7 +85,7 @@ public class ReductionValue2 extends AbstractValue2 implements Value2Observer {
     }
 
     @Override
-    public Value2 shadowed(FrameValue frame) {
-        return new ReductionValue2(value.shadowed(frame));
+    public Value2 shadowed(java.util.List<FrameValue> frames) {
+        return new ReductionValue2(value.shadowed(frames));
     }
 }

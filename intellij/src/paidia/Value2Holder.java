@@ -2,7 +2,6 @@ package paidia;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
@@ -81,8 +80,8 @@ public class Value2Holder extends AbstractValue2 implements Value2Observer, Valu
     }
 
     @Override
-    public Value2 shadowed(FrameValue frame) {
-        return value.shadowed(frame);
+    public Value2 shadowed(List<FrameValue> frames) {
+        return value.shadowed(frames);
     }
 
     @Override
