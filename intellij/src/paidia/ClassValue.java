@@ -237,7 +237,7 @@ public class ClassValue extends AbstractValue2 implements Value2Observer {
     }
 
     @Override
-    public void drop(PlaygroundView playgroundView, Value2 droppedValue, Point location, Value2ViewWrapper value2ViewWrapper) {
+    public void drop(PlaygroundView playgroundView, Value2ViewWrapper sourceDroppedValue, Value2 droppedValue, Point location, Value2ViewWrapper value2ViewWrapper) {
         /*JComponent targetComponent = (JComponent) value2ViewWrapper.getView().getComponentAt(location.x, location.y);
         Point targetLocation = SwingUtilities.convertPoint(value2ViewWrapper.getView(), location, targetComponent);
         int componentIndex = value2ViewWrapper.getView().getComponentZOrder(targetComponent);

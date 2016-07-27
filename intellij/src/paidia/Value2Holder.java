@@ -2,8 +2,10 @@ package paidia;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class Value2Holder extends AbstractValue2 implements Value2Observer, ValueHolderInterface {
     private Value2 value;
@@ -61,7 +63,10 @@ public class Value2Holder extends AbstractValue2 implements Value2Observer, Valu
     @Override
     public void updated(Change change) {
         // Don't forward location changes
-        if(change instanceof ValueHolderInterface.HeldLocationChange)
+        /*if(change instanceof ValueHolderInterface.HeldLocationChange)
+            return;*/
+        // Is this filter to inclusive? Should it be restricted to only location changes?
+        if(change instanceof ValueHolderInterface.MetaValueChange)
             return;
 
         sendUpdated(change);
@@ -84,7 +89,27 @@ public class Value2Holder extends AbstractValue2 implements Value2Observer, Valu
         return value.shadowed(frames);
     }
 
+    private Hashtable<String, Object> metaValues = new Hashtable<>();
+
     @Override
+    public void setMetaValue(String id, Object value) {
+        if(id.equals("Size")) {
+            metaValues.put(id, value);
+            sendUpdated(new MetaValueChange(this, id));
+        }
+    }
+
+    @Override
+    public Object getMetaValue(String id) {
+        return metaValues.get(id);
+    }
+
+    @Override
+    public Set<String> getMetaValueIds() {
+        return metaValues.keySet();
+    }
+
+    /*@Override
     public void setLocation(Point location) {
 
     }
@@ -92,5 +117,5 @@ public class Value2Holder extends AbstractValue2 implements Value2Observer, Valu
     @Override
     public Point getLocation() {
         return null;
-    }
+    }*/
 }

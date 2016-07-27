@@ -105,7 +105,7 @@ public interface Value2 {
         };
     }
 
-    default void drop(PlaygroundView playgroundView, Value2 droppedValue, Point location, Value2ViewWrapper value2ViewWrapper) {
+    default void drop(PlaygroundView playgroundView, Value2ViewWrapper sourceDroppedValue, Value2 droppedValue, Point location, Value2ViewWrapper value2ViewWrapper) {
         Value2ViewWrapper droppedComponentView = (Value2ViewWrapper) new Value2Holder(droppedValue).toView(playgroundView).getComponent();
 
         value2ViewWrapper.setView(droppedComponentView);

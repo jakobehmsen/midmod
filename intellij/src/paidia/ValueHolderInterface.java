@@ -3,11 +3,30 @@ package paidia;
 import java.awt.*;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.Set;
 
 public interface ValueHolderInterface extends Value2 {
-    void setLocation(Point location);
+    void setMetaValue(String id, Object value);
+    Object getMetaValue(String id);
+    Set<String> getMetaValueIds();
 
-    Point getLocation();
+    class MetaValueChange extends Change {
+        private String id;
+
+        public MetaValueChange(Value2 source, String id) {
+            super(source);
+
+            this.id = id;
+        }
+
+        public String getId() {
+            return id;
+        }
+    }
+
+    /*void setLocation(Point location);
+
+    Point getLocation();*/
 
     class HeldValueChange extends Change {
         public HeldValueChange(Value2 source) {
@@ -15,11 +34,11 @@ public interface ValueHolderInterface extends Value2 {
         }
     }
 
-    class HeldLocationChange extends Change {
+    /*class HeldLocationChange extends Change {
         public HeldLocationChange(Value2 source) {
             super(source);
         }
-    }
+    }*/
 
     /*interface ValueHolderObserver extends Value2Observer {
         default void updated(Change change) { }

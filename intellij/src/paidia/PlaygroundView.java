@@ -551,7 +551,7 @@ public class PlaygroundView extends JPanel {
                             // Find nearest Value2ViewWrapper
                             Value2ViewWrapper targetComponentParent = (Value2ViewWrapper) Stream.iterate(targetComponent, c -> (JComponent)c.getParent()).filter(x -> x instanceof Value2ViewWrapper).findFirst().get();
                             // TODO: Should be ValueViewContainer instead of ValueView
-                            targetComponentParent.drop(PlaygroundView.this, reduction, pointInTargetComponent);
+                            targetComponentParent.drop(PlaygroundView.this, (Value2ViewWrapper)e.getComponent(), reduction, pointInTargetComponent);
                         }
                     //}
                 }
@@ -622,14 +622,30 @@ public class PlaygroundView extends JPanel {
                         //Value2ViewWrapper reductionView = (Value2ViewWrapper) new Value2Holder(derivation).toView(PlaygroundView.this).getComponent();
 
                         if(targetComponent == PlaygroundView.this) {
-                            Value2ViewWrapper reductionView = (Value2ViewWrapper) new Value2Holder(derivation).toView(PlaygroundView.this).getComponent();
+                            Value2Holder derivationHolder = new Value2Holder(derivation);
+                            // Location changes should be kept local?
+                            ((Value2ViewWrapper)e.getComponent()).getValueHolder().addObserver(new Value2Observer() {
+                                @Override
+                                public void updated(Change change) {
+                                    if(change instanceof ValueHolderInterface.MetaValueChange) {
+                                        String mvid = ((ValueHolderInterface.MetaValueChange)change).getId();
+                                        derivationHolder.setMetaValue(mvid, ((Value2ViewWrapper)e.getComponent()).getValueHolder().getMetaValue(mvid));
+                                    }
+                                }
+                            });
+                            ((Value2ViewWrapper)e.getComponent()).getValueHolder().getMetaValueIds().forEach(mvid ->
+                                derivationHolder.setMetaValue(mvid, ((Value2ViewWrapper)e.getComponent()).getValueHolder().getMetaValue(mvid)));
+
+                            Value2ViewWrapper reductionView = (Value2ViewWrapper) derivationHolder.toView(PlaygroundView.this).getComponent();
                             reductionView.setLocation(pointInTargetComponent);
                             add(reductionView);
                         } else {
                             // Find nearest Value2ViewWrapper
                             Value2ViewWrapper targetComponentParent = (Value2ViewWrapper) Stream.iterate(targetComponent, c -> (JComponent)c.getParent()).filter(x -> x instanceof Value2ViewWrapper).findFirst().get();
                             // TODO: Should be ValueViewContainer instead of ValueView
-                            targetComponentParent.drop(PlaygroundView.this, derivation, pointInTargetComponent);
+                            // Attach observer, as above, for the created value holder;
+                            //  For frames, that is for the new slot
+                            targetComponentParent.drop(PlaygroundView.this, (Value2ViewWrapper)e.getComponent(), derivation, pointInTargetComponent);
                         }
 
                         /*if(((Value2ViewWrapper)e.getComponent()).getValue() instanceof ClassValue) {

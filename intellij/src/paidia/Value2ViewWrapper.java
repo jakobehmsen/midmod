@@ -55,13 +55,30 @@ public class Value2ViewWrapper extends JPanel {
                     setView(valueView);
                     revalidate();
                     repaint();
-                } else if(change instanceof ValueHolderInterface.HeldLocationChange) {
+                } else if(change instanceof ValueHolderInterface.MetaValueChange) {
+                    ValueHolderInterface.MetaValueChange metaValueChange = (ValueHolderInterface.MetaValueChange) change;
+                    if(metaValueChange.getId().equals("Location")) {
+                        if (!endingMove) {
+                            Value2ViewWrapper.this.setLocation((Point) getValueHolder().getMetaValue("Location"));
+                        }
+                    } else if(metaValueChange.getId().equals("Size")) {
+                        if (!endingMove) {
+                            Value2ViewWrapper.this.getView().setSize((Dimension) getValueHolder().getMetaValue("Size"));
+                            Value2ViewWrapper.this.getView().setPreferredSize((Dimension) getValueHolder().getMetaValue("Size"));
+                        }
+                    }
+                }/* else if(change instanceof ValueHolderInterface.HeldLocationChange) {
                     if(!endingMove) {
                         Value2ViewWrapper.this.setLocation(getValueHolder().getLocation());
                     }
-                }
+                }*/
             }
         });
+
+        if(value2Holder.getMetaValue("Size") != null) {
+            getView().setSize((Dimension) value2Holder.getMetaValue("Size"));
+            getView().setPreferredSize((Dimension) value2Holder.getMetaValue("Size"));
+        }
     }
 
     public Value2 getValue() {
@@ -90,8 +107,8 @@ public class Value2ViewWrapper extends JPanel {
         this.view = view;
     }
 
-    public void drop(PlaygroundView playgroundView, Value2 droppedValue, Point location) {
-        getValue().drop(playgroundView, droppedValue, location, this);
+    public void drop(PlaygroundView playgroundView, Value2ViewWrapper sourceDroppedValue, Value2 droppedValue, Point location) {
+        getValue().drop(playgroundView, sourceDroppedValue, droppedValue, location, this);
     }
 
     public void startMove() {
@@ -102,7 +119,9 @@ public class Value2ViewWrapper extends JPanel {
 
     public void endMove() {
         endingMove = true;
-        getValueHolder().setLocation(getLocation());
+        //getValueHolder().setLocation(getLocation());
+        getValueHolder().setMetaValue("Location", getLocation());
+        getValueHolder().setMetaValue("Size", getSize());
         endingMove = false;
     }
 }

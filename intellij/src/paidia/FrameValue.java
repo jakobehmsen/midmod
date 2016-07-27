@@ -27,7 +27,7 @@ public class FrameValue extends AbstractValue2 {
     private static class Slot extends AbstractValue2 implements Value2Observer, ValueHolderInterface {
         private FrameValue frame;
         private String id;
-        private Point location;
+        //private Point location;
         private Value2 value;
 
         private Slot(FrameValue frame, String id, Point location, Value2 value) {
@@ -37,7 +37,8 @@ public class FrameValue extends AbstractValue2 {
         private Slot(FrameValue frame, String id, Point location, Value2 value, boolean initialize) {
             this.frame = frame;
             this.id = id;
-            this.location = location;
+            setMetaValue("Location", location);
+            //this.location = location;
             this.value = value;
 
             if(initialize) {
@@ -54,7 +55,8 @@ public class FrameValue extends AbstractValue2 {
             Value2ViewWrapper value2ViewWrapper = new Value2ViewWrapper(playgroundView, this, getValue().toView(playgroundView).getComponent());
 
             playgroundView.makeEditableByMouse(value2ViewWrapper);
-            value2ViewWrapper.setLocation(getLocation());
+            value2ViewWrapper.setLocation((Point) getMetaValue("Location"));
+            //value2ViewWrapper.setLocation(getLocation());
 
             return new ViewBinding2() {
                 @Override
@@ -79,7 +81,7 @@ public class FrameValue extends AbstractValue2 {
             frame.sendUpdated();
         }
 
-        @Override
+        /*@Override
         public void setLocation(Point location) {
             this.location = location;
 
@@ -87,8 +89,27 @@ public class FrameValue extends AbstractValue2 {
             frame.sendUpdated();
         }
 
+        @Override
         public Point getLocation() {
             return location;
+        }*/
+
+        private Hashtable<String, Object> metaValues = new Hashtable<>();
+
+        @Override
+        public void setMetaValue(String id, Object value) {
+            metaValues.put(id, value);
+            sendUpdated(new MetaValueChange(this, id));
+        }
+
+        @Override
+        public Object getMetaValue(String id) {
+            return metaValues.get(id);
+        }
+
+        @Override
+        public Set<String> getMetaValueIds() {
+            return metaValues.keySet();
         }
 
         @Override
@@ -324,7 +345,8 @@ public class FrameValue extends AbstractValue2 {
     }
 
     private static class ParentChildSlot {
-        private boolean hasLocation;
+        //private boolean hasLocation;
+        private HashSet<String> heldMetaValueIds = new HashSet<>();
         private boolean hasValue;
     }
 
@@ -335,7 +357,10 @@ public class FrameValue extends AbstractValue2 {
 
     private static ParentChildSlotRelation deriveNewSlot(FrameValue parent, FrameValue child, String id, Function<Slot, Value2> valueRelation) {
         Slot parentSlot = parent.getSlot(id);
-        Slot childSlot = new Slot(child, id, parentSlot.getLocation(), parentSlot.getValue());
+        //Slot childSlot = new Slot(child, id, parentSlot.getLocation(), parentSlot.getValue());
+        Slot childSlot = new Slot(child, id, (Point) parentSlot.getMetaValue("Location"), parentSlot.getValue());
+        parentSlot.getMetaValueIds().forEach(mvid ->
+            childSlot.setMetaValue(mvid, parentSlot.getMetaValue(mvid)));
         child.addSlot(childSlot);
 
         ParentChildSlot parentChildSlot = new ParentChildSlot();
@@ -345,9 +370,11 @@ public class FrameValue extends AbstractValue2 {
             public void updated(Change change) {
                 if(change instanceof ValueHolderInterface.HeldValueChange) {
                     parentChildSlot.hasValue = true;
-                } else if(change instanceof ValueHolderInterface.HeldLocationChange) {
+                } else if(change instanceof ValueHolderInterface.MetaValueChange) {
+                    parentChildSlot.heldMetaValueIds.add(((ValueHolderInterface.MetaValueChange)change).getId());
+                }/* else if(change instanceof ValueHolderInterface.HeldLocationChange) {
                     parentChildSlot.hasLocation = true;
-                }
+                }*/
             }
         };
 
@@ -361,13 +388,21 @@ public class FrameValue extends AbstractValue2 {
                         childSlot.setValue(value);
                         childSlot.addObserver(childObserver);
                     }
-                } else if(change instanceof ValueHolderInterface.HeldLocationChange) {
+                } else if(change instanceof ValueHolderInterface.MetaValueChange) {
+                    String mvid = ((ValueHolderInterface.MetaValueChange)change).getId();
+                    if(!parentChildSlot.heldMetaValueIds.contains(mvid)) {
+                        childSlot.removeObserver(childObserver);
+                        childSlot.setMetaValue(mvid, parentSlot.getMetaValue(mvid));
+                        //childSlot.setLocation(parentSlot.getLocation());
+                        childSlot.addObserver(childObserver);
+                    }
+                }/* else if(change instanceof ValueHolderInterface.HeldLocationChange) {
                     if(!parentChildSlot.hasLocation) {
                         childSlot.removeObserver(childObserver);
                         childSlot.setLocation(parentSlot.getLocation());
                         childSlot.addObserver(childObserver);
                     }
-                }
+                }*/
             }
         });
 
@@ -442,7 +477,6 @@ public class FrameValue extends AbstractValue2 {
                 targetComponent.remove(editorComponent);
 
                 newSlot(targetLocation, parsedValue);
-
                 targetComponent.repaint();
                 targetComponent.revalidate();
             }
@@ -458,11 +492,32 @@ public class FrameValue extends AbstractValue2 {
     }
 
     @Override
-    public void drop(PlaygroundView playgroundView, Value2 droppedValue, Point location, Value2ViewWrapper value2ViewWrapper) {
+    public void drop(PlaygroundView playgroundView, Value2ViewWrapper sourceDroppedValue, Value2 droppedValue, Point location, Value2ViewWrapper value2ViewWrapper) {
         JComponent targetComponent = value2ViewWrapper.getView();
         Point targetLocation = location;
 
-        newSlot(targetLocation, droppedValue);
+        Slot slot = newSlot(targetLocation, droppedValue);
+
+        // Code duplicate from PlaygroundView
+        // Location changes should be kept local?
+        sourceDroppedValue.getValueHolder().addObserver(new Value2Observer() {
+            @Override
+            public void updated(Change change) {
+                if(change instanceof ValueHolderInterface.MetaValueChange) {
+                    String mvid = ((ValueHolderInterface.MetaValueChange)change).getId();
+                    slot.setMetaValue(mvid, sourceDroppedValue.getValueHolder().getMetaValue(mvid));
+                }
+            }
+        });
+
+        /*
+        sourceDroppedValue.getValueHolder().getMetaValueIds().forEach(mvid ->
+            slot.setMetaValue(mvid, sourceDroppedValue.getValueHolder().getMetaValue(mvid)));
+        */
+
+        // Should be all meta values? Except location?
+        if(sourceDroppedValue.getValueHolder().getMetaValue("Size") != null)
+            slot.setMetaValue("Size", sourceDroppedValue.getValueHolder().getMetaValue("Size"));
     }
 
     @Override
