@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.util.Arrays;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -109,15 +110,22 @@ public class Main {
 
             instances.add(toolBar, BorderLayout.NORTH);
 
+            JList<Object> instancesList = new JList<>(new DefaultListModel<Object>());
+
             toolBar.add(new AbstractAction("New...") {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     JDialog dialog = new JDialog(frame, "New " + typeName);
 
-                    dialog.getContentPane().setLayout(new GridLayout(0, 2));
-                    ((JPanel)dialog.getContentPane()).setBorder(BorderFactory.createEmptyBorder(3, 3, 3, 3));
-                    ((GridLayout)dialog.getContentPane().getLayout()).setHgap(3);
-                    ((GridLayout)dialog.getContentPane().getLayout()).setVgap(3);
+                    dialog.getContentPane().setLayout(new BorderLayout());
+                    ;
+                    JPanel fieldsPanel = new JPanel(new GridLayout(0, 2));
+
+                    fieldsPanel.setBorder(BorderFactory.createEmptyBorder(3, 3, 3, 3));
+                    ((GridLayout)fieldsPanel.getLayout()).setHgap(3);
+                    ((GridLayout)fieldsPanel.getLayout()).setVgap(3);
+
+                    Hashtable<String, JComponent> instanceFieldValueComponents = new Hashtable<>();
 
                     type.getFieldNames().forEach(fieldName -> {
                         Field field = type.getField(fieldName);
@@ -134,9 +142,45 @@ public class Main {
                             valueComponent = new JTextField();
                             ((JTextField)valueComponent).setColumns(10);
                         }
-                        dialog.getContentPane().add(label);
-                        dialog.getContentPane().add(valueComponent);
+                        fieldsPanel.add(label);
+                        fieldsPanel.add(valueComponent);
+                        instanceFieldValueComponents.put(fieldName, valueComponent);
                     });
+
+                    dialog.getContentPane().add(fieldsPanel, BorderLayout.CENTER);
+
+                    JPanel buttonPanel = new JPanel();
+                    JButton buttonOK = new JButton("OK");
+                    buttonOK.addActionListener(actionEvent -> {
+                        Hashtable<String, Object> instanceFieldValues = new Hashtable<>();
+
+                        type.getFieldNames().forEach(fieldName -> {
+
+                            Field field = type.getField(fieldName);
+
+                            Object value = null;
+                            JComponent valueComponent = instanceFieldValueComponents.get(fieldName);
+
+                            if(field.getType().getAttribute("name").equals("int")) {
+                                value = ((Number)((JSpinner)valueComponent).getValue()).intValue();
+                            } else if(field.getType().getAttribute("name").equals("string")) {
+                                value = ((JTextField)valueComponent).getText();
+                            }
+
+                            instanceFieldValues.put(fieldName, value);
+                        });
+
+                        ((DefaultListModel<Object>)instancesList.getModel()).addElement(instanceFieldValues);
+
+                        dialog.setVisible(false);
+                    });
+                    buttonPanel.add(buttonOK);
+                    JButton buttonCancel = new JButton("Cancel");
+                    buttonCancel.addActionListener(actionEvent -> {
+                        dialog.setVisible(false);
+                    });
+                    buttonPanel.add(buttonCancel);
+                    dialog.getContentPane().add(buttonPanel, BorderLayout.SOUTH);
 
                     dialog.pack();
 
@@ -159,8 +203,6 @@ public class Main {
 
                 }
             });
-
-            JList<Object> instancesList = new JList<>();
 
             instances.add(instancesList, BorderLayout.CENTER);
 
