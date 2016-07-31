@@ -10,6 +10,24 @@ import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) {
+        JsonChangeStatement statement = new SlotAssign(new ThisExpression(), new SpecificIdExpression("x"), new ObjectChangeExpression(6));
+        //JsonChangeStatement pattern = new SlotAssign(new ThisExpression(), new SpecificIdExpression("x"), new ObjectChangeExpression(6));
+        JsonChangeStatement pattern = new SlotAssign(new ThisExpression(), new SpecificIdExpression("x"), new CaptureExpression("valueOfX"));
+
+        Hashtable<String, Object> captures = new Hashtable<>();
+
+        System.out.println("statement:\n" + statement);
+        System.out.println("pattern:\n" + pattern);
+
+        if(pattern.matches(statement, captures)) {
+            System.out.println("captures:\n" + captures);
+        }
+
+        if(1 != 2)
+            return;
+
+
+
         List<Change> journal = Arrays.asList(
             new AddComplexType("Person"),
             new AddFieldToComplexType("Person", "name", new Field(new PrimitiveType().withAttribute("name", "string"))),
@@ -21,6 +39,10 @@ public class Main {
             new AddFieldToComplexType("Person", "salary", new Field(new PrimitiveType().withAttribute("name", "int"))),
             new SetAttributeInFieldInComplexType("Person", "salary", "displayName", "Salary")
         );
+
+        new Interaction(new VerticalSectionView(Arrays.asList(
+            new LabelValuePair("name", new DefaultEditView(new GetFieldExpression(new GetVariableExpression("person"), "name")))
+        )));
 
         Image image = new Image();
 
