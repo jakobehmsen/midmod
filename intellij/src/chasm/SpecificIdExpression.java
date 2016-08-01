@@ -1,10 +1,8 @@
 package chasm;
 
+import java.util.List;
 import java.util.Map;
 
-/**
- * Created by jakob on 31-07-16.
- */
 public class SpecificIdExpression extends IdExpression {
     private String id;
 
@@ -17,7 +15,7 @@ public class SpecificIdExpression extends IdExpression {
     }
 
     @Override
-    public boolean matches(IdExpression idExpression, Map<String, Object> captures) {
+    public boolean matches(IdExpression idExpression, Map<String, List<Object>> captures) {
         if(idExpression instanceof SpecificIdExpression) {
             SpecificIdExpression specificIdExpression = (SpecificIdExpression) idExpression;
             return this.id.equals(specificIdExpression.id);

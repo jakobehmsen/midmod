@@ -1,10 +1,8 @@
 package chasm;
 
+import java.util.List;
 import java.util.Map;
 
-/**
- * Created by jakob on 31-07-16.
- */
 public class SlotAccess extends JsonChangeExpression {
     private JsonChangeExpression target;
     private IdExpression id;
@@ -23,7 +21,7 @@ public class SlotAccess extends JsonChangeExpression {
     }
 
     @Override
-    public boolean matches(JsonChangeExpression expression, Map<String, Object> captures) {
+    public boolean matches(JsonChangeExpression expression, Map<String, List<Object>> captures) {
         if(expression instanceof SlotAccess) {
             SlotAccess slotAccess = (SlotAccess)expression;
             return this.target.matches(slotAccess.target, captures) && this.id.matches(slotAccess.id, captures);

@@ -1,5 +1,7 @@
 package chasm;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class CaptureIdExpression extends IdExpression {
@@ -10,10 +12,11 @@ public class CaptureIdExpression extends IdExpression {
     }
 
     @Override
-    public boolean matches(IdExpression idExpression, Map<String, Object> captures) {
+    public boolean matches(IdExpression idExpression, Map<String, List<Object>> captures) {
         if(idExpression instanceof SpecificIdExpression) {
             SpecificIdExpression specificIdExpression = (SpecificIdExpression) idExpression;
-            captures.put(captureId, new ObjectChangeExpression(specificIdExpression.getId()));
+            captures.computeIfAbsent(captureId, k -> new ArrayList<>());
+            captures.get(captureId).add(new ObjectChangeExpression(specificIdExpression.getId()));
             return true;
         }
 

@@ -7,20 +7,82 @@ import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Main {
     public static void main(String[] args) {
-        JsonChangeStatement statement = new SlotAssign(new ThisExpression(), new SpecificIdExpression("x"), new ObjectChangeExpression(6));
-        //JsonChangeStatement pattern = new SlotAssign(new ThisExpression(), new SpecificIdExpression("x"), new ObjectChangeExpression(6));
-        JsonChangeStatement pattern = new SlotAssign(new ThisExpression(), new SpecificIdExpression("x"), new CaptureExpression("valueOfX"));
+        //JsonChangeStatement statement = new SlotAssign(new ThisExpression(), new SpecificIdExpression("x"), new ObjectChangeExpression(6));
 
-        Hashtable<String, Object> captures = new Hashtable<>();
+        /*
+        types.person = {
+            fields: [
+                {name: "field1", type: {name: "int"}},
+                {name: "field2", type: {name: "int"}},
+                {name: "field3", type: {name: "int"}}
+            ]
+        }
+        */
+        JsonChangeStatement statement = new SlotAssign(new SlotAccess(new ThisExpression(), new SpecificIdExpression("types")), new SpecificIdExpression("person"), new ObjectLiteralExpression(Arrays.asList(
+            new ObjectLiteralExpression.Slot("fields", new ArrayChangeExpression(Arrays.asList(
+                new ObjectLiteralExpression(Arrays.asList(
+                    new ObjectLiteralExpression.Slot("name", new ObjectChangeExpression("field1")),
+                    new ObjectLiteralExpression.Slot("type", new ObjectLiteralExpression(Arrays.asList(
+                        new ObjectLiteralExpression.Slot("name", new ObjectChangeExpression("int"))
+                    )))
+                )),
+                new ObjectLiteralExpression(Arrays.asList(
+                    new ObjectLiteralExpression.Slot("name", new ObjectChangeExpression("field2")),
+                    new ObjectLiteralExpression.Slot("type", new ObjectLiteralExpression(Arrays.asList(
+                        new ObjectLiteralExpression.Slot("name", new ObjectChangeExpression("int"))
+                    )))
+                )),
+                new ObjectLiteralExpression(Arrays.asList(
+                    new ObjectLiteralExpression.Slot("name", new ObjectChangeExpression("field3")),
+                    new ObjectLiteralExpression.Slot("type", new ObjectLiteralExpression(Arrays.asList(
+                        new ObjectLiteralExpression.Slot("name", new ObjectChangeExpression("int"))
+                    )))
+                ))
+            )))
+        )));
+
+        //JsonChangeStatement pattern = new SlotAssign(new ThisExpression(), new SpecificIdExpression("x"), new ObjectChangeExpression(6));
+        //JsonChangeStatement pattern = new SlotAssign(new ThisExpression(), new SpecificIdExpression("x"), new CaptureExpression("valueOfX"));
+        /*
+        types.person = {
+            fields: [
+                {name: :fieldName, type: {name: :fieldTypeName}}
+            ]
+        }
+
+        types.person = {
+            fields: [{
+                    name: :fieldName,
+                    type: {
+                        name: :fieldTypeName
+                    }
+                }:fields // Structure all inner captures into object literal
+            ]
+        }
+        */
+        // TODO: Support "Structure all inner captures into object literal"
+        JsonChangeStatement pattern = new SlotAssign(new SlotAccess(new ThisExpression(), new SpecificIdExpression("types")), new CaptureIdExpression("typeName"), new ObjectLiteralExpression(Arrays.asList(
+            new ObjectLiteralExpression.Slot("fields", new SubArrayChangeExpression(new ObjectLiteralExpression(Arrays.asList(
+                new ObjectLiteralExpression.Slot("name", new CaptureExpression("fieldName")),
+                new ObjectLiteralExpression.Slot("type", new ObjectLiteralExpression(Arrays.asList(
+                    new ObjectLiteralExpression.Slot("name", new CaptureExpression("fieldTypeName"))
+                )))
+            ))))
+        )));
+
+        Hashtable<String, List<Object>> captures = new Hashtable<>();
 
         System.out.println("statement:\n" + statement);
         System.out.println("pattern:\n" + pattern);
 
         if(pattern.matches(statement, captures)) {
             System.out.println("captures:\n" + captures);
+
+            System.out.println("CREATE TABLE " + captures.get("typeName").get(0));
         }
 
         if(1 != 2)

@@ -1,13 +1,11 @@
 package chasm;
 
+import java.util.List;
 import java.util.Map;
 
-/**
- * Created by jakob on 31-07-16.
- */
 public class ThisExpression extends JsonChangeExpression {
     @Override
-    public boolean matches(JsonChangeExpression expression, Map<String, Object> captures) {
+    public boolean matches(JsonChangeExpression expression, Map<String, List<Object>> captures) {
         return expression instanceof ThisExpression;
     }
 
