@@ -22,4 +22,9 @@ public class CaptureIdExpression extends IdExpression {
 
         return false;
     }
+
+    @Override
+    public String toString() {
+        return "@" + captureId;
+    }
 }

@@ -26,4 +26,9 @@ public class ArrayChangeExpression extends JsonChangeExpression {
 
         return false;
     }
+
+    @Override
+    public String toString() {
+        return items.toString();
+    }
 }

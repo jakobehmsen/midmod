@@ -29,4 +29,9 @@ public class SlotAccess extends JsonChangeExpression {
 
         return false;
     }
+
+    @Override
+    public String toString() {
+        return target + "." + id;
+    }
 }

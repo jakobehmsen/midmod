@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class Main {
     public static void main(String[] args) {
@@ -64,14 +63,14 @@ public class Main {
             ]
         }
         */
-        // TODO: Support "Structure all inner captures into object literal"
+
         JsonChangeStatement pattern = new SlotAssign(new SlotAccess(new ThisExpression(), new SpecificIdExpression("types")), new CaptureIdExpression("typeName"), new ObjectLiteralExpression(Arrays.asList(
-            new ObjectLiteralExpression.Slot("fields", new SubArrayChangeExpression(new ObjectLiteralExpression(Arrays.asList(
+            new ObjectLiteralExpression.Slot("fields", new TemplateArrayChangeExpression(new ClosedCaptureExpression(new ObjectLiteralExpression(Arrays.asList(
                 new ObjectLiteralExpression.Slot("name", new CaptureExpression("fieldName")),
                 new ObjectLiteralExpression.Slot("type", new ObjectLiteralExpression(Arrays.asList(
                     new ObjectLiteralExpression.Slot("name", new CaptureExpression("fieldTypeName"))
                 )))
-            ))))
+            )), "fields")))
         )));
 
         Hashtable<String, List<Object>> captures = new Hashtable<>();
@@ -82,7 +81,11 @@ public class Main {
         if(pattern.matches(statement, captures)) {
             System.out.println("captures:\n" + captures);
 
-            System.out.println("CREATE TABLE " + captures.get("typeName").get(0));
+            System.out.println("CREATE TABLE " + captures.get("typeName").get(0) + "(" +
+                captures.get("fields").stream().map(x ->
+                    ((ObjectLiteralExpression)x).get("fieldName").toString() + " " +
+                    ((ObjectLiteralExpression)x).get("fieldTypeName").toString()
+                ).collect(Collectors.joining(", ")) + ")");
         }
 
         if(1 != 2)

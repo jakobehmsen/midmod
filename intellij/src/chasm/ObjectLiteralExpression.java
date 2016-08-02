@@ -2,8 +2,13 @@ package chasm;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class ObjectLiteralExpression extends JsonChangeExpression {
+    public Object get(String slotId) {
+        return slots.stream().filter(x -> x.id.equals(slotId)).findFirst().get().value;
+    }
+
     public static class Slot {
         private String id;
         private JsonChangeExpression value;
@@ -32,5 +37,10 @@ public class ObjectLiteralExpression extends JsonChangeExpression {
         }
 
         return false;
+    }
+
+    @Override
+    public String toString() {
+        return "{" + slots.stream().map(x -> x.id + ": " + x.value).collect(Collectors.joining(", ")) + "}";
     }
 }

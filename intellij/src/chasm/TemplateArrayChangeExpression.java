@@ -3,10 +3,10 @@ package chasm;
 import java.util.List;
 import java.util.Map;
 
-public class SubArrayChangeExpression extends JsonChangeExpression {
+public class TemplateArrayChangeExpression extends JsonChangeExpression {
     private JsonChangeExpression itemTemplate;
 
-    public SubArrayChangeExpression(JsonChangeExpression itemTemplate) {
+    public TemplateArrayChangeExpression(JsonChangeExpression itemTemplate) {
         this.itemTemplate = itemTemplate;
     }
 
@@ -20,5 +20,10 @@ public class SubArrayChangeExpression extends JsonChangeExpression {
         }
 
         return false;
+    }
+
+    @Override
+    public String toString() {
+        return "[" + itemTemplate.toString() + "]";
     }
 }
