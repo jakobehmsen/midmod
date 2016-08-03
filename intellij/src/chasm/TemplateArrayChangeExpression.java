@@ -3,15 +3,15 @@ package chasm;
 import java.util.List;
 import java.util.Map;
 
-public class TemplateArrayChangeExpression extends JsonChangeExpression {
-    private JsonChangeExpression itemTemplate;
+public class TemplateArrayChangeExpression extends ChangeExpression {
+    private ChangeExpression itemTemplate;
 
-    public TemplateArrayChangeExpression(JsonChangeExpression itemTemplate) {
+    public TemplateArrayChangeExpression(ChangeExpression itemTemplate) {
         this.itemTemplate = itemTemplate;
     }
 
     @Override
-    public boolean matches(JsonChangeExpression expression, Map<String, List<Object>> captures) {
+    public boolean matches(ChangeExpression expression, Map<String, List<Object>> captures) {
         if(expression instanceof ArrayChangeExpression) {
             ArrayChangeExpression arrayChangeExpression = (ArrayChangeExpression)expression;
             arrayChangeExpression.getItems().forEach(item -> itemTemplate.matches(item, captures));

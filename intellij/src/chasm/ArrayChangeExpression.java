@@ -4,19 +4,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
-public class ArrayChangeExpression extends JsonChangeExpression {
-    private List<JsonChangeExpression> items;
+public class ArrayChangeExpression extends ChangeExpression {
+    private List<ChangeExpression> items;
 
-    public ArrayChangeExpression(List<JsonChangeExpression> items) {
+    public ArrayChangeExpression(List<ChangeExpression> items) {
         this.items = items;
     }
 
-    public List<JsonChangeExpression> getItems() {
+    public List<ChangeExpression> getItems() {
         return items;
     }
 
     @Override
-    public boolean matches(JsonChangeExpression expression, Map<String, List<Object>> captures) {
+    public boolean matches(ChangeExpression expression, Map<String, List<Object>> captures) {
         if(expression instanceof ArrayChangeExpression) {
             ArrayChangeExpression arrayChangeExpression = (ArrayChangeExpression)expression;
             return

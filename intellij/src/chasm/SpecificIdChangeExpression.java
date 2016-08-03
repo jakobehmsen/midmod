@@ -1,23 +1,24 @@
 package chasm;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class CaptureIdExpression extends IdChangeExpression {
-    private String captureId;
+public class SpecificIdChangeExpression extends IdChangeExpression {
+    private String id;
 
-    public CaptureIdExpression(String captureId) {
-        this.captureId = captureId;
+    public SpecificIdChangeExpression(String id) {
+        this.id = id;
+    }
+
+    public String getId() {
+        return id;
     }
 
     @Override
     public boolean matches(IdChangeExpression idExpression, Map<String, List<Object>> captures) {
         if(idExpression instanceof SpecificIdChangeExpression) {
             SpecificIdChangeExpression specificIdExpression = (SpecificIdChangeExpression) idExpression;
-            captures.computeIfAbsent(captureId, k -> new ArrayList<>());
-            captures.get(captureId).add(new ObjectChangeExpression(specificIdExpression.getId()));
-            return true;
+            return this.id.equals(specificIdExpression.id);
         }
 
         return false;
@@ -25,6 +26,6 @@ public class CaptureIdExpression extends IdChangeExpression {
 
     @Override
     public String toString() {
-        return "@" + captureId;
+        return id;
     }
 }

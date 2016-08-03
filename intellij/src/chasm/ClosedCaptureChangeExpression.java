@@ -7,22 +7,22 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 
-public class ClosedCaptureExpression extends JsonChangeExpression {
-    private JsonChangeExpression target;
+public class ClosedCaptureChangeExpression extends ChangeExpression {
+    private ChangeExpression target;
     private String captureId;
 
-    public ClosedCaptureExpression(JsonChangeExpression target, String captureId) {
+    public ClosedCaptureChangeExpression(ChangeExpression target, String captureId) {
         this.target = target;
         this.captureId = captureId;
     }
 
     @Override
-    public boolean matches(JsonChangeExpression expression, Map<String, List<Object>> captures) {
+    public boolean matches(ChangeExpression expression, Map<String, List<Object>> captures) {
         Hashtable<String, List<Object>> closedCaptures = new Hashtable<>();
 
         if(target.matches(expression, closedCaptures)) {
-            ObjectLiteralExpression objectLiteralExpression = new ObjectLiteralExpression(
-                closedCaptures.entrySet().stream().map(x -> new ObjectLiteralExpression.Slot(x.getKey(), (JsonChangeExpression) x.getValue().get(0))).collect(Collectors.toList())
+            ObjectLiteralChangeExpression objectLiteralExpression = new ObjectLiteralChangeExpression(
+                closedCaptures.entrySet().stream().map(x -> new ObjectLiteralChangeExpression.Slot(x.getKey(), (ChangeExpression) x.getValue().get(0))).collect(Collectors.toList())
             );
 
             captures.computeIfAbsent(captureId, k -> new ArrayList<>());

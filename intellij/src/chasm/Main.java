@@ -20,26 +20,26 @@ public class Main {
         types.person.fields +=
         */
 
-        ArrayList<JsonChangeStatement> statements = new ArrayList<>();
+        ArrayList<ChangeStatement> statements = new ArrayList<>();
 
-        JsonChangeStatement statement1 = new SlotAssign(new SlotAccess(new ThisExpression(), new SpecificIdExpression("types")), new SpecificIdExpression("person"), new ObjectLiteralExpression(Arrays.asList(
-            new ObjectLiteralExpression.Slot("fields", new ArrayChangeExpression(Arrays.asList(
-                new ObjectLiteralExpression(Arrays.asList(
-                    new ObjectLiteralExpression.Slot("name", new ObjectChangeExpression("field1")),
-                    new ObjectLiteralExpression.Slot("type", new ObjectLiteralExpression(Arrays.asList(
-                        new ObjectLiteralExpression.Slot("name", new ObjectChangeExpression("int"))
+        ChangeStatement statement1 = new SlotAssignChangeExpression(new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression("types")), new SpecificIdChangeExpression("person"), new ObjectLiteralChangeExpression(Arrays.asList(
+            new ObjectLiteralChangeExpression.Slot("fields", new ArrayChangeExpression(Arrays.asList(
+                new ObjectLiteralChangeExpression(Arrays.asList(
+                    new ObjectLiteralChangeExpression.Slot("name", new ObjectChangeExpression("field1")),
+                    new ObjectLiteralChangeExpression.Slot("type", new ObjectLiteralChangeExpression(Arrays.asList(
+                        new ObjectLiteralChangeExpression.Slot("name", new ObjectChangeExpression("int"))
                     )))
                 )),
-                new ObjectLiteralExpression(Arrays.asList(
-                    new ObjectLiteralExpression.Slot("name", new ObjectChangeExpression("field2")),
-                    new ObjectLiteralExpression.Slot("type", new ObjectLiteralExpression(Arrays.asList(
-                        new ObjectLiteralExpression.Slot("name", new ObjectChangeExpression("int"))
+                new ObjectLiteralChangeExpression(Arrays.asList(
+                    new ObjectLiteralChangeExpression.Slot("name", new ObjectChangeExpression("field2")),
+                    new ObjectLiteralChangeExpression.Slot("type", new ObjectLiteralChangeExpression(Arrays.asList(
+                        new ObjectLiteralChangeExpression.Slot("name", new ObjectChangeExpression("int"))
                     )))
                 )),
-                new ObjectLiteralExpression(Arrays.asList(
-                    new ObjectLiteralExpression.Slot("name", new ObjectChangeExpression("field3")),
-                    new ObjectLiteralExpression.Slot("type", new ObjectLiteralExpression(Arrays.asList(
-                        new ObjectLiteralExpression.Slot("name", new ObjectChangeExpression("int"))
+                new ObjectLiteralChangeExpression(Arrays.asList(
+                    new ObjectLiteralChangeExpression.Slot("name", new ObjectChangeExpression("field3")),
+                    new ObjectLiteralChangeExpression.Slot("type", new ObjectLiteralChangeExpression(Arrays.asList(
+                        new ObjectLiteralChangeExpression.Slot("name", new ObjectChangeExpression("int"))
                     )))
                 ))
             )))
@@ -47,10 +47,10 @@ public class Main {
 
         statements.add(statement1);
 
-        JsonChangeStatement statement2 = new CollectionAddChangeStatement(new SlotAccess(new SlotAccess(new ThisExpression(), new SpecificIdExpression("types")), new SpecificIdExpression("person")), new SpecificIdExpression("fields"), new ObjectLiteralExpression(Arrays.asList(
-            new ObjectLiteralExpression.Slot("name", new ObjectChangeExpression("field4")),
-            new ObjectLiteralExpression.Slot("type", new ObjectLiteralExpression(Arrays.asList(
-                new ObjectLiteralExpression.Slot("name", new ObjectChangeExpression("int"))
+        ChangeStatement statement2 = new CollectionAddChangeStatement(new SlotAccessChangeExpression(new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression("types")), new SpecificIdChangeExpression("person")), new SpecificIdChangeExpression("fields"), new ObjectLiteralChangeExpression(Arrays.asList(
+            new ObjectLiteralChangeExpression.Slot("name", new ObjectChangeExpression("field4")),
+            new ObjectLiteralChangeExpression.Slot("type", new ObjectLiteralChangeExpression(Arrays.asList(
+                new ObjectLiteralChangeExpression.Slot("name", new ObjectChangeExpression("int"))
             )))
         )));
 
@@ -76,14 +76,14 @@ public class Main {
         }
         */
 
-        Hashtable<JsonChangeStatement, Consumer<Map<String, List<Object>>>> patternActions = new Hashtable<>();
+        Hashtable<ChangeStatement, Consumer<Map<String, List<Object>>>> patternActions = new Hashtable<>();
 
         // types.@typeName = {fields: [{name: @fieldName, type: {name: @fieldTypeName}} @fields]}
-        JsonChangeStatement pattern1 = new SlotAssign(new SlotAccess(new ThisExpression(), new SpecificIdExpression("types")), new CaptureIdExpression("typeName"), new ObjectLiteralExpression(Arrays.asList(
-            new ObjectLiteralExpression.Slot("fields", new TemplateArrayChangeExpression(new ClosedCaptureExpression(new ObjectLiteralExpression(Arrays.asList(
-                new ObjectLiteralExpression.Slot("name", new CaptureExpression("fieldName")),
-                new ObjectLiteralExpression.Slot("type", new ObjectLiteralExpression(Arrays.asList(
-                    new ObjectLiteralExpression.Slot("name", new CaptureExpression("fieldTypeName"))
+        ChangeStatement pattern1 = new SlotAssignChangeExpression(new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression("types")), new CaptureIdExpression("typeName"), new ObjectLiteralChangeExpression(Arrays.asList(
+            new ObjectLiteralChangeExpression.Slot("fields", new TemplateArrayChangeExpression(new ClosedCaptureChangeExpression(new ObjectLiteralChangeExpression(Arrays.asList(
+                new ObjectLiteralChangeExpression.Slot("name", new CaptureChangeExpression("fieldName")),
+                new ObjectLiteralChangeExpression.Slot("type", new ObjectLiteralChangeExpression(Arrays.asList(
+                    new ObjectLiteralChangeExpression.Slot("name", new CaptureChangeExpression("fieldTypeName"))
                 )))
             )), "fields")))
         )));
@@ -91,17 +91,17 @@ public class Main {
         patternActions.put(pattern1, captures -> {
             System.out.println("CREATE TABLE " + captures.get("typeName").get(0) + "(" +
                 captures.get("fields").stream().map(x ->
-                    ((ObjectLiteralExpression)x).get("fieldName").toString() + " " +
-                        ((ObjectLiteralExpression)x).get("fieldTypeName").toString()
+                    ((ObjectLiteralChangeExpression)x).get("fieldName").toString() + " " +
+                        ((ObjectLiteralChangeExpression)x).get("fieldTypeName").toString()
                 ).collect(Collectors.joining(", ")) + ")");
         });
 
 
         // types.@typeName.fields += {name: @fieldName, type: {name: @fieldTypeName}}
-        JsonChangeStatement pattern2 = new CollectionAddChangeStatement(new SlotAccess(new SlotAccess(new ThisExpression(), new SpecificIdExpression("types")), new CaptureIdExpression("typeName")), new SpecificIdExpression("fields"), new ObjectLiteralExpression(Arrays.asList(
-            new ObjectLiteralExpression.Slot("name", new CaptureExpression("fieldName")),
-            new ObjectLiteralExpression.Slot("type", new ObjectLiteralExpression(Arrays.asList(
-                new ObjectLiteralExpression.Slot("name", new CaptureExpression("fieldTypeName"))
+        ChangeStatement pattern2 = new CollectionAddChangeStatement(new SlotAccessChangeExpression(new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression("types")), new CaptureIdExpression("typeName")), new SpecificIdChangeExpression("fields"), new ObjectLiteralChangeExpression(Arrays.asList(
+            new ObjectLiteralChangeExpression.Slot("name", new CaptureChangeExpression("fieldName")),
+            new ObjectLiteralChangeExpression.Slot("type", new ObjectLiteralChangeExpression(Arrays.asList(
+                new ObjectLiteralChangeExpression.Slot("name", new CaptureChangeExpression("fieldTypeName"))
             )))
         )));
 
