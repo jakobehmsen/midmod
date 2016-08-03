@@ -1,9 +1,5 @@
 package chasm;
 
-public class DefaultEditView extends View {
-    private Expression expression;
+public class DefaultEditView {
 
-    public DefaultEditView(Expression expression) {
-        this.expression = expression;
-    }
 }

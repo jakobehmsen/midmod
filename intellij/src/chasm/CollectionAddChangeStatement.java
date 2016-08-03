@@ -14,18 +14,6 @@ public class CollectionAddChangeStatement extends JsonChangeStatement {
         this.value = value;
     }
 
-    public JsonChangeExpression getTarget() {
-        return target;
-    }
-
-    public IdExpression getId() {
-        return id;
-    }
-
-    public JsonChangeExpression getValue() {
-        return value;
-    }
-
     @Override
     public boolean matches(JsonChangeStatement statement, Map<String, List<Object>> captures) {
         if(statement instanceof CollectionAddChangeStatement) {

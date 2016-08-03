@@ -12,14 +12,6 @@ public class SlotAccess extends JsonChangeExpression {
         this.id = id;
     }
 
-    public JsonChangeExpression getTarget() {
-        return target;
-    }
-
-    public IdExpression getId() {
-        return id;
-    }
-
     @Override
     public boolean matches(JsonChangeExpression expression, Map<String, List<Object>> captures) {
         if(expression instanceof SlotAccess) {
