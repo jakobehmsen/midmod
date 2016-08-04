@@ -1,5 +1,7 @@
 package chasm;
 
+import chasm.changelang.Parser;
+
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -20,9 +22,9 @@ public class Main {
         types.person.fields +=
         */
 
-        ArrayList<ChangeStatement> statements = new ArrayList<>();
+        List<ChangeStatement> statements = new ArrayList<>();
 
-        ChangeStatement statement1 = new SlotAssignChangeExpression(new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression("types")), new SpecificIdChangeExpression("person"), new ObjectLiteralChangeExpression(Arrays.asList(
+        ChangeStatement statement1 = new SlotAssignChangeStatement(new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression("types")), new SpecificIdChangeExpression("person"), new ObjectLiteralChangeExpression(Arrays.asList(
             new ObjectLiteralChangeExpression.Slot("fields", new ArrayChangeExpression(Arrays.asList(
                 new ObjectLiteralChangeExpression(Arrays.asList(
                     new ObjectLiteralChangeExpression.Slot("name", new ObjectChangeExpression("field1")),
@@ -56,6 +58,19 @@ public class Main {
 
         statements.add(statement2);
 
+        String src =
+            "types.person = {\n" +
+            "   fields: [\n" +
+            "       {name: \"field1\", type: {name: \"int\"}},\n" +
+            "       {name: \"field2\", type: {name: \"int\"}},\n" +
+            "       {name: \"field3\", type: {name: \"int\"}}\n" +
+            "   ]\n" +
+            "}" +
+            "\n\n" +
+            "type.person.fields.field4 = {name: \"field4\", type: {name: \"int\"}}";
+        System.out.println(src);
+        statements = Parser.parse(src);
+
         //JsonChangeStatement pattern = new SlotAssign(new ThisExpression(), new SpecificIdExpression("x"), new ObjectChangeExpression(6));
         //JsonChangeStatement pattern = new SlotAssign(new ThisExpression(), new SpecificIdExpression("x"), new CaptureExpression("valueOfX"));
         /*
@@ -79,7 +94,7 @@ public class Main {
         Hashtable<ChangeStatement, Consumer<Map<String, List<Object>>>> patternActions = new Hashtable<>();
 
         // types.@typeName = {fields: [{name: @fieldName, type: {name: @fieldTypeName}} @fields]}
-        ChangeStatement pattern1 = new SlotAssignChangeExpression(new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression("types")), new CaptureIdExpression("typeName"), new ObjectLiteralChangeExpression(Arrays.asList(
+        ChangeStatement pattern1 = new SlotAssignChangeStatement(new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression("types")), new CaptureIdExpression("typeName"), new ObjectLiteralChangeExpression(Arrays.asList(
             new ObjectLiteralChangeExpression.Slot("fields", new TemplateArrayChangeExpression(new ClosedCaptureChangeExpression(new ObjectLiteralChangeExpression(Arrays.asList(
                 new ObjectLiteralChangeExpression.Slot("name", new CaptureChangeExpression("fieldName")),
                 new ObjectLiteralChangeExpression.Slot("type", new ObjectLiteralChangeExpression(Arrays.asList(
