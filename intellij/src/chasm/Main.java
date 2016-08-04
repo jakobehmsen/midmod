@@ -8,57 +8,7 @@ import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) {
-        //JsonChangeStatement statement = new SlotAssign(new ThisExpression(), new SpecificIdExpression("x"), new ObjectChangeExpression(6));
-
-        /*
-        types.person = {
-            fields: [
-                {name: "field1", type: {name: "int"}},
-                {name: "field2", type: {name: "int"}},
-                {name: "field3", type: {name: "int"}}
-            ]
-        }
-
-        types.person.fields +=
-        */
-
-        List<ChangeStatement> statements = new ArrayList<>();
-
-        ChangeStatement statement1 = new SlotAssignChangeStatement(new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression("types")), new SpecificIdChangeExpression("person"), new ObjectLiteralChangeExpression(Arrays.asList(
-            new ObjectLiteralChangeExpression.Slot("fields", new ArrayChangeExpression(Arrays.asList(
-                new ObjectLiteralChangeExpression(Arrays.asList(
-                    new ObjectLiteralChangeExpression.Slot("name", new ObjectChangeExpression("field1")),
-                    new ObjectLiteralChangeExpression.Slot("type", new ObjectLiteralChangeExpression(Arrays.asList(
-                        new ObjectLiteralChangeExpression.Slot("name", new ObjectChangeExpression("int"))
-                    )))
-                )),
-                new ObjectLiteralChangeExpression(Arrays.asList(
-                    new ObjectLiteralChangeExpression.Slot("name", new ObjectChangeExpression("field2")),
-                    new ObjectLiteralChangeExpression.Slot("type", new ObjectLiteralChangeExpression(Arrays.asList(
-                        new ObjectLiteralChangeExpression.Slot("name", new ObjectChangeExpression("int"))
-                    )))
-                )),
-                new ObjectLiteralChangeExpression(Arrays.asList(
-                    new ObjectLiteralChangeExpression.Slot("name", new ObjectChangeExpression("field3")),
-                    new ObjectLiteralChangeExpression.Slot("type", new ObjectLiteralChangeExpression(Arrays.asList(
-                        new ObjectLiteralChangeExpression.Slot("name", new ObjectChangeExpression("int"))
-                    )))
-                ))
-            )))
-        )));
-
-        statements.add(statement1);
-
-        ChangeStatement statement2 = new CollectionAddChangeStatement(new SlotAccessChangeExpression(new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression("types")), new SpecificIdChangeExpression("person")), new SpecificIdChangeExpression("fields"), new ObjectLiteralChangeExpression(Arrays.asList(
-            new ObjectLiteralChangeExpression.Slot("name", new ObjectChangeExpression("field4")),
-            new ObjectLiteralChangeExpression.Slot("type", new ObjectLiteralChangeExpression(Arrays.asList(
-                new ObjectLiteralChangeExpression.Slot("name", new ObjectChangeExpression("int"))
-            )))
-        )));
-
-        statements.add(statement2);
-
-        String src =
+        String srcStatements =
             "types.person = {\n" +
             "   fields: [\n" +
             "       {name: \"field1\", type: {name: \"int\"}},\n" +
@@ -68,42 +18,12 @@ public class Main {
             "}" +
             "\n" +
             "types.person.fields.field4 = {type: {name: \"int\"}}";
-        System.out.println(src);
-        statements = Parser.parse(src);
-
-        //JsonChangeStatement pattern = new SlotAssign(new ThisExpression(), new SpecificIdExpression("x"), new ObjectChangeExpression(6));
-        //JsonChangeStatement pattern = new SlotAssign(new ThisExpression(), new SpecificIdExpression("x"), new CaptureExpression("valueOfX"));
-        /*
-        types.person = {
-            fields: [
-                {name: :fieldName, type: {name: :fieldTypeName}}
-            ]
-        }
-
-        types.person = {
-            fields: [{
-                    name: :fieldName,
-                    type: {
-                        name: :fieldTypeName
-                    }
-                }:fields // Structure all inner captures into object literal
-            ]
-        }
-        */
+        System.out.println(srcStatements);
+        List<ChangeStatement> statements = Parser.parse(srcStatements);
 
         Hashtable<ChangeStatement, Consumer<Map<String, List<Object>>>> patternActions = new Hashtable<>();
 
-        // types.@typeName = {fields: [{name: @fieldName, type: {name: @fieldTypeName}} @fields]}
-        ChangeStatement pattern1 = new SlotAssignChangeStatement(new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression("types")), new CaptureIdExpression("typeName"), new ObjectLiteralChangeExpression(Arrays.asList(
-            new ObjectLiteralChangeExpression.Slot("fields", new TemplateArrayChangeExpression(new ClosedCaptureChangeExpression(new ObjectLiteralChangeExpression(Arrays.asList(
-                new ObjectLiteralChangeExpression.Slot("name", new CaptureChangeExpression("fieldName")),
-                new ObjectLiteralChangeExpression.Slot("type", new ObjectLiteralChangeExpression(Arrays.asList(
-                    new ObjectLiteralChangeExpression.Slot("name", new CaptureChangeExpression("fieldTypeName"))
-                )))
-            )), "fields")))
-        )));
-
-        patternActions.put(pattern1, captures -> {
+        patternActions.put(Parser.parse("types.@typeName = {fields: #[{name: @fieldName, type: {name: @fieldTypeName}} @fields]}").get(0), captures -> {
             System.out.println("CREATE TABLE " + captures.get("typeName").get(0) + "(" +
                 captures.get("fields").stream().map(x ->
                     ((ObjectLiteralChangeExpression)x).get("fieldName").toString() + " " +
@@ -111,37 +31,29 @@ public class Main {
                 ).collect(Collectors.joining(", ")) + ")");
         });
 
-        // types.@typeName.fields.@fieldName = {type: {name: @fieldTypeName}}
-        ChangeStatement pattern2 = new CollectionAddChangeStatement(new SlotAccessChangeExpression(new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression("types")), new CaptureIdExpression("typeName")), new SpecificIdChangeExpression("fields"), new ObjectLiteralChangeExpression(Arrays.asList(
-            new ObjectLiteralChangeExpression.Slot("name", new CaptureChangeExpression("fieldName")),
-            new ObjectLiteralChangeExpression.Slot("type", new ObjectLiteralChangeExpression(Arrays.asList(
-                new ObjectLiteralChangeExpression.Slot("name", new CaptureChangeExpression("fieldTypeName"))
-            )))
-        )));
-
-        patternActions.put(pattern2, captures -> {
+        patternActions.put(Parser.parse("types.@typeName.fields.@fieldName = {type: {name: @fieldTypeName}}").get(0), captures -> {
             System.out.println("ALTER TABLE " + captures.get("typeName").get(0) + "\n" +
                 "ADD COLUMN " + captures.get("fieldName") + " " + captures.get("fieldTypeName"));
         });
-
-        /*
-        // types.@typeName.fields += {name: @fieldName, type: {name: @fieldTypeName}}
-        ChangeStatement pattern2 = new CollectionAddChangeStatement(new SlotAccessChangeExpression(new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression("types")), new CaptureIdExpression("typeName")), new SpecificIdChangeExpression("fields"), new ObjectLiteralChangeExpression(Arrays.asList(
-            new ObjectLiteralChangeExpression.Slot("name", new CaptureChangeExpression("fieldName")),
-            new ObjectLiteralChangeExpression.Slot("type", new ObjectLiteralChangeExpression(Arrays.asList(
-                new ObjectLiteralChangeExpression.Slot("name", new CaptureChangeExpression("fieldTypeName"))
-            )))
-        )));
-
-        patternActions.put(pattern2, captures -> {
-            System.out.println("ALTER TABLE " + captures.get("typeName").get(0) + "\n" +
-                "ADD COLUMN " + captures.get("fieldName") + " " + captures.get("fieldTypeName"));
-        });
-        */
 
         System.out.println("statements:\n" + statements.stream().map(x -> x.toString()).collect(Collectors.joining("\n")));
         System.out.println("patternActions:\n" + patternActions.entrySet().stream().map(x ->
             x.getKey() + " => " + x.getValue()).collect(Collectors.joining("\n")));
+
+        /*
+        What if something like the following could be written to replace:
+
+        types.@typeName = {fields: #[{name: @fieldName, type: {name: @fieldTypeName}} @fields]} => {
+            System.out.println("CREATE TABLE " + typeName + "(" +
+                fields.stream().map(function(x) {return fieldName + " " + fieldTypeName}).collect(Collectors.joining(", ")) +
+                ")")
+        }
+
+        types.@typeName.fields.@fieldName = {type: {name: @fieldTypeName}} => {
+            System.out.println("ALTER TABLE " + typeName + "\n" +
+                "ADD COLUMN " + fieldName + " " + fieldTypeName);
+        }
+        */
 
         statements.forEach(statement -> {
             patternActions.entrySet().stream().filter(x -> {

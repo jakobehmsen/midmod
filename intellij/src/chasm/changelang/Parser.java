@@ -31,25 +31,16 @@ public class Parser {
             @Override
             public ChangeStatement visitThisSlotAssign(ChangelangParser.ThisSlotAssignContext ctx) {
                 ChangeExpression value = parse(ctx.expression());
-                return new SlotAssignChangeStatement(
-                    new ThisChangeExpression(),
-                    new SpecificIdChangeExpression(ctx.identifier().getText()),
-                    value);
+                return new SlotAssignChangeStatement(new ThisChangeExpression(), parseId(ctx.identifier()), value);
             }
 
             @Override
             public ChangeStatement visitExpression(ChangelangParser.ExpressionContext ctx) {
-                ChangeExpression expression = parse((ParserRuleContext) ctx.getChild(0));
-
-                if(ctx.expressionSlotAccess() != null || ctx.expressionSlotAccess().size() > 0) {
-                    for (ChangelangParser.ExpressionSlotAccessContext expressionSlotAccessContext : ctx.expressionSlotAccess()) {
-                        expression = new SlotAccessChangeExpression(expression, new SpecificIdChangeExpression(expressionSlotAccessContext.identifier().getText()));
-                    }
-                }
+                ChangeExpression expression = parseExpression(ctx);
 
                 if(ctx.expressionSlotAssign() != null) {
                     ChangeExpression value = parse(ctx.expressionSlotAssign().expression());
-                    return new SlotAssignChangeStatement(expression, new SpecificIdChangeExpression(ctx.expressionSlotAssign().identifier().getText()), value);
+                    return new SlotAssignChangeStatement(expression, parseId(ctx.expressionSlotAssign().identifier()), value);
                 } else {
                     throw new IllegalArgumentException();
                 }
@@ -57,11 +48,34 @@ public class Parser {
         });
     }
 
+    private static ChangeExpression parseExpression(ChangelangParser.ExpressionContext ctx) {
+        ChangeExpression expression = parse((ParserRuleContext) ctx.getChild(0));
+
+        if(ctx.expressionSlotAccess() != null || ctx.expressionSlotAccess().size() > 0) {
+            for (ChangelangParser.ExpressionSlotAccessContext expressionSlotAccessContext : ctx.expressionSlotAccess()) {
+                expression = new SlotAccessChangeExpression(expression, parseId(expressionSlotAccessContext.identifier()));
+            }
+        }
+
+        if(ctx.isClosedCapture != null)
+            expression = new ClosedCaptureChangeExpression(expression, ctx.isClosedCapture.ID().getText());
+
+        return expression;
+    }
+
     private static ChangeExpression parse(ParserRuleContext expressionContext) {
         return expressionContext.accept(new ChangelangBaseVisitor<ChangeExpression>() {
             @Override
+            public ChangeExpression visitExpression(ChangelangParser.ExpressionContext ctx) {
+                return parseExpression(ctx);
+            }
+
+            @Override
             public ChangeExpression visitIdentifier(ChangelangParser.IdentifierContext ctx) {
-                return new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression(ctx.ID().getText()));
+                if(ctx.isCapture == null)
+                    return new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression(ctx.ID().getText()));
+
+                return new CaptureChangeExpression(ctx.ID().getText());
             }
 
             @Override
@@ -94,7 +108,18 @@ public class Parser {
                     ctx.expression().stream().map(x -> parse(x)).collect(Collectors.toList())
                 );
             }
+
+            @Override
+            public ChangeExpression visitTemplateArray(ChangelangParser.TemplateArrayContext ctx) {
+                return new TemplateArrayChangeExpression(parse(ctx.expression()));
+            }
         });
+    }
+
+    private static IdChangeExpression parseId(ChangelangParser.IdentifierContext identifierContext) {
+        if(identifierContext.isCapture == null)
+            return new SpecificIdChangeExpression(identifierContext.ID().getText());
+        return new CaptureIdExpression(identifierContext.ID().getText());
     }
 
     private static String parseString(String text) {

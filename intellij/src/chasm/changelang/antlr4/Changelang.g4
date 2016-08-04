@@ -5,7 +5,7 @@ grammar Changelang;
 program: statement*;
 statement: thisSlotAssign | expression;
 thisSlotAssign: identifier '=' expression;
-identifier: ID;
+identifier: (isCapture='@')? ID;
 string: STRING;
 number: NUMBER;
 bool: 'true' | 'false';
@@ -14,9 +14,13 @@ self: 'this';
 objectLiteral: '{' (objectLiteralSlot (',' objectLiteralSlot)*)? '}';
 objectLiteralSlot: identifier ':' expression;
 array: '[' (expression (',' expression)*)? ']';
+templateArray: '#' '[' expression ']';
+capture: '@' ID;
 expression:
-    (string | number | identifier invoke? | bool | nil | self | objectLiteral | array)
-    expressionSlotAccess* expressionSlotAssign?;
+    (string | number | identifier invoke? | bool | nil | self | objectLiteral | array | capture | templateArray)
+    expressionSlotAccess*
+    (isClosedCapture=capture)?
+    expressionSlotAssign?;
 expressionSlotAccess: '.' identifier invoke?;
 invoke: '(' (expression (',' expression)*)? ')';
 expressionSlotAssign: '.' identifier '=' expression;
