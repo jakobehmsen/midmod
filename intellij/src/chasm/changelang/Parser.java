@@ -42,7 +42,9 @@ public class Parser {
                 ChangeExpression expression = parse((ParserRuleContext) ctx.getChild(0));
 
                 if(ctx.expressionSlotAccess() != null || ctx.expressionSlotAccess().size() > 0) {
-
+                    for (ChangelangParser.ExpressionSlotAccessContext expressionSlotAccessContext : ctx.expressionSlotAccess()) {
+                        expression = new SlotAccessChangeExpression(expression, new SpecificIdChangeExpression(expressionSlotAccessContext.identifier().getText()));
+                    }
                 }
 
                 if(ctx.expressionSlotAssign() != null) {

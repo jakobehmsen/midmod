@@ -66,8 +66,8 @@ public class Main {
             "       {name: \"field3\", type: {name: \"int\"}}\n" +
             "   ]\n" +
             "}" +
-            "\n\n" +
-            "type.person.fields.field4 = {name: \"field4\", type: {name: \"int\"}}";
+            "\n" +
+            "types.person.fields.field4 = {type: {name: \"int\"}}";
         System.out.println(src);
         statements = Parser.parse(src);
 
@@ -111,7 +111,20 @@ public class Main {
                 ).collect(Collectors.joining(", ")) + ")");
         });
 
+        // types.@typeName.fields.@fieldName = {type: {name: @fieldTypeName}}
+        ChangeStatement pattern2 = new CollectionAddChangeStatement(new SlotAccessChangeExpression(new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression("types")), new CaptureIdExpression("typeName")), new SpecificIdChangeExpression("fields"), new ObjectLiteralChangeExpression(Arrays.asList(
+            new ObjectLiteralChangeExpression.Slot("name", new CaptureChangeExpression("fieldName")),
+            new ObjectLiteralChangeExpression.Slot("type", new ObjectLiteralChangeExpression(Arrays.asList(
+                new ObjectLiteralChangeExpression.Slot("name", new CaptureChangeExpression("fieldTypeName"))
+            )))
+        )));
 
+        patternActions.put(pattern2, captures -> {
+            System.out.println("ALTER TABLE " + captures.get("typeName").get(0) + "\n" +
+                "ADD COLUMN " + captures.get("fieldName") + " " + captures.get("fieldTypeName"));
+        });
+
+        /*
         // types.@typeName.fields += {name: @fieldName, type: {name: @fieldTypeName}}
         ChangeStatement pattern2 = new CollectionAddChangeStatement(new SlotAccessChangeExpression(new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression("types")), new CaptureIdExpression("typeName")), new SpecificIdChangeExpression("fields"), new ObjectLiteralChangeExpression(Arrays.asList(
             new ObjectLiteralChangeExpression.Slot("name", new CaptureChangeExpression("fieldName")),
@@ -124,6 +137,7 @@ public class Main {
             System.out.println("ALTER TABLE " + captures.get("typeName").get(0) + "\n" +
                 "ADD COLUMN " + captures.get("fieldName") + " " + captures.get("fieldTypeName"));
         });
+        */
 
         System.out.println("statements:\n" + statements.stream().map(x -> x.toString()).collect(Collectors.joining("\n")));
         System.out.println("patternActions:\n" + patternActions.entrySet().stream().map(x ->
