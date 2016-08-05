@@ -9,7 +9,9 @@ import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class Parser {
@@ -58,9 +60,42 @@ public class Parser {
         }
 
         if(ctx.isClosedCapture != null)
-            expression = new ClosedCaptureChangeExpression(expression, ctx.isClosedCapture.ID().getText());
+            expression = new ClosedCaptureChangeExpression(expression, ctx.isClosedCapture.ID().getText(), createCapturedValueSupplier(ctx.isClosedCapture.isMulti != null));
 
         return expression;
+    }
+
+    private static Supplier<CapturedValue> createCapturedValueSupplier(boolean isMulti) {
+        return () -> {
+            if(isMulti)
+                return new CapturedValue() {
+                    List<Object> v = new ArrayList<>();
+
+                    @Override
+                    public void captureNext(Object value) {
+                        v.add(value);
+                    }
+
+                    @Override
+                    public Object buildValue() {
+                        return v;
+                    }
+                };
+
+            return new CapturedValue() {
+                private Object v;
+
+                @Override
+                public void captureNext(Object value) {
+                    v = value;
+                }
+
+                @Override
+                public Object buildValue() {
+                    return v;
+                }
+            };
+        };
     }
 
     private static ChangeExpression parse(ParserRuleContext expressionContext) {
@@ -75,7 +110,7 @@ public class Parser {
                 if(ctx.isCapture == null)
                     return new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression(ctx.ID().getText()));
 
-                return new CaptureChangeExpression(ctx.ID().getText());
+                return new CaptureChangeExpression(ctx.ID().getText(), createCapturedValueSupplier(ctx.isMulti != null));
             }
 
             @Override
@@ -119,7 +154,7 @@ public class Parser {
     private static IdChangeExpression parseId(ChangelangParser.IdentifierContext identifierContext) {
         if(identifierContext.isCapture == null)
             return new SpecificIdChangeExpression(identifierContext.ID().getText());
-        return new CaptureIdExpression(identifierContext.ID().getText());
+        return new CaptureIdExpression(identifierContext.ID().getText(), createCapturedValueSupplier(false));
     }
 
     private static String parseString(String text) {

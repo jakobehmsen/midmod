@@ -26,7 +26,7 @@ public class ObjectLiteralChangeExpression extends ChangeExpression {
     }
 
     @Override
-    public boolean matches(ChangeExpression expression, Map<String, List<Object>> captures) {
+    public boolean matches(ChangeExpression expression, Map<String, CapturedValue> captures) {
         if(expression instanceof ObjectLiteralChangeExpression) {
             ObjectLiteralChangeExpression objectLiteralExpression = (ObjectLiteralChangeExpression)expression;
 

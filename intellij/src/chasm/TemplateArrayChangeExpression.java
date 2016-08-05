@@ -1,6 +1,5 @@
 package chasm;
 
-import java.util.List;
 import java.util.Map;
 
 public class TemplateArrayChangeExpression extends ChangeExpression {
@@ -11,7 +10,7 @@ public class TemplateArrayChangeExpression extends ChangeExpression {
     }
 
     @Override
-    public boolean matches(ChangeExpression expression, Map<String, List<Object>> captures) {
+    public boolean matches(ChangeExpression expression, Map<String, CapturedValue> captures) {
         if(expression instanceof ArrayChangeExpression) {
             ArrayChangeExpression arrayChangeExpression = (ArrayChangeExpression)expression;
             arrayChangeExpression.getItems().forEach(item -> itemTemplate.matches(item, captures));

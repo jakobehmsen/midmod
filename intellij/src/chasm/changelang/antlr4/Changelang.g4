@@ -5,7 +5,7 @@ grammar Changelang;
 program: statement*;
 statement: thisSlotAssign | expression;
 thisSlotAssign: identifier '=' expression;
-identifier: (isCapture='@')? ID;
+identifier: (isCapture='@' (isMulti='*')?)? ID;
 string: STRING;
 number: NUMBER;
 bool: 'true' | 'false';
@@ -15,7 +15,7 @@ objectLiteral: '{' (objectLiteralSlot (',' objectLiteralSlot)*)? '}';
 objectLiteralSlot: identifier ':' expression;
 array: '[' (expression (',' expression)*)? ']';
 templateArray: '#' '[' expression ']';
-capture: '@' ID;
+capture: '@' (isMulti='*')? ID;
 expression:
     (string | number | identifier invoke? | bool | nil | self | objectLiteral | array | capture | templateArray)
     expressionSlotAccess*

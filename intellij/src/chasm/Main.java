@@ -23,22 +23,37 @@ public class Main {
 
         Hashtable<ChangeStatement, Consumer<Map<String, List<Object>>>> patternActions = new Hashtable<>();
 
-        patternActions.put(Parser.parse("types.@typeName = {fields: #[{name: @fieldName, type: {name: @fieldTypeName}} @fields]}").get(0), captures -> {
+        patternActions.put(Parser.parse("types.@typeName = {fields: #[{name: @fieldName, type: {name: @fieldTypeName}} @*fields]}").get(0), captures -> {
             System.out.println("CREATE TABLE " + captures.get("typeName").get(0) + "(" +
                 captures.get("fields").stream().map(x ->
-                    ((ObjectLiteralChangeExpression)x).get("fieldName").toString() + " " +
-                        ((ObjectLiteralChangeExpression)x).get("fieldTypeName").toString()
+                    ((ObjectLiteralChangeExpression)x).get("fieldName") + " " +
+                        ((ObjectLiteralChangeExpression)x).get("fieldTypeName")
                 ).collect(Collectors.joining(", ")) + ")");
         });
 
         patternActions.put(Parser.parse("types.@typeName.fields.@fieldName = {type: {name: @fieldTypeName}}").get(0), captures -> {
             System.out.println("ALTER TABLE " + captures.get("typeName").get(0) + "\n" +
-                "ADD COLUMN " + captures.get("fieldName") + " " + captures.get("fieldTypeName"));
+                "ADD COLUMN " + captures.get("fieldName").get(0) + " " + captures.get("fieldTypeName").get(0));
         });
 
         System.out.println("statements:\n" + statements.stream().map(x -> x.toString()).collect(Collectors.joining("\n")));
         System.out.println("patternActions:\n" + patternActions.entrySet().stream().map(x ->
             x.getKey() + " => " + x.getValue()).collect(Collectors.joining("\n")));
+
+        ModelAspect modelAspect = new ModelAspect();
+        modelAspect.when(Parser.parse("types.@typeName = {fields: #[{name: @fieldName, type: {name: @fieldTypeName}} @*fields]}").get(0), captures -> {
+            System.out.println("CREATE TABLE " + captures.get("typeName").buildValue() + "(" +
+                ((List<Object>)captures.get("fields").buildValue()).stream().map(x ->
+                    ((ObjectLiteralChangeExpression)x).get("fieldName") + " " +
+                        ((ObjectLiteralChangeExpression)x).get("fieldTypeName")
+                ).collect(Collectors.joining(", ")) + ")");
+        });
+        modelAspect.when(Parser.parse("types.@typeName.fields.@fieldName = {type: {name: @fieldTypeName}}").get(0), captures -> {
+            System.out.println("ALTER TABLE " + captures.get("typeName").buildValue() + "\n" +
+                "ADD COLUMN " + captures.get("fieldName").buildValue() + " " + captures.get("fieldTypeName").buildValue());
+        });
+
+        // Wrap pattern-action into a class?
 
         /*
         What if something like the following could be written to replace:
@@ -53,10 +68,15 @@ public class Main {
             System.out.println("ALTER TABLE " + typeName + "\n" +
                 "ADD COLUMN " + fieldName + " " + fieldTypeName);
         }
+
+        Should the side effects also be run against the pattern matching?
+        Should it be possible to explicitly tell which pattern matching to use?
         */
 
         statements.forEach(statement -> {
-            patternActions.entrySet().stream().filter(x -> {
+            modelAspect.process(statement);
+
+            /*patternActions.entrySet().stream().filter(x -> {
                 Hashtable<String, List<Object>> captures = new Hashtable<>();
                 if(x.getKey().matches(statement, captures)) {
                     x.getValue().accept(captures);
@@ -65,7 +85,7 @@ public class Main {
                 }
 
                 return false;
-            }).findFirst();
+            }).findFirst();*/
         });
     }
 }

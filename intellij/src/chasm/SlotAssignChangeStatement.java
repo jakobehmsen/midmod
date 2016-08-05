@@ -1,6 +1,5 @@
 package chasm;
 
-import java.util.List;
 import java.util.Map;
 
 public class SlotAssignChangeStatement extends ChangeStatement {
@@ -15,7 +14,7 @@ public class SlotAssignChangeStatement extends ChangeStatement {
     }
 
     @Override
-    public boolean matches(ChangeStatement statement, Map<String, List<Object>> captures) {
+    public boolean matches(ChangeStatement statement, Map<String, CapturedValue> captures) {
         if(statement instanceof SlotAssignChangeStatement) {
             SlotAssignChangeStatement slotAssignChangeStatement = (SlotAssignChangeStatement)statement;
             return this.target.matches(slotAssignChangeStatement.target, captures) && this.id.matches(slotAssignChangeStatement.id, captures) &&

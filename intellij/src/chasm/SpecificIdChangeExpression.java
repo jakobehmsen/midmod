@@ -1,6 +1,5 @@
 package chasm;
 
-import java.util.List;
 import java.util.Map;
 
 public class SpecificIdChangeExpression extends IdChangeExpression {
@@ -15,7 +14,7 @@ public class SpecificIdChangeExpression extends IdChangeExpression {
     }
 
     @Override
-    public boolean matches(IdChangeExpression idExpression, Map<String, List<Object>> captures) {
+    public boolean matches(IdChangeExpression idExpression, Map<String, CapturedValue> captures) {
         if(idExpression instanceof SpecificIdChangeExpression) {
             SpecificIdChangeExpression specificIdExpression = (SpecificIdChangeExpression) idExpression;
             return this.id.equals(specificIdExpression.id);

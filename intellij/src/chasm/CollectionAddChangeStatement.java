@@ -1,6 +1,5 @@
 package chasm;
 
-import java.util.List;
 import java.util.Map;
 
 public class CollectionAddChangeStatement extends ChangeStatement {
@@ -15,7 +14,7 @@ public class CollectionAddChangeStatement extends ChangeStatement {
     }
 
     @Override
-    public boolean matches(ChangeStatement statement, Map<String, List<Object>> captures) {
+    public boolean matches(ChangeStatement statement, Map<String, CapturedValue> captures) {
         if(statement instanceof CollectionAddChangeStatement) {
             CollectionAddChangeStatement collectionAddChangeStatement = (CollectionAddChangeStatement)statement;
             return this.target.matches(collectionAddChangeStatement.target, captures) && this.id.matches(collectionAddChangeStatement.id, captures) &&
