@@ -1,9 +1,6 @@
 package chasm;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -19,12 +16,12 @@ public class ClosedCaptureChangeExpression extends ChangeExpression {
     }
 
     @Override
-    public boolean matches(ChangeExpression expression, Map<String, CapturedValue> captures) {
-        Hashtable<String, CapturedValue> closedCaptures = new Hashtable<>();
+    public boolean matches(ChangeExpression expression, Captures captures) {
+        Captures closedCaptures = new Captures();
 
         if(target.matches(expression, closedCaptures)) {
             ObjectLiteralChangeExpression objectLiteralExpression = new ObjectLiteralChangeExpression(
-                closedCaptures.entrySet().stream().map(x -> new ObjectLiteralChangeExpression.Slot(x.getKey(), (ChangeExpression) x.getValue().buildValue())).collect(Collectors.toList())
+                closedCaptures.entries().stream().map(x -> new ObjectLiteralChangeExpression.Slot(x.getKey(), (ChangeExpression) x.getValue().buildValue())).collect(Collectors.toList())
             );
 
             CapturedValue values = captures.computeIfAbsent(captureId, k -> capturedValueSupplier.get());

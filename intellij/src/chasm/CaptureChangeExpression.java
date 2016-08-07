@@ -1,8 +1,5 @@
 package chasm;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
 
 public class CaptureChangeExpression extends ChangeExpression {
@@ -15,7 +12,7 @@ public class CaptureChangeExpression extends ChangeExpression {
     }
 
     @Override
-    public boolean matches(ChangeExpression expression, Map<String, CapturedValue> captures) {
+    public boolean matches(ChangeExpression expression, Captures captures) {
         try {
             CapturedValue values = captures.computeIfAbsent(captureId, k -> {
                 return capturedValueSupplier.get();

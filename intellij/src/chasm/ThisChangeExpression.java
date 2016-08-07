@@ -1,10 +1,8 @@
 package chasm;
 
-import java.util.Map;
-
 public class ThisChangeExpression extends ChangeExpression {
     @Override
-    public boolean matches(ChangeExpression expression, Map<String, CapturedValue> captures) {
+    public boolean matches(ChangeExpression expression, Captures captures) {
         return expression instanceof ThisChangeExpression;
     }
 

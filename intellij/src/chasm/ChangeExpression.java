@@ -1,7 +1,5 @@
 package chasm;
 
-import java.util.Map;
-
 public abstract class ChangeExpression {
-    public abstract boolean matches(ChangeExpression expression, Map<String, CapturedValue> captures);
+    public abstract boolean matches(ChangeExpression expression, Captures captures);
 }

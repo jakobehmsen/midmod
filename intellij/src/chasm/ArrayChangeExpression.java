@@ -1,7 +1,6 @@
 package chasm;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.IntStream;
 
 public class ArrayChangeExpression extends ChangeExpression {
@@ -16,7 +15,7 @@ public class ArrayChangeExpression extends ChangeExpression {
     }
 
     @Override
-    public boolean matches(ChangeExpression expression, Map<String, CapturedValue> captures) {
+    public boolean matches(ChangeExpression expression, Captures captures) {
         if(expression instanceof ArrayChangeExpression) {
             ArrayChangeExpression arrayChangeExpression = (ArrayChangeExpression)expression;
             return

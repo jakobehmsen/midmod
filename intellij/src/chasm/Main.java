@@ -53,6 +53,18 @@ public class Main {
                 "ADD COLUMN " + captures.get("fieldName").buildValue() + " " + captures.get("fieldTypeName").buildValue());
         });
 
+        AspectSession s = new ReflectiveAspectSession() {
+            @When("types.@typeName.fields.@fieldName = {type: {name: @fieldTypeName}}")
+            public void newField(String typeName, String fieldName, String fieldTypeName) {
+                typeName.toString();
+            }
+
+            @Override
+            public void close() {
+
+            }
+        };
+
         // Wrap pattern-action into a class?
 
         /*
@@ -75,6 +87,8 @@ public class Main {
 
         statements.forEach(statement -> {
             modelAspect.process(statement);
+
+            s.processNext(statement);
 
             /*patternActions.entrySet().stream().filter(x -> {
                 Hashtable<String, List<Object>> captures = new Hashtable<>();

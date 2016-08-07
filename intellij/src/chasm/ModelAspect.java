@@ -10,13 +10,13 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class ModelAspect {
-    private Hashtable<ChangeStatement, Consumer<Map<String, CapturedValue>>> patternActions = new Hashtable<>();
+    private Hashtable<ChangeStatement, Consumer<Captures>> patternActions = new Hashtable<>();
 
-    public void when(ChangeStatement pattern, Consumer<Map<String, CapturedValue>> action) {
+    public void when(ChangeStatement pattern, Consumer<Captures> action) {
         patternActions.put(pattern, action);
     }
 
-    private void whenSrc(String patternSrc, Consumer<Map<String, CapturedValue>> action) {
+    private void whenSrc(String patternSrc, Consumer<Captures> action) {
         when(Parser.parse(patternSrc).get(0), action);
     }
 
@@ -49,7 +49,7 @@ public class ModelAspect {
 
     public void process(ChangeStatement statement) {
         patternActions.entrySet().stream().filter(x -> {
-            Hashtable<String, CapturedValue> captures = new Hashtable<>();
+            Captures captures = new Captures();
             if(x.getKey().matches(statement, captures)) {
                 x.getValue().accept(captures);
 

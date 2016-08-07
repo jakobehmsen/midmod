@@ -1,7 +1,5 @@
 package chasm;
 
-import java.util.Map;
-
 public class SlotAccessChangeExpression extends ChangeExpression {
     private ChangeExpression target;
     private IdChangeExpression id;
@@ -12,7 +10,7 @@ public class SlotAccessChangeExpression extends ChangeExpression {
     }
 
     @Override
-    public boolean matches(ChangeExpression expression, Map<String, CapturedValue> captures) {
+    public boolean matches(ChangeExpression expression, Captures captures) {
         if(expression instanceof SlotAccessChangeExpression) {
             SlotAccessChangeExpression slotAccessChangeExpression = (SlotAccessChangeExpression)expression;
             return this.target.matches(slotAccessChangeExpression.target, captures) && this.id.matches(slotAccessChangeExpression.id, captures);

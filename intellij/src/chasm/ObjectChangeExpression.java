@@ -1,7 +1,5 @@
 package chasm;
 
-import java.util.Map;
-
 public class ObjectChangeExpression extends ChangeExpression {
     private Object value;
 
@@ -10,7 +8,7 @@ public class ObjectChangeExpression extends ChangeExpression {
     }
 
     @Override
-    public boolean matches(ChangeExpression expression, Map<String, CapturedValue> captures) {
+    public boolean matches(ChangeExpression expression, Captures captures) {
         if(expression instanceof ObjectChangeExpression) {
             ObjectChangeExpression objChangeExpression = (ObjectChangeExpression)expression;
             return this.value.equals(objChangeExpression.value);
