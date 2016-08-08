@@ -100,6 +100,10 @@ public class Main {
                     "            fields.stream().map(function(f) {return f.fieldName + ' ' + f.fieldTypeName}).collect(Java.type('java.util.stream.Collectors').joining(', ')) +\n" +
                     "            ')'\n" +
                     "        print(this.sql)\n" +
+                    "    },\n" +
+                    "    '&types.@typeName.fields.@fieldName = {type: {name: @fieldTypeName}}': function(typeName, fieldName, fieldTypeName) {\n" +
+                    "        this.sql = 'ALTER TABLE ' + fieldName + ' ADD COLUMN ' + fieldName + ' ' + fieldTypeName\n" +
+                    "        print(this.sql)\n" +
                     "    }\n" +
                     "})\n";
 
