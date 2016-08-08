@@ -42,4 +42,9 @@ public class ObjectLiteralChangeExpression extends ChangeExpression {
     public String toString() {
         return "{" + slots.stream().map(x -> x.id + ": " + x.value).collect(Collectors.joining(", ")) + "}";
     }
+
+    @Override
+    public Object toValue() {
+        return slots.stream().collect(Collectors.toMap(x -> x.id, x -> x.value.toValue()));
+    }
 }

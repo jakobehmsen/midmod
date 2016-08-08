@@ -2,6 +2,7 @@ package chasm;
 
 import chasm.changelang.Parser;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
 public abstract class ReflectiveAspectSession implements AspectSession {
@@ -18,7 +19,14 @@ public abstract class ReflectiveAspectSession implements AspectSession {
                 Object[] arguments = new Object[captures.declarationOrder().size()];
                 for(int i = 0; i < captures.declarationOrder().size(); i++) {
                     String captureId = captures.declarationOrder().get(i);
-                    arguments[i] = captures.get(captureId);
+                    arguments[i] = captures.get(captureId).buildValue();
+                }
+                try {
+                    x.invoke(this, arguments);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
                 }
                 // Convert to compatible value; i.e. String, int, etc.
             });

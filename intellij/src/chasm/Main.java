@@ -1,7 +1,12 @@
 package chasm;
 
 import chasm.changelang.Parser;
+import jdk.nashorn.api.scripting.JSObject;
+import jdk.nashorn.api.scripting.NashornScriptEngine;
+import jdk.nashorn.api.scripting.ScriptObjectMirror;
 
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -54,9 +59,78 @@ public class Main {
         });
 
         AspectSession s = new ReflectiveAspectSession() {
+            StringBuilder sql = new StringBuilder();
+
+            @When("types.@typeName = {fields: #[{name: @fieldName, type: {name: @fieldTypeName}} @*fields]}")
+            public void newType(String typeName, List<Map<String, Object>> fields) {
+                System.out.println("CREATE TABLE " + typeName + "(" +
+                    fields.stream().map(x ->
+                        x.get("fieldName") + " " + x.get("fieldTypeName")
+                    ).collect(Collectors.joining(", ")) + ")");
+            }
+
             @When("types.@typeName.fields.@fieldName = {type: {name: @fieldTypeName}}")
             public void newField(String typeName, String fieldName, String fieldTypeName) {
-                typeName.toString();
+                System.out.println("ALTER TABLE " + fieldName + "\n" + "ADD COLUMN " + fieldName + " " + fieldTypeName);
+            }
+
+            @Override
+            public void close() {
+
+            }
+        };
+
+        ScriptEngineManager engineManager = new ScriptEngineManager();
+        NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
+
+        AspectSession s2 = new AspectSession() {
+            private ModelAspect modelAspect;
+            private JSObject jsAspectSession;
+
+            {
+                modelAspect = new ModelAspect();
+
+                //java.util.stream.Collectors
+
+                //"Java.type('java.util.stream.Collectors')"
+                String jsAspectSrc = "({\n" +
+                    "    sql: '',\n" +
+                    "    '&types.@typeName = {fields: #[{name: @fieldName, type: {name: @fieldTypeName}} @*fields]}': function(typeName, fields) {\n" +
+                    "        this.sql = 'CREATE TABLE ' + typeName + '(' + \n" +
+                    "            fields.stream().map(function(f) {return f.fieldName + ' ' + f.fieldTypeName}).collect(Java.type('java.util.stream.Collectors').joining(', ')) +\n" +
+                    "            ')'\n" +
+                    "        print(this.sql)\n" +
+                    "    }\n" +
+                    "})\n";
+
+                System.out.println("jsAspectSrc:\n" + jsAspectSrc);
+
+                try {
+                    jsAspectSession = (JSObject) engine.compile(jsAspectSrc).eval();
+                } catch (ScriptException e) {
+                    e.printStackTrace();
+                }
+
+                jsAspectSession.keySet().stream().filter(x -> x.startsWith("&")).forEach(x -> {
+                    ScriptObjectMirror action = (ScriptObjectMirror) jsAspectSession.getMember(x);
+                    String patternSrc = x.substring(1);
+                    ChangeStatement pattern = Parser.parse(patternSrc).get(0);
+
+                    modelAspect.when(pattern, captures -> {
+                        Object[] arguments = new Object[captures.declarationOrder().size()];
+                        for(int i = 0; i < captures.declarationOrder().size(); i++) {
+                            String captureId = captures.declarationOrder().get(i);
+                            arguments[i] = captures.get(captureId).buildValue();
+                        }
+
+                        action.call(jsAspectSession, arguments);
+                    });
+                });
+            }
+
+            @Override
+            public void processNext(ChangeStatement element) {
+                modelAspect.process(element);
             }
 
             @Override
@@ -86,9 +160,10 @@ public class Main {
         */
 
         statements.forEach(statement -> {
-            modelAspect.process(statement);
+            s2.processNext(statement);
 
-            s.processNext(statement);
+            //modelAspect.process(statement);
+
 
             /*patternActions.entrySet().stream().filter(x -> {
                 Hashtable<String, List<Object>> captures = new Hashtable<>();

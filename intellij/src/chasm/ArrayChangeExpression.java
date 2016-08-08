@@ -1,6 +1,7 @@
 package chasm;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class ArrayChangeExpression extends ChangeExpression {
@@ -24,6 +25,11 @@ public class ArrayChangeExpression extends ChangeExpression {
         }
 
         return false;
+    }
+
+    @Override
+    public Object toValue() {
+        return items.stream().map(x -> x.toValue()).collect(Collectors.toList());
     }
 
     @Override

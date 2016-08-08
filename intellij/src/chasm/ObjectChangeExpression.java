@@ -21,4 +21,9 @@ public class ObjectChangeExpression extends ChangeExpression {
     public String toString() {
         return value.toString();
     }
+
+    @Override
+    public Object toValue() {
+        return value;
+    }
 }

@@ -60,12 +60,12 @@ public class Parser {
         }
 
         if(ctx.isClosedCapture != null)
-            expression = new ClosedCaptureChangeExpression(expression, ctx.isClosedCapture.ID().getText(), createCapturedValueSupplier(ctx.isClosedCapture.isMulti != null));
+            expression = new ClosedCaptureChangeExpression(expression, ctx.isClosedCapture.ID().getText(), createCapturedValueSupplier(ctx.isClosedCapture.isMulti != null, true));
 
         return expression;
     }
 
-    private static Supplier<CapturedValue> createCapturedValueSupplier(boolean isMulti) {
+    private static Supplier<CapturedValue> createCapturedValueSupplier(boolean isMulti, boolean quote) {
         return () -> {
             if(isMulti)
                 return new CapturedValue() {
@@ -73,6 +73,9 @@ public class Parser {
 
                     @Override
                     public void captureNext(Object value) {
+                        if(!quote)
+                            value = ((ChangeExpression)value).toValue();
+
                         v.add(value);
                     }
 
@@ -87,6 +90,9 @@ public class Parser {
 
                 @Override
                 public void captureNext(Object value) {
+                    if(!quote)
+                        value = ((ChangeExpression)value).toValue();
+
                     v = value;
                 }
 
@@ -110,7 +116,7 @@ public class Parser {
                 if(ctx.isCapture == null)
                     return new SlotAccessChangeExpression(new ThisChangeExpression(), new SpecificIdChangeExpression(ctx.ID().getText()));
 
-                return new CaptureChangeExpression(ctx.ID().getText(), createCapturedValueSupplier(ctx.isMulti != null));
+                return new CaptureChangeExpression(ctx.ID().getText(), createCapturedValueSupplier(ctx.isMulti != null, false));
             }
 
             @Override
@@ -154,7 +160,7 @@ public class Parser {
     private static IdChangeExpression parseId(ChangelangParser.IdentifierContext identifierContext) {
         if(identifierContext.isCapture == null)
             return new SpecificIdChangeExpression(identifierContext.ID().getText());
-        return new CaptureIdExpression(identifierContext.ID().getText(), createCapturedValueSupplier(false));
+        return new CaptureIdExpression(identifierContext.ID().getText(), createCapturedValueSupplier(false, false));
     }
 
     private static String parseString(String text) {
