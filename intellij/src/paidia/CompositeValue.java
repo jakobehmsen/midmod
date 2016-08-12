@@ -64,7 +64,7 @@ public class CompositeValue extends AbstractValue {
                             valueView.release();
                         }
 
-                        ViewBinding valueAsComponent = newValue.toComponent();
+                        ViewBinding valueAsComponent = newValue.toDesign();
                         views.set(theI, valueAsComponent);
 
                         valueAsComponent.setupWorkspace(workspace);
@@ -224,8 +224,8 @@ public class CompositeValue extends AbstractValue {
             }
 
             @Override
-            public ViewBinding toComponent() {
-                return theValue.toComponent();
+            public ViewBinding toDesign() {
+                return theValue.toDesign();
             }
 
             @Override

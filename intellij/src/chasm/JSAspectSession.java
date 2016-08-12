@@ -9,20 +9,24 @@ import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
 public class JSAspectSession implements AspectSession {
+    private ScriptObjectMirror jsAspectSession;
     private ModelAspect modelAspect;
-    private JSObject jsAspectSession;
 
-    public JSAspectSession(String jsAspectSrc) {
-        modelAspect = new ModelAspect();
+    public JSAspectSession(String jsAspectSrc) throws ScriptException {
         System.out.println("jsAspectSrc:\n" + jsAspectSrc);
 
-        try {
-            ScriptEngineManager engineManager = new ScriptEngineManager();
-            NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
-            jsAspectSession = (JSObject) engine.compile(jsAspectSrc).eval();
-        } catch (ScriptException e) {
-            e.printStackTrace();
-        }
+        ScriptEngineManager engineManager = new ScriptEngineManager();
+        NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
+        initialize((ScriptObjectMirror) engine.compile(jsAspectSrc).eval());
+    }
+
+    public JSAspectSession(ScriptObjectMirror jsAspectSession) {
+        initialize(jsAspectSession);
+    }
+
+    private void initialize(ScriptObjectMirror jsAspectSession) {
+        this.jsAspectSession = jsAspectSession;
+        modelAspect = new ModelAspect();
 
         jsAspectSession.keySet().stream().filter(x -> x.startsWith("&")).forEach(x -> {
             ScriptObjectMirror action = (ScriptObjectMirror) jsAspectSession.getMember(x);
@@ -48,6 +52,6 @@ public class JSAspectSession implements AspectSession {
 
     @Override
     public void close() {
-
+        jsAspectSession.callMember("close");
     }
 }

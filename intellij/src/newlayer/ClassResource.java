@@ -17,7 +17,11 @@ public class ClassResource implements Resource {
 
     @Override
     public JComponent toView() {
-        return null;
+        JTextPane textPane = new JTextPane();
+
+        textPane.setText("public class " + name);
+
+        return textPane;
     }
 
     public JComponent toDesign() {
@@ -31,5 +35,9 @@ public class ClassResource implements Resource {
     @Override
     public String toString() {
         return name;
+    }
+
+    public void updateTreeNode(DefaultMutableTreeNode node) {
+        node.setUserObject(this);
     }
 }

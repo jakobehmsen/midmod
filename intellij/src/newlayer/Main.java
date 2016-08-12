@@ -2,19 +2,21 @@ package newlayer;
 
 import javax.script.ScriptException;
 import javax.swing.*;
-import java.awt.*;
 
 public class Main {
     public static void main(String[] args) throws ScriptException {
         Product product = new Product();
 
-        product.setSource(
-            "addLayer('Pre persistence')\n" +
-            "addLayer('Persistence')\n");
+        product.addLayer("Pre persistence");
+        product.addLayer("Persistence");
 
         product.getLayer("Pre persistence").setSource(
             "addClass('Person')\n" +
             "addClass('Address')\n"
+        );
+
+        product.getLayer("Persistence").setSource(
+            "addClass('PersistenceStuff')\n"
         );
 
         JFrame frame = new JFrame("NewLayer");

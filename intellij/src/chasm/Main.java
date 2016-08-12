@@ -7,14 +7,17 @@ import jdk.nashorn.api.scripting.ScriptObjectMirror;
 
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class Main {
-    public static void main(String[] args) {
-        String srcStatements =
-            "types.person = {\n" +
+    public static void main(String[] args) throws IOException, ScriptException {
+        String srcStatements = new String(java.nio.file.Files.readAllBytes(Paths.get("src/chasm/Journal.js")));
+            /*"types.person = {\n" +
             "   fields: [\n" +
             "       {name: \"field1\", type: {name: \"int\"}},\n" +
             "       {name: \"field2\", type: {name: \"int\"}},\n" +
@@ -22,7 +25,7 @@ public class Main {
             "   ]\n" +
             "}" +
             "\n" +
-            "types.person.fields.field4 = {type: {name: \"int\"}}";
+            "types.person.fields.field4 = {type: {name: \"int\"}}";*/
         System.out.println(srcStatements);
         List<ChangeStatement> statements = Parser.parse(srcStatements);
 
@@ -82,7 +85,11 @@ public class Main {
 
         // Transformation rules?
 
-        AspectSession s2 = new JSAspectSession("({\n" +
+        System.out.println(new File(".").getCanonicalPath());
+        Aspect a = new JSAspect(new String(java.nio.file.Files.readAllBytes(Paths.get("src/chasm/PersistenceAspect.js"))));
+        AspectSession s2 = a.newSession();
+
+        /*AspectSession s2 = new JSAspectSession("({\n" +
             "    sql: '',\n" +
             "    '&types.@typeName = {fields: #[{name: @fieldName, type: {name: @fieldTypeName}} @*fields]}': function(typeName, fields) {\n" +
             "        this.sql = 'CREATE TABLE ' + typeName + '(' + \n" +
@@ -94,7 +101,22 @@ public class Main {
             "        this.sql = 'ALTER TABLE ' + fieldName + ' ADD COLUMN ' + fieldName + ' ' + fieldTypeName\n" +
             "        print(this.sql)\n" +
             "    }\n" +
-            "})\n");
+            "})\n");*/
+
+        /*
+        What about model decoration?
+        E.g. after a persistence model has been created (CRUD stuff), then application specific decorations can be made
+        to that model.
+
+        '&classes.BankAccount.methods@methods': function(methods) {
+            methods.transferTo = javaMethod('public void transferTo(BankAccount account, int amount) {
+                setAmount(getAmount() - amount);
+                account.deposit(amount);
+            }')
+        }
+
+        for each item that matches the pattern, do some work
+        */
 
         // Wrap pattern-action into a class?
 
@@ -133,5 +155,6 @@ public class Main {
                 return false;
             }).findFirst();*/
         });
+        s2.close();
     }
 }
