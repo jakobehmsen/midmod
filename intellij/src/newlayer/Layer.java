@@ -1,7 +1,6 @@
 package newlayer;
 
 import jdk.nashorn.api.scripting.NashornScriptEngine;
-import sun.reflect.generics.tree.Tree;
 
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -10,11 +9,9 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.tree.*;
 import java.util.*;
-import java.util.Timer;
 import java.util.function.Consumer;
-import java.util.stream.Collector;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 public class Layer implements Resource {
     private Layer innerLayer;
@@ -63,9 +60,13 @@ public class Layer implements Resource {
     private void projectClasses() throws ScriptException {
         List<ClassResource> innerLayerClasses = innerLayer != null ? innerLayer.classes : new ArrayList<>();
 
+        List<ClassResource> oldClasses = classes;
+
         classes = new ArrayList<>();
         // Should be a projected class
-        innerLayerClasses.forEach(x -> addClass(x.getName()));
+        innerLayerClasses.forEach(x -> {
+            classes.add(x.copy());
+        });
 
         if(source != null) {
             ScriptEngineManager engineManager = new ScriptEngineManager();
@@ -73,7 +74,20 @@ public class Layer implements Resource {
             engine.put("addClass", (Consumer<String>) s -> {
                 addClass(s);
             });
+            engine.put("getClass", (Function<String, ClassResource>) s -> {
+                return getClass(s);
+            });
             engine.eval(source);
+        }
+
+        for(int i = 0; i < classes.size(); i++) {
+            ClassResource newClass = classes.get(i);
+            int index = i;
+            oldClasses.stream().filter(x -> x.getName().equals(newClass.getName())).findFirst().ifPresent(x ->
+            {
+                x.updateFrom(newClass);
+                classes.set(index, x);
+            });
         }
 
         observers.forEach(o -> o.update());
@@ -171,6 +185,8 @@ public class Layer implements Resource {
             private void updateClass(ClassResource newClass, ClassResource currentClass) {
                 DefaultMutableTreeNode node = getView(currentClass);
                 newClass.updateTreeNode(node);
+
+                //currentClass.updateFrom(newClass);
             }
 
             private void newClass(ClassResource newClass) {

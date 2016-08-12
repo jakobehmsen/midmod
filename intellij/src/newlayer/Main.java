@@ -2,6 +2,7 @@ package newlayer;
 
 import javax.script.ScriptException;
 import javax.swing.*;
+import java.util.Hashtable;
 
 public class Main {
     public static void main(String[] args) throws ScriptException {
@@ -12,11 +13,20 @@ public class Main {
 
         product.getLayer("Pre persistence").setSource(
             "addClass('Person')\n" +
+            "getClass('Person').addField('firstName', 'private', 'String')\n" +
+            "getClass('Person').addField('lastName', 'private', 'String')\n" +
+            "getClass('Person').addMethod('toString', 'public', 'String', '', 'String str = \"test\";\\nreturn str;')\n" +
             "addClass('Address')\n"
         );
 
+        // name, accessModifier, returnType, parameters, body
+
         product.getLayer("Persistence").setSource(
-            "addClass('PersistenceStuff')\n"
+            "addClass('PersistenceStuff')\n" +
+            "getClass('Person').getFields().forEach(function(f) {\n" +
+            "    getClass('Person').addField(f.getName() + 'ForPersistence', 'private', f.getType())\n" +
+            "})\n" +
+            "getClass('Person').addField('extraSpecialField', 'private', 'String')\n"
         );
 
         JFrame frame = new JFrame("NewLayer");
@@ -26,9 +36,20 @@ public class Main {
         JTabbedPane tabbedPane = new JTabbedPane();
 
         Overview overview = new Overview() {
+            private Hashtable<Resource, JComponent> openedResources = new Hashtable<>();
+
             @Override
             public void open(Resource resource) {
-                tabbedPane.add(resource.getName(), resource.toView());
+                if(openedResources.containsKey(resource)) {
+                    JComponent resourceView = openedResources.get(resource);
+                    int tabIndex = tabbedPane.indexOfComponent(resourceView);
+                    tabbedPane.setSelectedIndex(tabIndex);
+                } else {
+                    JComponent resourceView = resource.toView();
+                    tabbedPane.add(resource.getName(), resourceView);
+                    openedResources.put(resource, resourceView);
+                    tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);
+                }
             }
         };
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, product.toOverview(overview), tabbedPane);
