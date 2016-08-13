@@ -2,6 +2,9 @@ package newlayer;
 
 import javax.script.ScriptException;
 import javax.swing.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.util.Hashtable;
 
 public class Main {
@@ -32,6 +35,62 @@ public class Main {
         JPanel contentPane = (JPanel) frame.getContentPane();
 
         JTabbedPane tabbedPane = new JTabbedPane();
+
+        MouseAdapter mouseAdapter = new MouseAdapter() {
+            private boolean dragging;
+            private int tabIndex;
+            private String tabTitle;
+            private JComponent tabComponent;
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                int tabIndex = tabbedPane.indexAtLocation(e.getX(), e.getY());
+                if(tabIndex != -1) {
+                    dragging = true;
+                    this.tabIndex = tabIndex;
+                    tabComponent = (JComponent) tabbedPane.getComponent(tabIndex);
+                    tabTitle = tabbedPane.getTitleAt(tabIndex);
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if(dragging) {
+                    tabTitle = null;
+                    tabComponent = null;
+                    tabIndex = -1;
+                    dragging = false;
+                }
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if(dragging) {
+                    int tabIndex = tabbedPane.indexAtLocation(e.getX(), e.getY());
+                    if(tabIndex != -1 && this.tabIndex != tabIndex) {
+                        if(tabIndex < this.tabIndex) {
+                            tabbedPane.removeTabAt(this.tabIndex);
+                            tabbedPane.insertTab(tabTitle, null, tabComponent, null, tabIndex);
+                            this.tabIndex = tabIndex;
+                        } else {
+                            tabbedPane.removeTabAt(this.tabIndex);
+                            tabbedPane.insertTab(tabTitle, null, tabComponent, null, tabIndex);
+                            this.tabIndex = tabIndex;
+                        }
+
+                        tabbedPane.setSelectedIndex(this.tabIndex);
+                    }
+                }
+            }
+        };
+
+        tabbedPane.addMouseListener(mouseAdapter);
+        tabbedPane.addMouseMotionListener(mouseAdapter);
 
         Overview overview = new Overview() {
             private Hashtable<Resource, JComponent> openedResources = new Hashtable<>();
