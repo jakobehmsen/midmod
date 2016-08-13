@@ -19,8 +19,6 @@ public class Main {
             "addClass('Address')\n"
         );
 
-        // name, accessModifier, returnType, parameters, body
-
         product.getLayer("Persistence").setSource(
             "addClass('PersistenceStuff')\n" +
             "getClass('Person').getFields().forEach(function(f) {\n" +
@@ -46,7 +44,7 @@ public class Main {
                     tabbedPane.setSelectedIndex(tabIndex);
                 } else {
                     JComponent resourceView = resource.toView();
-                    tabbedPane.add(resource.getName(), resourceView);
+                    tabbedPane.add(resource.getPath(), resourceView);
                     openedResources.put(resource, resourceView);
                     tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);
                 }

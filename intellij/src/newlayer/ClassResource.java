@@ -69,8 +69,16 @@ public class ClassResource implements Resource {
         }
     }
 
-    public ClassResource(String name) {
+    private Layer layer;
+
+    public ClassResource(Layer layer, String name) {
+        this.layer = layer;
         this.name = name;
+    }
+
+    @Override
+    public Resource getParent() {
+        return layer;
     }
 
     @Override
@@ -116,17 +124,29 @@ public class ClassResource implements Resource {
             }
 
             private List<String> formatMethod(MethodInfo m) {
-                return Arrays.asList(
-                    m.accessModifier + " " + m.returnType + " " + m.name + "(" + m.parameters + ") {",
-                    "    " + m.body.replace("\n", "    "),
-                    "}");
+                ArrayList<String> lines = new ArrayList<>();
+
+                lines.add(m.accessModifier + " " + m.returnType + " " + m.name + "(" + m.parameters + ") {");
+                lines.addAll(Arrays.asList(m.body.split("\n")).stream().map(x -> "    " + x).collect(Collectors.toList()));
+                lines.add("}");
+
+                return lines;
             }
 
             private void updateText() {
-                textPane.setText("public class " + name + " {\n" +
-                    c.fields.stream().map(x -> x.accessModifier + " " + x.type + " " + x.name + ";").collect(Collectors.joining("\n    ", "    ", "\n")) +
-                    c.methods.stream().map(x -> formatMethod(x).stream().collect(Collectors.joining("\n    ", "", ""))).collect(Collectors.joining("\n    ", "    ", "\n")) +
-                    "}");
+                StringBuilder text = new StringBuilder();
+
+                text.append("public class " + name + " {\n");
+
+                if(c.fields.size() > 0)
+                    text.append(c.fields.stream().map(x -> x.accessModifier + " " + x.type + " " + x.name + ";").collect(Collectors.joining("\n    ", "    ", "\n")));
+                if(c.methods.size() > 0)
+                    text.append(c.methods.stream().map(x ->
+                        formatMethod(x).stream().collect(Collectors.joining("\n    ", "", ""))).collect(Collectors.joining("\n    ", "    ", "\n")));
+
+                text.append("}");
+
+                textPane.setText(text.toString());
             }
 
             @Override
@@ -155,10 +175,11 @@ public class ClassResource implements Resource {
         node.setUserObject(this);
     }
 
-    public ClassResource copy() {
-        ClassResource copy = new ClassResource(name);
+    public ClassResource copy(Layer layer) {
+        ClassResource copy = new ClassResource(layer, name);
 
         copy.fields.addAll(fields.stream().map(x -> new FieldInfo(x.name, x.accessModifier, x.type)).collect(Collectors.toList()));
+        copy.methods.addAll(methods.stream().map(x -> new MethodInfo(x.name, x.accessModifier, x.returnType, x.parameters, x.body)).collect(Collectors.toList()));
 
         return copy;
     }

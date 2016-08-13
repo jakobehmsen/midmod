@@ -1,5 +1,6 @@
 package newlayer;
 
 public interface LayerObserver {
-    void update();
+    void wasUpdated(Layer layer);
+    void requestUpdate(Layer layer);
 }

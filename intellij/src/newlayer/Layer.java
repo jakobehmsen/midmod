@@ -14,26 +14,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Layer implements Resource {
-    private Layer innerLayer;
     private String name;
     private ArrayList<ClassResource> classes = new ArrayList<>();
 
-    public Layer(Layer innerLayer, String name) {
-        this.innerLayer = innerLayer;
+    public Layer(String name) {
         this.name = name;
-
-        if(innerLayer != null) {
-            innerLayer.addObserver(new LayerObserver() {
-                @Override
-                public void update() {
-                    try {
-                        projectClasses();
-                    } catch (ScriptException e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
-        }
     }
 
     public ClassResource getClass(String name) {
@@ -54,18 +39,18 @@ public class Layer implements Resource {
 
     public void setSource(String source) throws ScriptException {
         this.source = source;
-        projectClasses();
+        observers.forEach(o -> o.requestUpdate(this));
     }
 
-    private void projectClasses() throws ScriptException {
+    private void projectClasses(Layer innerLayer) throws ScriptException {
         List<ClassResource> innerLayerClasses = innerLayer != null ? innerLayer.classes : new ArrayList<>();
 
         List<ClassResource> oldClasses = classes;
 
         classes = new ArrayList<>();
-        // Should be a projected class
+
         innerLayerClasses.forEach(x -> {
-            classes.add(x.copy());
+            classes.add(x.copy(this));
         });
 
         if(source != null) {
@@ -90,11 +75,11 @@ public class Layer implements Resource {
             });
         }
 
-        observers.forEach(o -> o.update());
+        observers.forEach(o -> o.wasUpdated(this));
     }
 
     public void addClass(String name) {
-        classes.add(new ClassResource(name));
+        classes.add(new ClassResource(this, name));
     }
 
     public JComponent toDesign() {
@@ -145,6 +130,11 @@ public class Layer implements Resource {
         return textPane;
     }
 
+    @Override
+    public Resource getParent() {
+        return null;
+    }
+
     public MutableTreeNode toTreeNode(DefaultTreeModel parentNode, Overview overview) {
         DefaultMutableTreeNode treeNode = new DefaultMutableTreeNode(this);
 
@@ -154,7 +144,7 @@ public class Layer implements Resource {
 
         addObserver(new LayerObserver() {
             @Override
-            public void update() {
+            public void wasUpdated(Layer layer) {
                 Map<String, DefaultMutableTreeNode> currentClasses = ((List<DefaultMutableTreeNode>)Collections.list(treeNode.children())).stream()
                     .collect(Collectors.toMap(n -> ((ClassResource)n.getUserObject()).getName(), n -> n));
 
@@ -182,11 +172,14 @@ public class Layer implements Resource {
                 parentNode.nodeChanged(treeNode);
             }
 
+            @Override
+            public void requestUpdate(Layer layer) {
+
+            }
+
             private void updateClass(ClassResource newClass, ClassResource currentClass) {
                 DefaultMutableTreeNode node = getView(currentClass);
                 newClass.updateTreeNode(node);
-
-                //currentClass.updateFrom(newClass);
             }
 
             private void newClass(ClassResource newClass) {
@@ -211,5 +204,13 @@ public class Layer implements Resource {
     @Override
     public String toString() {
         return name;
+    }
+
+    public void updateFrom(Layer layer) {
+        try {
+            projectClasses(layer);
+        } catch (ScriptException e) {
+            e.printStackTrace();
+        }
     }
 }
