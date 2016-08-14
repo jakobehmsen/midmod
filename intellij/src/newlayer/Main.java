@@ -1,11 +1,18 @@
 package newlayer;
 
+import com.sun.glass.events.KeyEvent;
+import jdk.nashorn.api.scripting.NashornScriptEngine;
+
+import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.Hashtable;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class Main {
     public static void main(String[] args) throws ScriptException {
@@ -33,6 +40,7 @@ public class Main {
         JFrame frame = new JFrame("NewLayer");
 
         JPanel contentPane = (JPanel) frame.getContentPane();
+        contentPane.setLayout(new BorderLayout());
 
         JTabbedPane tabbedPane = new JTabbedPane();
 
@@ -113,7 +121,33 @@ public class Main {
 
         splitPane.setDividerLocation(200);
 
-        contentPane.add(splitPane);
+        contentPane.add(splitPane, BorderLayout.CENTER);
+
+        JTextPane shell = new JTextPane();
+        shell.setBackground(Color.BLACK);
+        shell.setForeground(Color.WHITE);
+        shell.setCaretColor(Color.WHITE);
+        shell.registerKeyboardAction(e -> {
+            String command = shell.getText();
+
+            shell.setText("");
+
+            ScriptEngineManager engineManager = new ScriptEngineManager();
+            NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
+            engine.put("addLayer", (Consumer<String>) s -> {
+                product.addLayer(s);
+            });
+            /*engine.put("getLayer", (Function<String, Layer>) s -> {
+                return product.getLayer(s);
+            });*/
+            try {
+                engine.eval(command);
+            } catch (ScriptException e1) {
+                e1.printStackTrace();
+            }
+        }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
+
+        contentPane.add(shell, BorderLayout.SOUTH);
 
         frame.setSize(1024, 768);
         frame.setLocationRelativeTo(null);

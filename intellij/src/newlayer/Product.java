@@ -26,15 +26,33 @@ public class Product {
 
             @Override
             public void requestUpdate(Layer layer) {
-                int indexOfLayer = layers.indexOf(layer);
-                if(indexOfLayer == 0)
-                    layer.updateFrom(null);
-                else {
-                    Layer previousLayer = layers.get(indexOfLayer - 1);
-                    layer.updateFrom(previousLayer);
-                }
+                updateFromLayer(layer);
             }
         });
+
+        observers.forEach(o -> o.addedLayer(this, layer, layers.size() - 1));
+
+        updateFromLayer(layer);
+    }
+
+    private void updateFromLayer(Layer layer) {
+        int indexOfLayer = layers.indexOf(layer);
+        if(indexOfLayer == 0)
+            layer.updateFrom(null);
+        else {
+            Layer previousLayer = layers.get(indexOfLayer - 1);
+            layer.updateFrom(previousLayer);
+        }
+    }
+
+    private ArrayList<ProductObserver> observers = new ArrayList<>();
+
+    public void addObserver(ProductObserver observer) {
+        observers.add(observer);
+    }
+
+    public void removeObserver(ProductObserver observer) {
+        observers.remove(observer);
     }
 
     public JComponent toOverview(Overview overview) {
@@ -64,6 +82,14 @@ public class Product {
                         overview.open(resource);
                     }
                 }
+            }
+        });
+
+        addObserver(new ProductObserver() {
+            @Override
+            public void addedLayer(Product product, Layer layer, int index) {
+                DefaultMutableTreeNode layerNode = (DefaultMutableTreeNode) layer.toTreeNode(treeModel, overview);
+                treeModel.insertNodeInto(layerNode, root, index);
             }
         });
 
