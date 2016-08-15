@@ -3,36 +3,56 @@ package newlayer;
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.MutableTreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.stream.IntStream;
 
-public class Product {
+public class Product implements LayerObserver {
     private ArrayList<Layer> layers = new ArrayList<>();
 
     public void addLayer(String name) {
+        insertLayer(name, layers.size());
+    }
+
+    public void insertLayer(String name, int index) {
         Layer layer = new Layer(name);
-        layers.add(layer);
-        layer.addObserver(new LayerObserver() {
-            @Override
-            public void wasUpdated(Layer layer) {
-                int indexOfLayer = layers.indexOf(layer);
-                if(indexOfLayer + 1 < layers.size()) {
-                    Layer nextLayer = layers.get(indexOfLayer + 1);
-                    nextLayer.updateFrom(layer);
-                }
-            }
+        layers.add(index, layer);
+        layer.addObserver(this);
 
-            @Override
-            public void requestUpdate(Layer layer) {
-                updateFromLayer(layer);
-            }
-        });
-
-        observers.forEach(o -> o.addedLayer(this, layer, layers.size() - 1));
+        observers.forEach(o -> o.addedLayer(this, layer, index));
 
         updateFromLayer(layer);
+    }
+
+    @Override
+    public void wasUpdated(Layer layer) {
+        int indexOfLayer = layers.indexOf(layer);
+        if(indexOfLayer + 1 < layers.size()) {
+            Layer nextLayer = layers.get(indexOfLayer + 1);
+            nextLayer.updateFrom(layer);
+        }
+    }
+
+    @Override
+    public void requestUpdate(Layer layer) {
+        updateFromLayer(layer);
+    }
+
+    public void removeLayer(String name) {
+        int indexOfLayer = IntStream.range(0, layers.size()).filter(i -> layers.get(i).getName().equals(name)).findFirst().orElse(-1);
+        if(indexOfLayer != -1) {
+            Layer layer = layers.get(indexOfLayer);
+            layer.removeObserver(this);
+            layers.remove(indexOfLayer);
+
+            observers.forEach(o -> o.removedLayer(this, layer, indexOfLayer));
+
+            if(layers.size() > indexOfLayer)
+                layers.get(indexOfLayer).updateFrom(layers.get(indexOfLayer));
+        }
     }
 
     private void updateFromLayer(Layer layer) {
@@ -90,6 +110,11 @@ public class Product {
             public void addedLayer(Product product, Layer layer, int index) {
                 DefaultMutableTreeNode layerNode = (DefaultMutableTreeNode) layer.toTreeNode(treeModel, overview);
                 treeModel.insertNodeInto(layerNode, root, index);
+            }
+
+            @Override
+            public void removedLayer(Product product, Layer layer, int index) {
+                treeModel.removeNodeFromParent((MutableTreeNode) root.getChildAt(index));
             }
         });
 

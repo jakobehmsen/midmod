@@ -9,10 +9,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.util.Hashtable;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class Main {
     public static void main(String[] args) throws ScriptException {
@@ -136,6 +135,12 @@ public class Main {
             NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
             engine.put("addLayer", (Consumer<String>) s -> {
                 product.addLayer(s);
+            });
+            engine.put("insertLayer", (BiConsumer<String, Integer>) (s, i) -> {
+                product.insertLayer(s, i);
+            });
+            engine.put("removeLayer", (Consumer<String>) s -> {
+                product.removeLayer(s);
             });
             /*engine.put("getLayer", (Function<String, Layer>) s -> {
                 return product.getLayer(s);
