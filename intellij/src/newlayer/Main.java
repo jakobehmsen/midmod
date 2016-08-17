@@ -6,7 +6,9 @@ import jdk.nashorn.api.scripting.NashornScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.swing.*;
+import javax.swing.filechooser.FileFilter;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Hashtable;
@@ -121,6 +123,44 @@ public class Main {
         splitPane.setDividerLocation(200);
 
         contentPane.add(splitPane, BorderLayout.CENTER);
+
+        JToolBar toolBar = new JToolBar();
+
+        toolBar.setFloatable(false);
+
+        toolBar.add(new AbstractAction("Change product...") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser fc = new JFileChooser();
+
+                fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+
+                fc.setDialogTitle("Select product");
+
+                if(fc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
+                    fc.getSelectedFile().toString();
+                }
+            }
+        });
+
+        toolBar.add(new AbstractAction("New product...") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String productName = JOptionPane.showInputDialog(frame, "Product name");
+
+                JFileChooser fc = new JFileChooser();
+
+                fc.setDialogTitle("Product folder");
+
+                fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+
+                if(fc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
+                    fc.getSelectedFile().toString();
+                }
+            }
+        });
+
+        contentPane.add(toolBar, BorderLayout.NORTH);
 
         JTextPane shell = new JTextPane();
         shell.setBackground(Color.BLACK);
