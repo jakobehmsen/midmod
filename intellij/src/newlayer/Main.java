@@ -7,6 +7,9 @@ import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
@@ -16,10 +19,12 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class Main {
-    public static void main(String[] args) throws ScriptException {
-        Product product = new Product();
+    private static Product product;
 
-        product.addLayer("Pre persistence");
+    public static void main(String[] args) throws ScriptException {
+        product = new Product();
+
+        /*product.addLayer("Pre persistence");
         product.addLayer("Persistence");
 
         product.getLayer("Pre persistence").setSource(
@@ -36,7 +41,7 @@ public class Main {
             "    getClass('Person').addField(f.getName() + 'ForPersistence', 'private', f.getType())\n" +
             "})\n" +
             "getClass('Person').addField('extraSpecialField', 'private', 'String')\n"
-        );
+        );*/
 
         JFrame frame = new JFrame("NewLayer");
 
@@ -118,7 +123,31 @@ public class Main {
                 }
             }
         };
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, product.toOverview(overview), tabbedPane);
+
+        DefaultMutableTreeNode root = new DefaultMutableTreeNode();
+        DefaultTreeModel treeModel = new DefaultTreeModel(root);
+        JTree tree = new JTree(treeModel);
+        tree.setRootVisible(false);
+        tree.setShowsRootHandles(true);
+        tree.setToggleClickCount(0);
+
+        treeModel.nodeStructureChanged(root);
+
+        tree.addMouseListener(new MouseAdapter() {
+            public void mousePressed(MouseEvent e) {
+                int selRow = tree.getRowForLocation(e.getX(), e.getY());
+                TreePath selPath = tree.getPathForLocation(e.getX(), e.getY());
+                if(selRow != -1) {
+                    if(e.getClickCount() == 2) {
+                        DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) selPath.getLastPathComponent();
+                        Resource resource = (Resource) clickedNode.getUserObject();
+                        overview.open(resource);
+                    }
+                }
+            }
+        });
+
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, product.toOverview(tree, treeModel, root, overview), tabbedPane);
 
         splitPane.setDividerLocation(200);
 
@@ -128,37 +157,76 @@ public class Main {
 
         toolBar.setFloatable(false);
 
-        toolBar.add(new AbstractAction("Change product...") {
+        AbstractAction saveProductAction = new AbstractAction("Save product...") {
             @Override
             public void actionPerformed(ActionEvent e) {
                 JFileChooser fc = new JFileChooser();
 
-                fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-
-                fc.setDialogTitle("Select product");
+                fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 
                 if(fc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
                     fc.getSelectedFile().toString();
+
+                    putValue(Action.NAME, "Save product");
                 }
             }
-        });
+        };
+
+        saveProductAction.setEnabled(false);
 
         toolBar.add(new AbstractAction("New product...") {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String productName = JOptionPane.showInputDialog(frame, "Product name");
 
+                saveProductAction.putValue(Action.NAME, "Save product...");
+                saveProductAction.setEnabled(true);
+
+                product = new Product();
+
+                tabbedPane.removeAll();
+                root.removeAllChildren();
+                treeModel.nodeChanged(root);
+
+                splitPane.setLeftComponent(product.toOverview(tree, treeModel, root, overview));
+
+                splitPane.setDividerLocation(200);
+                //contentPane.remove(((BorderLayout)contentPane.getLayout()).getLayoutComponent(BorderLayout.CENTER));
+                //contentPane.add(product.toOverview(overview), BorderLayout.CENTER);
+                /*JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, product.toOverview(overview), tabbedPane);
+
+                splitPane.setDividerLocation(200);
+
+                contentPane.remove(((BorderLayout)contentPane.getLayout()).getLayoutComponent(BorderLayout.CENTER));
+                contentPane.add(splitPane, BorderLayout.CENTER);*/
+            }
+        });
+
+        toolBar.add(new AbstractAction("Open product...") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                saveProductAction.putValue(Action.NAME, "Save product");
+
                 JFileChooser fc = new JFileChooser();
 
-                fc.setDialogTitle("Product folder");
-
-                fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 
                 if(fc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
-                    fc.getSelectedFile().toString();
+                    saveProductAction.setEnabled(true);
                 }
             }
         });
+
+        toolBar.add(new AbstractAction("Add Layer...") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String layerName = JOptionPane.showInputDialog(frame, "Layer name");
+
+                product.addLayer(layerName);
+            }
+        });
+
+        toolBar.add(saveProductAction);
 
         contentPane.add(toolBar, BorderLayout.NORTH);
 

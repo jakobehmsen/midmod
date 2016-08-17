@@ -75,15 +75,15 @@ public class Product implements LayerObserver {
         observers.remove(observer);
     }
 
-    public JComponent toOverview(Overview overview) {
-        DefaultMutableTreeNode root = new DefaultMutableTreeNode();
-        DefaultTreeModel treeModel = new DefaultTreeModel(root);
+    public JComponent toOverview(JTree tree, DefaultTreeModel treeModel, DefaultMutableTreeNode root, Overview overview) {
+        //DefaultMutableTreeNode root = new DefaultMutableTreeNode();
+        //DefaultTreeModel treeModel = new DefaultTreeModel(root);
 
-        JTree tree = new JTree(treeModel);
+        //JTree tree = new JTree(treeModel);
 
-        tree.setRootVisible(false);
+        /*tree.setRootVisible(false);
         tree.setShowsRootHandles(true);
-        tree.setToggleClickCount(0);
+        tree.setToggleClickCount(0);*/
 
         layers.forEach(x -> {
             DefaultMutableTreeNode layerNode = (DefaultMutableTreeNode) x.toTreeNode(treeModel, overview);
@@ -91,7 +91,7 @@ public class Product implements LayerObserver {
         });
         treeModel.nodeStructureChanged(root);
 
-        tree.addMouseListener(new MouseAdapter() {
+        /*tree.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
                 int selRow = tree.getRowForLocation(e.getX(), e.getY());
                 TreePath selPath = tree.getPathForLocation(e.getX(), e.getY());
@@ -103,18 +103,20 @@ public class Product implements LayerObserver {
                     }
                 }
             }
-        });
+        });*/
 
         addObserver(new ProductObserver() {
             @Override
             public void addedLayer(Product product, Layer layer, int index) {
                 DefaultMutableTreeNode layerNode = (DefaultMutableTreeNode) layer.toTreeNode(treeModel, overview);
                 treeModel.insertNodeInto(layerNode, root, index);
+                treeModel.nodeStructureChanged(root);
             }
 
             @Override
             public void removedLayer(Product product, Layer layer, int index) {
                 treeModel.removeNodeFromParent((MutableTreeNode) root.getChildAt(index));
+                treeModel.nodeStructureChanged(root);
             }
         });
 
