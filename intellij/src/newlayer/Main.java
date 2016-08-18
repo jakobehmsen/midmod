@@ -6,7 +6,6 @@ import jdk.nashorn.api.scripting.NashornScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.swing.*;
-import javax.swing.filechooser.FileFilter;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
@@ -14,15 +13,20 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.*;
+import java.nio.file.Paths;
 import java.util.Hashtable;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class Main {
     private static Product product;
+    private static boolean isSaved;
+    private static String fileToSaveIn;
 
     public static void main(String[] args) throws ScriptException {
-        product = new Product();
+        //product = new Product();
 
         /*product.addLayer("Pre persistence");
         product.addLayer("Persistence");
@@ -42,6 +46,22 @@ public class Main {
             "})\n" +
             "getClass('Person').addField('extraSpecialField', 'private', 'String')\n"
         );*/
+
+        ProductPersistor productPersistor = new ProductPersistor() {
+            @Override
+            public void saveProduct(Product product) {
+                try {
+                    OutputStream output = new FileOutputStream(fileToSaveIn);
+                    product.writeTo(output);
+                    output.flush();
+                    output.close();
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
 
         JFrame frame = new JFrame("NewLayer");
 
@@ -147,7 +167,56 @@ public class Main {
             }
         });
 
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, product.toOverview(tree, treeModel, root, overview), tabbedPane);
+        LayerFactory layerFactory = new LayerFactory() {
+            @Override
+            public Layer createLayer(String name) {
+
+                return new Layer(new LayerPersistor() {
+
+                    @Override
+                    public void save(Layer layer) {
+                        String layerFile = new File(fileToSaveIn).getParentFile().getPath() + "/" + name + ".layer";
+
+                        try {
+                            java.nio.file.Files.write(Paths.get(layerFile), layer.getSource().getBytes());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }, name);
+            }
+
+            @Override
+            public Layer openLayer(String name) {
+                Layer layer = new Layer(new LayerPersistor() {
+
+                    @Override
+                    public void save(Layer layer) {
+                        String layerFile = new File(fileToSaveIn).getParentFile().getPath() + "/" + name + ".layer";
+
+                        try {
+                            java.nio.file.Files.write(Paths.get(layerFile), layer.getSource().getBytes());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }, name);
+
+                String layerFile = new File(fileToSaveIn).getParentFile().getPath() + "/" + name + ".layer";
+                try {
+                    String source = new String(java.nio.file.Files.readAllBytes(Paths.get(layerFile)));
+                    layer.setSource(source);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (ScriptException e) {
+                    e.printStackTrace();
+                }
+
+                return layer;
+            }
+        };
+
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, null/*product.toOverview(tree, treeModel, root, overview)*/, tabbedPane);
 
         splitPane.setDividerLocation(200);
 
@@ -164,11 +233,22 @@ public class Main {
 
                 fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 
-                if(fc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
-                    fc.getSelectedFile().toString();
+                if(!isSaved) {
+                    if (fc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
+                        fileToSaveIn = fc.getSelectedFile().getPath();
 
-                    putValue(Action.NAME, "Save product");
+                        isSaved = true;
+                        putValue(Action.NAME, "Save product");
+
+                        save();
+                    }
+                } else {
+                    save();
                 }
+            }
+
+            private void save() {
+                product.save();
             }
         };
 
@@ -182,7 +262,7 @@ public class Main {
                 saveProductAction.putValue(Action.NAME, "Save product...");
                 saveProductAction.setEnabled(true);
 
-                product = new Product();
+                product = new Product(productPersistor, layerFactory);
 
                 tabbedPane.removeAll();
                 root.removeAllChildren();
@@ -191,6 +271,8 @@ public class Main {
                 splitPane.setLeftComponent(product.toOverview(tree, treeModel, root, overview));
 
                 splitPane.setDividerLocation(200);
+
+                isSaved = false;
                 //contentPane.remove(((BorderLayout)contentPane.getLayout()).getLayoutComponent(BorderLayout.CENTER));
                 //contentPane.add(product.toOverview(overview), BorderLayout.CENTER);
                 /*JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, product.toOverview(overview), tabbedPane);
@@ -212,7 +294,25 @@ public class Main {
                 fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 
                 if(fc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
+                    fileToSaveIn = fc.getSelectedFile().getPath();
                     saveProductAction.setEnabled(true);
+
+                    product = new Product(productPersistor, layerFactory);
+
+                    String source = null;
+                    try {
+                        source = new String(java.nio.file.Files.readAllBytes(Paths.get(fileToSaveIn)));
+                        ScriptEngineManager engineManager = new ScriptEngineManager();
+                        NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
+                        engine.put("openLayer", (Consumer<String>) s -> {
+                            product.openLayer(s);
+                        });
+                        engine.eval(source);
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    } catch (ScriptException e1) {
+                        e1.printStackTrace();
+                    }
                 }
             }
         });

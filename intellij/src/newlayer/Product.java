@@ -4,27 +4,42 @@ import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.MutableTreeNode;
-import javax.swing.tree.TreePath;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.io.BufferedOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.stream.IntStream;
 
 public class Product implements LayerObserver {
+    private ProductPersistor productPersistor;
+    private LayerFactory layerFactory;
     private ArrayList<Layer> layers = new ArrayList<>();
+
+    public Product(ProductPersistor productPersistor, LayerFactory layerFactory) {
+        this.productPersistor = productPersistor;
+        this.layerFactory = layerFactory;
+    }
 
     public void addLayer(String name) {
         insertLayer(name, layers.size());
     }
 
-    public void insertLayer(String name, int index) {
-        Layer layer = new Layer(name);
+    public void addLayer(Layer layer) {
+        insertLayer(layer, layers.size());
+    }
+
+    public void insertLayer(Layer layer, int index) {
         layers.add(index, layer);
         layer.addObserver(this);
 
         observers.forEach(o -> o.addedLayer(this, layer, index));
 
         updateFromLayer(layer);
+    }
+
+    public void insertLayer(String name, int index) {
+        insertLayer(layerFactory.createLayer(name), index);
     }
 
     @Override
@@ -125,5 +140,27 @@ public class Product implements LayerObserver {
 
     public Layer getLayer(String name) {
         return layers.stream().filter(x -> x.getName().equals(name)).findFirst().get();
+    }
+
+    public void save() {
+        productPersistor.saveProduct(this);
+
+        layers.forEach(x -> {
+            x.save();
+        });
+    }
+
+    public void writeTo(OutputStream output) {
+        BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(output);
+        PrintWriter printWriter = new PrintWriter(bufferedOutputStream);
+
+        layers.forEach(x -> {
+            printWriter.append("openLayer('" + x.getName() + "')\n");
+        });
+    }
+
+    public void openLayer(String name) {
+        Layer layer = layerFactory.openLayer(name);
+        addLayer(layer);
     }
 }

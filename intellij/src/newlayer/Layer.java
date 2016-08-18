@@ -14,10 +14,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Layer implements Resource {
+    private LayerPersistor layerPersistor;
     private String name;
     private ArrayList<ClassResource> classes = new ArrayList<>();
 
-    public Layer(String name) {
+    public Layer(LayerPersistor layerPersistor, String name) {
+        this.layerPersistor = layerPersistor;
         this.name = name;
     }
 
@@ -212,5 +214,13 @@ public class Layer implements Resource {
         } catch (ScriptException e) {
             e.printStackTrace();
         }
+    }
+
+    public void save() {
+        layerPersistor.save(this);
+    }
+
+    public String getSource() {
+        return source;
     }
 }
