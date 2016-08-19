@@ -10,9 +10,7 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.Hashtable;
@@ -53,7 +51,6 @@ public class Main {
                 try {
                     OutputStream output = new FileOutputStream(fileToSaveIn);
                     product.writeTo(output);
-                    output.flush();
                     output.close();
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
@@ -273,14 +270,6 @@ public class Main {
                 splitPane.setDividerLocation(200);
 
                 isSaved = false;
-                //contentPane.remove(((BorderLayout)contentPane.getLayout()).getLayoutComponent(BorderLayout.CENTER));
-                //contentPane.add(product.toOverview(overview), BorderLayout.CENTER);
-                /*JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, product.toOverview(overview), tabbedPane);
-
-                splitPane.setDividerLocation(200);
-
-                contentPane.remove(((BorderLayout)contentPane.getLayout()).getLayoutComponent(BorderLayout.CENTER));
-                contentPane.add(splitPane, BorderLayout.CENTER);*/
             }
         });
 
@@ -296,6 +285,7 @@ public class Main {
                 if(fc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
                     fileToSaveIn = fc.getSelectedFile().getPath();
                     saveProductAction.setEnabled(true);
+                    isSaved = true;
 
                     product = new Product(productPersistor, layerFactory);
 
@@ -313,6 +303,14 @@ public class Main {
                     } catch (ScriptException e1) {
                         e1.printStackTrace();
                     }
+
+                    tabbedPane.removeAll();
+                    root.removeAllChildren();
+                    treeModel.nodeChanged(root);
+
+                    splitPane.setLeftComponent(product.toOverview(tree, treeModel, root, overview));
+
+                    splitPane.setDividerLocation(200);
                 }
             }
         });
@@ -366,5 +364,80 @@ public class Main {
         frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setVisible(true);
+
+        frame.addWindowListener(new WindowListener() {
+            @Override
+            public void windowOpened(WindowEvent e) {
+
+            }
+
+            @Override
+            public void windowClosing(WindowEvent e) {
+
+            }
+
+            @Override
+            public void windowClosed(WindowEvent e) {
+
+            }
+
+            @Override
+            public void windowIconified(WindowEvent e) {
+
+            }
+
+            @Override
+            public void windowDeiconified(WindowEvent e) {
+
+            }
+
+            @Override
+            public void windowActivated(WindowEvent e) {
+                SwingWorker swingWorker = new SwingWorker() {
+                    @Override
+                    protected Object doInBackground() throws Exception {
+                        ScriptEngineManager engineManager = new ScriptEngineManager();
+                        NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
+                        try {
+                            engine.eval("var dummy = 12345");
+                        } catch (ScriptException e1) {
+                            e1.printStackTrace();
+                        }
+
+                        return null;
+                    }
+                };
+                swingWorker.execute();
+
+                new Thread(() -> {
+                    ScriptEngineManager engineManager = new ScriptEngineManager();
+                    NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
+                    try {
+                        engine.eval("var dummy = 12345");
+                    } catch (ScriptException e1) {
+                        e1.printStackTrace();
+                    }
+                }).run();
+            }
+
+            @Override
+            public void windowDeactivated(WindowEvent e) {
+
+            }
+        });
+        frame.addWindowStateListener(new WindowAdapter() {
+
+
+            @Override
+            public void windowOpened(WindowEvent e) {
+                ScriptEngineManager engineManager = new ScriptEngineManager();
+                NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
+                try {
+                    engine.eval("var dummy = 12345");
+                } catch (ScriptException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        });
     }
 }

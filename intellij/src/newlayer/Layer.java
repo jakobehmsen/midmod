@@ -98,7 +98,7 @@ public class Layer implements Resource {
 
         textPane.setText(source);
 
-        javax.swing.Timer timer = new javax.swing.Timer(3000, e -> {
+        javax.swing.Timer timer = new javax.swing.Timer(100, e -> {
             try {
                 setSource(textPane.getText());
             } catch (ScriptException se) {

@@ -4,10 +4,7 @@ import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.MutableTreeNode;
-import java.io.BufferedOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.stream.IntStream;
 
@@ -135,7 +132,7 @@ public class Product implements LayerObserver {
             }
         });
 
-        return tree;
+        return new JScrollPane(tree);
     }
 
     public Layer getLayer(String name) {
@@ -146,6 +143,7 @@ public class Product implements LayerObserver {
         productPersistor.saveProduct(this);
 
         layers.forEach(x -> {
+            System.out.println("Saving layer " + x);
             x.save();
         });
     }
@@ -157,6 +155,8 @@ public class Product implements LayerObserver {
         layers.forEach(x -> {
             printWriter.append("openLayer('" + x.getName() + "')\n");
         });
+
+        printWriter.flush();
     }
 
     public void openLayer(String name) {
