@@ -1,11 +1,16 @@
 package newlayer;
 
+import jdk.nashorn.api.scripting.NashornScriptEngine;
+
+import javax.script.ScriptEngineManager;
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.MutableTreeNode;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 
 public class Product implements LayerObserver {
@@ -42,16 +47,16 @@ public class Product implements LayerObserver {
     }
 
     @Override
-    public void wasUpdated(Layer layer) {
-        int indexOfLayer = layers.indexOf(layer);
+    public void outputUpdated(Layer layer) {
+        /*int indexOfLayer = layers.indexOf(layer);
         if(indexOfLayer + 1 < layers.size()) {
             Layer nextLayer = layers.get(indexOfLayer + 1);
             nextLayer.updateFrom(layer);
-        }
+        }*/
     }
 
     @Override
-    public void requestUpdate(Layer layer) {
+    public void transformationChanged(Layer layer) {
         updateFromLayer(layer);
     }
 
@@ -64,18 +69,35 @@ public class Product implements LayerObserver {
 
             observers.forEach(o -> o.removedLayer(this, layer, indexOfLayer));
 
-            if(layers.size() > indexOfLayer)
-                layers.get(indexOfLayer).updateFrom(layers.get(indexOfLayer));
+            if(layers.size() > indexOfLayer) {
+                updateFromLayer(layers.get(indexOfLayer));
+                //layers.get(indexOfLayer).updateFrom(layers.get(indexOfLayer));
+            }
         }
     }
 
     private void updateFromLayer(Layer layer) {
-        int indexOfLayer = layers.indexOf(layer);
-        if(indexOfLayer == 0)
-            layer.updateFrom(null);
-        else {
-            Layer previousLayer = layers.get(indexOfLayer - 1);
-            layer.updateFrom(previousLayer);
+        ScriptEngineManager engineManager = new ScriptEngineManager();
+        NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
+
+        Layer[] currentLayer = new Layer[1];
+
+        engine.put("addClass", (Consumer<String>) s -> {
+            currentLayer[0].addClass(s);
+        });
+        engine.put("getClass", (Function<String, ClassResource>) s -> {
+            return currentLayer[0].getClass(s);
+        });
+
+        for(int indexOfLayer = 0/*layers.indexOf(layer)*/; indexOfLayer < layers.size(); indexOfLayer++) {
+            layer = layers.get(indexOfLayer);
+            currentLayer[0] = layer;
+            if (indexOfLayer == 0)
+                layer.updateFrom(null, engine);
+            else {
+                Layer previousLayer = layers.get(indexOfLayer - 1);
+                layer.updateFrom(previousLayer, engine);
+            }
         }
     }
 

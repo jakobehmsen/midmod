@@ -41,10 +41,10 @@ public class Layer implements Resource {
 
     public void setSource(String source) throws ScriptException {
         this.source = source;
-        observers.forEach(o -> o.requestUpdate(this));
+        observers.forEach(o -> o.transformationChanged(this));
     }
 
-    private void projectClasses(Layer innerLayer) throws ScriptException {
+    private void projectClasses(Layer innerLayer, NashornScriptEngine engine ) throws ScriptException {
         List<ClassResource> innerLayerClasses = innerLayer != null ? innerLayer.classes : new ArrayList<>();
 
         List<ClassResource> oldClasses = classes;
@@ -56,14 +56,14 @@ public class Layer implements Resource {
         });
 
         if(source != null) {
-            ScriptEngineManager engineManager = new ScriptEngineManager();
+            /*ScriptEngineManager engineManager = new ScriptEngineManager();
             NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
             engine.put("addClass", (Consumer<String>) s -> {
                 addClass(s);
             });
             engine.put("getClass", (Function<String, ClassResource>) s -> {
                 return getClass(s);
-            });
+            });*/
             engine.eval(source);
         }
 
@@ -77,7 +77,7 @@ public class Layer implements Resource {
             });
         }
 
-        observers.forEach(o -> o.wasUpdated(this));
+        observers.forEach(o -> o.outputUpdated(this));
     }
 
     public void addClass(String name) {
@@ -146,7 +146,7 @@ public class Layer implements Resource {
 
         addObserver(new LayerObserver() {
             @Override
-            public void wasUpdated(Layer layer) {
+            public void outputUpdated(Layer layer) {
                 Map<String, DefaultMutableTreeNode> currentClasses = ((List<DefaultMutableTreeNode>)Collections.list(treeNode.children())).stream()
                     .collect(Collectors.toMap(n -> ((ClassResource)n.getUserObject()).getName(), n -> n));
 
@@ -175,7 +175,7 @@ public class Layer implements Resource {
             }
 
             @Override
-            public void requestUpdate(Layer layer) {
+            public void transformationChanged(Layer layer) {
 
             }
 
@@ -208,9 +208,9 @@ public class Layer implements Resource {
         return name;
     }
 
-    public void updateFrom(Layer layer) {
+    public void updateFrom(Layer layer, NashornScriptEngine engine ) {
         try {
-            projectClasses(layer);
+            projectClasses(layer, engine);
         } catch (ScriptException e) {
             e.printStackTrace();
         }
