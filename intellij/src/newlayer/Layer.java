@@ -17,10 +17,12 @@ public class Layer implements Resource {
     private LayerPersistor layerPersistor;
     private String name;
     private ArrayList<ClassResource> classes = new ArrayList<>();
+    private String source;
 
     public Layer(LayerPersistor layerPersistor, String name) {
         this.layerPersistor = layerPersistor;
         this.name = name;
+        source = "";
     }
 
     public ClassResource getClass(String name) {
@@ -36,8 +38,6 @@ public class Layer implements Resource {
     public void removeObserver(LayerObserver observer) {
         observers.remove(observer);
     }
-
-    private String source;
 
     public void setSource(String source) throws ScriptException {
         this.source = source;

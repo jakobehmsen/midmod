@@ -21,7 +21,8 @@ import java.util.function.Function;
 public class Main {
     private static Product product;
     private static boolean isSaved;
-    private static String fileToSaveIn;
+    private static String folderToSaveIn;
+    //private static String fileToSaveIn;
 
     public static void main(String[] args) throws ScriptException {
         //product = new Product();
@@ -45,10 +46,57 @@ public class Main {
             "getClass('Person').addField('extraSpecialField', 'private', 'String')\n"
         );*/
 
+        LayerFactory layerFactory = new LayerFactory() {
+            @Override
+            public Layer createLayer(String name) {
+                return new Layer(new LayerPersistor() {
+                    @Override
+                    public void save(Layer layer) {
+                        String layerFile = getLayerFile(name);
+
+                        try {
+                            java.nio.file.Files.write(Paths.get(layerFile), layer.getSource().getBytes());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }, name);
+            }
+
+            private String getLayerFile(String name) {
+                return Paths.get(folderToSaveIn, "layers", name + ".layer").toString();
+            }
+
+            @Override
+            public Layer openLayer(String name) {
+                Layer layer = createLayer(name);
+
+                String layerFile = getLayerFile(name);
+                try {
+                    String source = new String(java.nio.file.Files.readAllBytes(Paths.get(layerFile)));
+                    layer.setSource(source);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (ScriptException e) {
+                    e.printStackTrace();
+                }
+
+                return layer;
+            }
+
+            @Override
+            public void allocateForPersistence() {
+                String layerFolder = Paths.get(folderToSaveIn, "layers").toString();
+                if(!new File(layerFolder).exists())
+                    new File(layerFolder).mkdir();
+            }
+        };
+
         ProductPersistor productPersistor = new ProductPersistor() {
             @Override
             public void saveProduct(Product product) {
                 try {
+                    String fileToSaveIn = Paths.get(folderToSaveIn, "product").toString();
                     OutputStream output = new FileOutputStream(fileToSaveIn);
                     product.writeTo(output);
                     output.close();
@@ -57,6 +105,14 @@ public class Main {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+            }
+
+            @Override
+            public void allocateForPersistence() {
+                if(!new File(folderToSaveIn).exists())
+                    new File(folderToSaveIn).mkdir();
+
+                layerFactory.allocateForPersistence();
             }
         };
 
@@ -164,55 +220,6 @@ public class Main {
             }
         });
 
-        LayerFactory layerFactory = new LayerFactory() {
-            @Override
-            public Layer createLayer(String name) {
-
-                return new Layer(new LayerPersistor() {
-
-                    @Override
-                    public void save(Layer layer) {
-                        String layerFile = new File(fileToSaveIn).getParentFile().getPath() + "/" + name + ".layer";
-
-                        try {
-                            java.nio.file.Files.write(Paths.get(layerFile), layer.getSource().getBytes());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }, name);
-            }
-
-            @Override
-            public Layer openLayer(String name) {
-                Layer layer = new Layer(new LayerPersistor() {
-
-                    @Override
-                    public void save(Layer layer) {
-                        String layerFile = new File(fileToSaveIn).getParentFile().getPath() + "/" + name + ".layer";
-
-                        try {
-                            java.nio.file.Files.write(Paths.get(layerFile), layer.getSource().getBytes());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }, name);
-
-                String layerFile = new File(fileToSaveIn).getParentFile().getPath() + "/" + name + ".layer";
-                try {
-                    String source = new String(java.nio.file.Files.readAllBytes(Paths.get(layerFile)));
-                    layer.setSource(source);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (ScriptException e) {
-                    e.printStackTrace();
-                }
-
-                return layer;
-            }
-        };
-
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, null/*product.toOverview(tree, treeModel, root, overview)*/, tabbedPane);
 
         splitPane.setDividerLocation(200);
@@ -228,15 +235,16 @@ public class Main {
             public void actionPerformed(ActionEvent e) {
                 JFileChooser fc = new JFileChooser();
 
-                fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 
                 if(!isSaved) {
                     if (fc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
-                        fileToSaveIn = fc.getSelectedFile().getPath();
+                        folderToSaveIn = Paths.get(fc.getSelectedFile().getPath(), product.getName()).toString();
 
                         isSaved = true;
                         putValue(Action.NAME, "Save product");
 
+                        productPersistor.allocateForPersistence();
                         save();
                     }
                 } else {
@@ -259,7 +267,7 @@ public class Main {
                 saveProductAction.putValue(Action.NAME, "Save product...");
                 saveProductAction.setEnabled(true);
 
-                product = new Product(productPersistor, layerFactory);
+                product = new Product(productName, productPersistor, layerFactory);
 
                 tabbedPane.removeAll();
                 root.removeAllChildren();
@@ -280,17 +288,19 @@ public class Main {
 
                 JFileChooser fc = new JFileChooser();
 
-                fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 
                 if(fc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
-                    fileToSaveIn = fc.getSelectedFile().getPath();
+                    folderToSaveIn = fc.getSelectedFile().getPath();
                     saveProductAction.setEnabled(true);
                     isSaved = true;
 
-                    product = new Product(productPersistor, layerFactory);
+                    String productName = Paths.get(folderToSaveIn).getName(Paths.get(folderToSaveIn).getNameCount() - 1).toString();
+                    product = new Product(productName, productPersistor, layerFactory);
 
                     String source = null;
                     try {
+                        String fileToSaveIn = Paths.get(folderToSaveIn, "product").toString();
                         source = new String(java.nio.file.Files.readAllBytes(Paths.get(fileToSaveIn)));
                         ScriptEngineManager engineManager = new ScriptEngineManager();
                         NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
@@ -348,9 +358,6 @@ public class Main {
             engine.put("removeLayer", (Consumer<String>) s -> {
                 product.removeLayer(s);
             });
-            /*engine.put("getLayer", (Function<String, Layer>) s -> {
-                return product.getLayer(s);
-            });*/
             try {
                 engine.eval(command);
             } catch (ScriptException e1) {
@@ -365,32 +372,7 @@ public class Main {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setVisible(true);
 
-        frame.addWindowListener(new WindowListener() {
-            @Override
-            public void windowOpened(WindowEvent e) {
-
-            }
-
-            @Override
-            public void windowClosing(WindowEvent e) {
-
-            }
-
-            @Override
-            public void windowClosed(WindowEvent e) {
-
-            }
-
-            @Override
-            public void windowIconified(WindowEvent e) {
-
-            }
-
-            @Override
-            public void windowDeiconified(WindowEvent e) {
-
-            }
-
+        frame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowActivated(WindowEvent e) {
                 SwingWorker swingWorker = new SwingWorker() {
@@ -408,35 +390,6 @@ public class Main {
                     }
                 };
                 swingWorker.execute();
-
-                new Thread(() -> {
-                    ScriptEngineManager engineManager = new ScriptEngineManager();
-                    NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
-                    try {
-                        engine.eval("var dummy = 12345");
-                    } catch (ScriptException e1) {
-                        e1.printStackTrace();
-                    }
-                }).run();
-            }
-
-            @Override
-            public void windowDeactivated(WindowEvent e) {
-
-            }
-        });
-        frame.addWindowStateListener(new WindowAdapter() {
-
-
-            @Override
-            public void windowOpened(WindowEvent e) {
-                ScriptEngineManager engineManager = new ScriptEngineManager();
-                NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
-                try {
-                    engine.eval("var dummy = 12345");
-                } catch (ScriptException e1) {
-                    e1.printStackTrace();
-                }
             }
         });
     }

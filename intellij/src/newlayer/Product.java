@@ -12,8 +12,10 @@ public class Product implements LayerObserver {
     private ProductPersistor productPersistor;
     private LayerFactory layerFactory;
     private ArrayList<Layer> layers = new ArrayList<>();
+    private String name;
 
-    public Product(ProductPersistor productPersistor, LayerFactory layerFactory) {
+    public Product(String name, ProductPersistor productPersistor, LayerFactory layerFactory) {
+        this.name = name;
         this.productPersistor = productPersistor;
         this.layerFactory = layerFactory;
     }
@@ -141,7 +143,6 @@ public class Product implements LayerObserver {
 
     public void save() {
         productPersistor.saveProduct(this);
-
         layers.forEach(x -> {
             System.out.println("Saving layer " + x);
             x.save();
@@ -162,5 +163,9 @@ public class Product implements LayerObserver {
     public void openLayer(String name) {
         Layer layer = layerFactory.openLayer(name);
         addLayer(layer);
+    }
+
+    public String getName() {
+        return name;
     }
 }
