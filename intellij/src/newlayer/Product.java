@@ -9,8 +9,10 @@ import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.MutableTreeNode;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 public class Product implements LayerObserver {
@@ -80,6 +82,7 @@ public class Product implements LayerObserver {
         ScriptEngineManager engineManager = new ScriptEngineManager();
         NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
 
+        Layer[] previousLayerHolder = new Layer[1];
         Layer[] currentLayer = new Layer[1];
 
         engine.put("addClass", (Consumer<String>) s -> {
@@ -88,14 +91,20 @@ public class Product implements LayerObserver {
         engine.put("getClass", (Function<String, ClassResource>) s -> {
             return currentLayer[0].getClass(s);
         });
+        engine.put("getClasses", (Supplier<List<ClassResource>>) () -> {
+            return previousLayerHolder[0].getClasses();
+        });
 
         for(int indexOfLayer = 0/*layers.indexOf(layer)*/; indexOfLayer < layers.size(); indexOfLayer++) {
+
             layer = layers.get(indexOfLayer);
             currentLayer[0] = layer;
-            if (indexOfLayer == 0)
+            if (indexOfLayer == 0) {
+                previousLayerHolder[0] = new Layer(null, null);
                 layer.updateFrom(null, engine);
-            else {
+            } else {
                 Layer previousLayer = layers.get(indexOfLayer - 1);
+                previousLayerHolder[0] = previousLayer;
                 layer.updateFrom(previousLayer, engine);
             }
         }

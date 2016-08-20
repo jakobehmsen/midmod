@@ -41,7 +41,7 @@ public class Main {
         product.getLayer("Persistence").setSource(
             "addClass('PersistenceStuff')\n" +
             "getClass('Person').getFields().forEach(function(f) {\n" +
-            "    getClass('Person').addField(f.getName() + 'ForPersistence', 'private', f.getType())\n" +
+            "    getClass('Person').addField(f.getName() + 'ForPersistence', 'private', f.getTypeName())\n" +
             "})\n" +
             "getClass('Person').addField('extraSpecialField', 'private', 'String')\n"
         );*/

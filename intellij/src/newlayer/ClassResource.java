@@ -13,12 +13,12 @@ public class ClassResource implements Resource {
     public static class FieldInfo {
         private String name;
         private String accessModifier;
-        private String type;
+        private String typeName;
 
-        private FieldInfo(String name, String accessModifier, String type) {
+        private FieldInfo(String name, String accessModifier, String typeName) {
             this.name = name;
             this.accessModifier = accessModifier;
-            this.type = type;
+            this.typeName = typeName;
         }
 
         public String getName() {
@@ -29,21 +29,22 @@ public class ClassResource implements Resource {
             return accessModifier;
         }
 
-        public String getType() {
-            return type;
+        public String getTypeName() {
+            return typeName;
         }
     }
+
     public static class MethodInfo {
         private String name;
         private String accessModifier;
-        private String returnType;
+        private String returnTypeName;
         private String parameters;
         private String body;
 
-        public MethodInfo(String name, String accessModifier, String returnType, String parameters, String body) {
+        public MethodInfo(String name, String accessModifier, String returnTypeName, String parameters, String body) {
             this.name = name;
             this.accessModifier = accessModifier;
-            this.returnType = returnType;
+            this.returnTypeName = returnTypeName;
             this.parameters = parameters;
             this.body = body;
         }
@@ -56,8 +57,8 @@ public class ClassResource implements Resource {
             return accessModifier;
         }
 
-        public String getReturnType() {
-            return returnType;
+        public String getReturnTypeName() {
+            return returnTypeName;
         }
 
         public String getParameters() {
@@ -126,7 +127,7 @@ public class ClassResource implements Resource {
             private List<String> formatMethod(MethodInfo m) {
                 ArrayList<String> lines = new ArrayList<>();
 
-                lines.add(m.accessModifier + " " + m.returnType + " " + m.name + "(" + m.parameters + ") {");
+                lines.add(m.accessModifier + " " + m.returnTypeName + " " + m.name + "(" + m.parameters + ") {");
                 lines.addAll(Arrays.asList(m.body.split("\n")).stream().map(x -> "    " + x).collect(Collectors.toList()));
                 lines.add("}");
 
@@ -139,7 +140,7 @@ public class ClassResource implements Resource {
                 text.append("public class " + name + " {\n");
 
                 if(c.fields.size() > 0)
-                    text.append(c.fields.stream().map(x -> x.accessModifier + " " + x.type + " " + x.name + ";").collect(Collectors.joining("\n    ", "    ", "\n")));
+                    text.append(c.fields.stream().map(x -> x.accessModifier + " " + x.typeName + " " + x.name + ";").collect(Collectors.joining("\n    ", "    ", "\n")));
                 if(c.methods.size() > 0)
                     text.append(c.methods.stream().map(x ->
                         formatMethod(x).stream().collect(Collectors.joining("\n    ", "", ""))).collect(Collectors.joining("\n    ", "    ", "\n")));
@@ -178,15 +179,15 @@ public class ClassResource implements Resource {
     public ClassResource copy(Layer layer) {
         ClassResource copy = new ClassResource(layer, name);
 
-        copy.fields.addAll(fields.stream().map(x -> new FieldInfo(x.name, x.accessModifier, x.type)).collect(Collectors.toList()));
-        copy.methods.addAll(methods.stream().map(x -> new MethodInfo(x.name, x.accessModifier, x.returnType, x.parameters, x.body)).collect(Collectors.toList()));
+        copy.fields.addAll(fields.stream().map(x -> new FieldInfo(x.name, x.accessModifier, x.typeName)).collect(Collectors.toList()));
+        copy.methods.addAll(methods.stream().map(x -> new MethodInfo(x.name, x.accessModifier, x.returnTypeName, x.parameters, x.body)).collect(Collectors.toList()));
 
         return copy;
     }
 
     public void updateFrom(ClassResource newClass) {
         fields.clear();
-        fields.addAll(newClass.fields.stream().map(x -> new FieldInfo(x.name, x.accessModifier, x.type)).collect(Collectors.toList()));
+        fields.addAll(newClass.fields.stream().map(x -> new FieldInfo(x.name, x.accessModifier, x.typeName)).collect(Collectors.toList()));
         observers.forEach(x -> x.update());
     }
 }

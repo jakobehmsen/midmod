@@ -223,4 +223,8 @@ public class Layer implements Resource {
     public String getSource() {
         return source;
     }
+
+    public ArrayList<ClassResource> getClasses() {
+        return classes;
+    }
 }
