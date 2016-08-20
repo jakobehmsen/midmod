@@ -9,6 +9,7 @@ import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.MutableTreeNode;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -92,7 +93,7 @@ public class Product implements LayerObserver {
             return currentLayer[0].getClass(s);
         });
         engine.put("getClasses", (Supplier<List<ClassResource>>) () -> {
-            return previousLayerHolder[0].getClasses();
+            return previousLayerHolder[0] != null ? previousLayerHolder[0].getClasses() : Collections.emptyList();
         });
 
         for(int indexOfLayer = 0/*layers.indexOf(layer)*/; indexOfLayer < layers.size(); indexOfLayer++) {
@@ -100,7 +101,6 @@ public class Product implements LayerObserver {
             layer = layers.get(indexOfLayer);
             currentLayer[0] = layer;
             if (indexOfLayer == 0) {
-                previousLayerHolder[0] = new Layer(null, null);
                 layer.updateFrom(null, engine);
             } else {
                 Layer previousLayer = layers.get(indexOfLayer - 1);
