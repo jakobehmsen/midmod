@@ -9,7 +9,6 @@ import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.MutableTreeNode;
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -54,7 +53,7 @@ public class Product implements LayerObserver {
         /*int indexOfLayer = layers.indexOf(layer);
         if(indexOfLayer + 1 < layers.size()) {
             Layer nextLayer = layers.get(indexOfLayer + 1);
-            nextLayer.updateFrom(layer);
+            nextLayer.transform(layer);
         }*/
     }
 
@@ -74,7 +73,7 @@ public class Product implements LayerObserver {
 
             if(layers.size() > indexOfLayer) {
                 updateFromLayer(layers.get(indexOfLayer));
-                //layers.get(indexOfLayer).updateFrom(layers.get(indexOfLayer));
+                //layers.get(indexOfLayer).transform(layers.get(indexOfLayer));
             }
         }
     }
@@ -85,27 +84,41 @@ public class Product implements LayerObserver {
 
         Layer[] previousLayerHolder = new Layer[1];
         Layer[] currentLayer = new Layer[1];
+        List<ClassResource>[] classes = new List[1];
 
         engine.put("addClass", (Consumer<String>) s -> {
-            currentLayer[0].addClass(s);
+            classes[0].add(new ClassResource(currentLayer[0], s));
+            //currentLayer[0].addClass(s);
         });
         engine.put("getClass", (Function<String, ClassResource>) s -> {
-            return currentLayer[0].getClass(s);
+            return classes[0].stream().filter(x -> x.getName().equals(s)).findFirst().get();
+            //return currentLayer[0].getClass(s);
         });
         engine.put("getClasses", (Supplier<List<ClassResource>>) () -> {
-            return previousLayerHolder[0] != null ? previousLayerHolder[0].getClasses() : Collections.emptyList();
+            return classes[0];
+            //return previousLayerHolder[0] != null ? previousLayerHolder[0].getClasses() : Collections.emptyList();
         });
 
         for(int indexOfLayer = 0/*layers.indexOf(layer)*/; indexOfLayer < layers.size(); indexOfLayer++) {
-
             layer = layers.get(indexOfLayer);
             currentLayer[0] = layer;
             if (indexOfLayer == 0) {
-                layer.updateFrom(null, engine);
+                classes[0] = new ArrayList();
+
+                layer.transform(engine);
+                layer.setClasses(classes[0]);
             } else {
+                List<ClassResource> innerLayerClasses = classes[0];
+                classes[0] = new ArrayList();
+
+                innerLayerClasses.forEach(x -> {
+                    classes[0].add(x.copy(currentLayer[0]));
+                });
+
                 Layer previousLayer = layers.get(indexOfLayer - 1);
                 previousLayerHolder[0] = previousLayer;
-                layer.updateFrom(previousLayer, engine);
+                layer.transform(engine);
+                layer.setClasses(classes[0]);
             }
         }
     }

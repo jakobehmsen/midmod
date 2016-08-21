@@ -188,6 +188,8 @@ public class ClassResource implements Resource {
     public void updateFrom(ClassResource newClass) {
         fields.clear();
         fields.addAll(newClass.fields.stream().map(x -> new FieldInfo(x.name, x.accessModifier, x.typeName)).collect(Collectors.toList()));
+        methods.clear();
+        methods.addAll(newClass.methods.stream().map(x -> new MethodInfo(x.name, x.accessModifier, x.returnTypeName, x.parameters, x.body)).collect(Collectors.toList()));
         observers.forEach(x -> x.update());
     }
 }

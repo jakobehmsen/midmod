@@ -2,21 +2,18 @@ package newlayer;
 
 import jdk.nashorn.api.scripting.NashornScriptEngine;
 
-import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.tree.*;
 import java.util.*;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Layer implements Resource {
     private LayerPersistor layerPersistor;
     private String name;
-    private ArrayList<ClassResource> classes = new ArrayList<>();
+    private List<ClassResource> classes = new ArrayList<>();
     private String source;
 
     public Layer(LayerPersistor layerPersistor, String name) {
@@ -44,29 +41,9 @@ public class Layer implements Resource {
         observers.forEach(o -> o.transformationChanged(this));
     }
 
-    private void projectClasses(Layer innerLayer, NashornScriptEngine engine ) throws ScriptException {
-        List<ClassResource> innerLayerClasses = innerLayer != null ? innerLayer.classes : new ArrayList<>();
-
+    public void setClasses(List<ClassResource> newClasses) {
         List<ClassResource> oldClasses = classes;
-
-        classes = new ArrayList<>();
-
-        innerLayerClasses.forEach(x -> {
-            classes.add(x.copy(this));
-        });
-
-        if(source != null) {
-            /*ScriptEngineManager engineManager = new ScriptEngineManager();
-            NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
-            engine.put("addClass", (Consumer<String>) s -> {
-                addClass(s);
-            });
-            engine.put("getClass", (Function<String, ClassResource>) s -> {
-                return getClass(s);
-            });*/
-            engine.eval(source);
-        }
-
+        classes = newClasses;
         for(int i = 0; i < classes.size(); i++) {
             ClassResource newClass = classes.get(i);
             int index = i;
@@ -208,9 +185,11 @@ public class Layer implements Resource {
         return name;
     }
 
-    public void updateFrom(Layer layer, NashornScriptEngine engine ) {
+    public void transform(NashornScriptEngine engine ) {
         try {
-            projectClasses(layer, engine);
+            if(source != null) {
+                engine.eval(source);
+            }
         } catch (ScriptException e) {
             e.printStackTrace();
         }
@@ -224,7 +203,7 @@ public class Layer implements Resource {
         return source;
     }
 
-    public ArrayList<ClassResource> getClasses() {
+    public List<ClassResource> getClasses() {
         return classes;
     }
 }
