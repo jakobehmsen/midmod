@@ -7,10 +7,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class ClassResource implements Resource {
+public class ClassResource extends AnnotatableResource implements Resource {
     private String name;
 
-    public static class FieldInfo {
+    public static class FieldInfo extends AnnotatableResource {
         private String name;
         private String accessModifier;
         private String typeName;
@@ -34,7 +34,7 @@ public class ClassResource implements Resource {
         }
     }
 
-    public static class MethodInfo {
+    public static class MethodInfo extends AnnotatableResource {
         private String name;
         private String accessModifier;
         private String returnTypeName;
@@ -137,6 +137,7 @@ public class ClassResource implements Resource {
             private void updateText() {
                 StringBuilder text = new StringBuilder();
 
+                getAnnotations().forEach(x -> text.append(x.toString() + "\n"));
                 text.append("public class " + name + " {\n");
 
                 if(c.fields.size() > 0)
