@@ -2,10 +2,12 @@ package newlayer;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ClassResource extends AnnotatableResource implements Resource {
     private String name;
@@ -31,6 +33,17 @@ public class ClassResource extends AnnotatableResource implements Resource {
 
         public String getTypeName() {
             return typeName;
+        }
+
+        public void render(List<String> lines) {
+            getAnnotations().forEach(x -> lines.add(x.toString()));
+            lines.add(accessModifier + " " + typeName + " " + name + ";");
+        }
+
+        public FieldInfo copy() {
+            FieldInfo fieldInfo = new FieldInfo(name, accessModifier, typeName);
+            super.copyTo(fieldInfo);
+            return fieldInfo;
         }
     }
 
@@ -68,6 +81,19 @@ public class ClassResource extends AnnotatableResource implements Resource {
         public String getBody() {
             return body;
         }
+
+        public void render(List<String> lines) {
+            getAnnotations().forEach(x -> lines.add(x.toString()));
+            lines.add(accessModifier + " " + returnTypeName + " " + name + "(" + parameters + ") {");
+            lines.addAll(Arrays.asList(body.split("\n")).stream().map(x -> "    " + x).collect(Collectors.toList()));
+            lines.add("}");
+        }
+
+        public MethodInfo copy() {
+            MethodInfo methodInfo = new MethodInfo(name, accessModifier, returnTypeName, parameters, body);
+            super.copyTo(methodInfo);
+            return methodInfo;
+        }
     }
 
     private Layer layer;
@@ -95,8 +121,16 @@ public class ClassResource extends AnnotatableResource implements Resource {
         fields.add(new FieldInfo(name, accessModifier, type));
     }
 
+    public FieldInfo getField(String name) {
+        return fields.stream().filter(x -> x.getName().equals(name)).findFirst().get();
+    }
+
     public void addMethod(String name, String accessModifier, String returnType, String parameters, String body) {
         methods.add(new MethodInfo(name, accessModifier, returnType, parameters, body));
+    }
+
+    public MethodInfo getMethod(String name) {
+        return methods.stream().filter(x -> x.getName().equals(name)).findFirst().get();
     }
 
     public void addObserver(ClassResourceObserver observer) {
@@ -140,11 +174,16 @@ public class ClassResource extends AnnotatableResource implements Resource {
                 getAnnotations().forEach(x -> text.append(x.toString() + "\n"));
                 text.append("public class " + name + " {\n");
 
-                if(c.fields.size() > 0)
-                    text.append(c.fields.stream().map(x -> x.accessModifier + " " + x.typeName + " " + x.name + ";").collect(Collectors.joining("\n    ", "    ", "\n")));
-                if(c.methods.size() > 0)
-                    text.append(c.methods.stream().map(x ->
-                        formatMethod(x).stream().collect(Collectors.joining("\n    ", "", ""))).collect(Collectors.joining("\n    ", "    ", "\n")));
+                ArrayList<String> members = new ArrayList<>();
+                c.fields.forEach(f -> f.render(members));
+                c.methods.forEach(m -> m.render(members));
+                text.append(members.stream().collect(Collectors.joining("\n    ", "    ", "\n")));
+
+                //if(c.fields.size() > 0)
+                //    text.append(c.fields.stream().map(x -> x.accessModifier + " " + x.typeName + " " + x.name + ";").collect(Collectors.joining("\n    ", "    ", "\n")));
+                //if(c.methods.size() > 0)
+                //    text.append(c.methods.stream().map(x ->
+                //        formatMethod(x).stream().collect(Collectors.joining("\n    ", "", ""))).collect(Collectors.joining("\n    ", "    ", "\n")));
 
                 text.append("}");
 
@@ -180,17 +219,17 @@ public class ClassResource extends AnnotatableResource implements Resource {
     public ClassResource copy(Layer layer) {
         ClassResource copy = new ClassResource(layer, name);
 
-        copy.fields.addAll(fields.stream().map(x -> new FieldInfo(x.name, x.accessModifier, x.typeName)).collect(Collectors.toList()));
-        copy.methods.addAll(methods.stream().map(x -> new MethodInfo(x.name, x.accessModifier, x.returnTypeName, x.parameters, x.body)).collect(Collectors.toList()));
+        copy.fields.addAll(fields.stream().map(x -> x.copy()).collect(Collectors.toList()));
+        copy.methods.addAll(methods.stream().map(x -> x.copy()).collect(Collectors.toList()));
 
         return copy;
     }
 
     public void updateFrom(ClassResource newClass) {
         fields.clear();
-        fields.addAll(newClass.fields.stream().map(x -> new FieldInfo(x.name, x.accessModifier, x.typeName)).collect(Collectors.toList()));
+        fields.addAll(newClass.fields.stream().map(x -> x.copy()).collect(Collectors.toList()));
         methods.clear();
-        methods.addAll(newClass.methods.stream().map(x -> new MethodInfo(x.name, x.accessModifier, x.returnTypeName, x.parameters, x.body)).collect(Collectors.toList()));
+        methods.addAll(newClass.methods.stream().map(x -> x.copy()).collect(Collectors.toList()));
         observers.forEach(x -> x.update());
     }
 }

@@ -14,4 +14,8 @@ public abstract class AnnotatableResource {
     public List<AnnotationResource> getAnnotations() {
         return annotations;
     }
+
+    public void copyTo(AnnotatableResource annotatableResource) {
+        annotatableResource.annotations.addAll(annotations);
+    }
 }
