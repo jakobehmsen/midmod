@@ -192,6 +192,8 @@ public class Layer implements Resource {
             }
         } catch (ScriptException e) {
             e.printStackTrace();
+        } catch (ClassCastException e) {
+            e.printStackTrace();
         }
     }
 

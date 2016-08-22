@@ -10,6 +10,7 @@ import javax.swing.tree.MutableTreeNode;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -96,6 +97,10 @@ public class Product implements LayerObserver {
         });
         engine.put("getClasses", (Supplier<List<ClassResource>>) () -> {
             return classes[0];
+            //return previousLayerHolder[0] != null ? previousLayerHolder[0].getClasses() : Collections.emptyList();
+        });
+        engine.put("parameter", (BiFunction<String, String, ClassResource.ParameterInfo>) (typeName, name) -> {
+            return new ClassResource.ParameterInfo(typeName, name);
             //return previousLayerHolder[0] != null ? previousLayerHolder[0].getClasses() : Collections.emptyList();
         });
 

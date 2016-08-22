@@ -2,12 +2,10 @@ package newlayer;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class ClassResource extends AnnotatableResource implements Resource {
     private String name;
@@ -51,10 +49,10 @@ public class ClassResource extends AnnotatableResource implements Resource {
         private String name;
         private String accessModifier;
         private String returnTypeName;
-        private String parameters;
+        private List<ParameterInfo> parameters;
         private String body;
 
-        public MethodInfo(String name, String accessModifier, String returnTypeName, String parameters, String body) {
+        public MethodInfo(String name, String accessModifier, String returnTypeName, List<ParameterInfo> parameters, String body) {
             this.name = name;
             this.accessModifier = accessModifier;
             this.returnTypeName = returnTypeName;
@@ -74,7 +72,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
             return returnTypeName;
         }
 
-        public String getParameters() {
+        public List<ParameterInfo> getParameters() {
             return parameters;
         }
 
@@ -84,7 +82,9 @@ public class ClassResource extends AnnotatableResource implements Resource {
 
         public void render(List<String> lines) {
             getAnnotations().forEach(x -> lines.add(x.toString()));
-            lines.add(accessModifier + " " + returnTypeName + " " + name + "(" + parameters + ") {");
+            lines.add(accessModifier + " " + returnTypeName + " " + name + "(" +
+                parameters.stream().map(x -> x.toString()).collect(Collectors.joining(", ")) +
+                ") {");
             lines.addAll(Arrays.asList(body.split("\n")).stream().map(x -> "    " + x).collect(Collectors.toList()));
             lines.add("}");
         }
@@ -93,6 +93,34 @@ public class ClassResource extends AnnotatableResource implements Resource {
             MethodInfo methodInfo = new MethodInfo(name, accessModifier, returnTypeName, parameters, body);
             super.copyTo(methodInfo);
             return methodInfo;
+        }
+
+        public ParameterInfo getParameter(int index) {
+            return parameters.get(index);
+        }
+    }
+
+    public static class ParameterInfo extends AnnotatableResource {
+        private String typeName;
+        private String name;
+
+        public ParameterInfo(String typeName, String name) {
+            this.typeName = typeName;
+            this.name = name;
+        }
+
+        public String getTypeName() {
+            return typeName;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String toString() {
+            String annotationsStr = getAnnotations().stream().map(x -> x.toString()).collect(Collectors.joining(" "));
+            return (annotationsStr.length() > 0 ? annotationsStr + " " : "") + typeName + " " + name;
         }
     }
 
@@ -125,7 +153,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
         return fields.stream().filter(x -> x.getName().equals(name)).findFirst().get();
     }
 
-    public void addMethod(String name, String accessModifier, String returnType, String parameters, String body) {
+    public void addMethod(String name, String accessModifier, String returnType, List<ParameterInfo> parameters, String body) {
         methods.add(new MethodInfo(name, accessModifier, returnType, parameters, body));
     }
 
@@ -158,16 +186,6 @@ public class ClassResource extends AnnotatableResource implements Resource {
                 updateText();
             }
 
-            private List<String> formatMethod(MethodInfo m) {
-                ArrayList<String> lines = new ArrayList<>();
-
-                lines.add(m.accessModifier + " " + m.returnTypeName + " " + m.name + "(" + m.parameters + ") {");
-                lines.addAll(Arrays.asList(m.body.split("\n")).stream().map(x -> "    " + x).collect(Collectors.toList()));
-                lines.add("}");
-
-                return lines;
-            }
-
             private void updateText() {
                 StringBuilder text = new StringBuilder();
 
@@ -178,12 +196,6 @@ public class ClassResource extends AnnotatableResource implements Resource {
                 c.fields.forEach(f -> f.render(members));
                 c.methods.forEach(m -> m.render(members));
                 text.append(members.stream().collect(Collectors.joining("\n    ", "    ", "\n")));
-
-                //if(c.fields.size() > 0)
-                //    text.append(c.fields.stream().map(x -> x.accessModifier + " " + x.typeName + " " + x.name + ";").collect(Collectors.joining("\n    ", "    ", "\n")));
-                //if(c.methods.size() > 0)
-                //    text.append(c.methods.stream().map(x ->
-                //        formatMethod(x).stream().collect(Collectors.joining("\n    ", "", ""))).collect(Collectors.joining("\n    ", "    ", "\n")));
 
                 text.append("}");
 
@@ -197,10 +209,6 @@ public class ClassResource extends AnnotatableResource implements Resource {
         });
 
         return textPane;
-    }
-
-    public JComponent toDesign() {
-        return null;
     }
 
     public DefaultMutableTreeNode toTreeNode(DefaultMutableTreeNode parentNode, Overview overview) {
