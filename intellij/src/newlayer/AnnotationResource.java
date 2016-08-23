@@ -12,6 +12,10 @@ public class AnnotationResource {
         this.args = args;
     }
 
+    public String getTypeName() {
+        return typeName;
+    }
+
     public void setArgument(String name, Object value) {
         args.put(name, value);
     }

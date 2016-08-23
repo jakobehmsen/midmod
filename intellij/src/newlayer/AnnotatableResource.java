@@ -3,6 +3,7 @@ package newlayer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public abstract class AnnotatableResource {
     private ArrayList<AnnotationResource> annotations = new ArrayList<>();
@@ -17,5 +18,9 @@ public abstract class AnnotatableResource {
 
     public void copyTo(AnnotatableResource annotatableResource) {
         annotatableResource.annotations.addAll(annotations);
+    }
+
+    public boolean hasAnnotation(String typeName) {
+        return annotations.stream().anyMatch(x -> x.getTypeName().equals(typeName));
     }
 }

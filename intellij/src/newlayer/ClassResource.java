@@ -100,6 +100,31 @@ public class ClassResource extends AnnotatableResource implements Resource {
         }
     }
 
+    public static class ConstructorInfo extends MethodInfo {
+        private ClassResource classResource;
+
+        public ConstructorInfo(ClassResource classResource, String accessModifier, List<ParameterInfo> parameters, String body) {
+            super("<init>", accessModifier, "<thisClass>", parameters, body);
+            this.classResource = classResource;
+        }
+
+        public ConstructorInfo copy(ClassResource classResource) {
+            ConstructorInfo constructorInfo = new ConstructorInfo(classResource, getAccessModifier(), getParameters(), getBody());
+            super.copyTo(constructorInfo);
+            return constructorInfo;
+        }
+
+        @Override
+        public void render(List<String> lines) {
+            getAnnotations().forEach(x -> lines.add(x.toString()));
+            lines.add(getAccessModifier() + " " + classResource.getName() + "(" +
+                getParameters().stream().map(x -> x.toString()).collect(Collectors.joining(", ")) +
+                ") {");
+            lines.addAll(Arrays.asList(getBody().split("\n")).stream().map(x -> "    " + x).collect(Collectors.toList()));
+            lines.add("}");
+        }
+    }
+
     public static class ParameterInfo extends AnnotatableResource {
         private String typeName;
         private String name;
@@ -143,6 +168,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
 
     private ArrayList<FieldInfo> fields = new ArrayList<>();
     private ArrayList<MethodInfo> methods = new ArrayList<>();
+    private ArrayList<ConstructorInfo> constructors = new ArrayList<>();
     private ArrayList<ClassResourceObserver> observers = new ArrayList<>();
 
     public void addField(String name, String accessModifier, String type) {
@@ -159,6 +185,16 @@ public class ClassResource extends AnnotatableResource implements Resource {
 
     public MethodInfo getMethod(String name) {
         return methods.stream().filter(x -> x.getName().equals(name)).findFirst().get();
+    }
+
+    public void addConstructor(String accessModifier, List<ParameterInfo> parameters, String body) {
+        constructors.add(new ConstructorInfo(this, accessModifier, parameters, body));
+    }
+
+    public ConstructorInfo getConstructor(List<String> parameterTypeNames) {
+        return constructors.stream()
+            .filter(x -> x.getParameters().stream().map(p -> p.getTypeName()).collect(Collectors.toList()).equals(parameterTypeNames))
+            .findFirst().get();
     }
 
     public void addObserver(ClassResourceObserver observer) {
@@ -194,6 +230,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
 
                 ArrayList<String> members = new ArrayList<>();
                 c.fields.forEach(f -> f.render(members));
+                c.constructors.forEach(c -> c.render(members));
                 c.methods.forEach(m -> m.render(members));
                 text.append(members.stream().collect(Collectors.joining("\n    ", "    ", "\n")));
 
@@ -228,6 +265,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
         ClassResource copy = new ClassResource(layer, name);
 
         copy.fields.addAll(fields.stream().map(x -> x.copy()).collect(Collectors.toList()));
+        copy.constructors.addAll(constructors.stream().map(x -> x.copy(copy)).collect(Collectors.toList()));
         copy.methods.addAll(methods.stream().map(x -> x.copy()).collect(Collectors.toList()));
 
         return copy;
@@ -236,6 +274,8 @@ public class ClassResource extends AnnotatableResource implements Resource {
     public void updateFrom(ClassResource newClass) {
         fields.clear();
         fields.addAll(newClass.fields.stream().map(x -> x.copy()).collect(Collectors.toList()));
+        constructors.clear();
+        constructors.addAll(newClass.constructors.stream().map(x -> x.copy(this)).collect(Collectors.toList()));
         methods.clear();
         methods.addAll(newClass.methods.stream().map(x -> x.copy()).collect(Collectors.toList()));
         observers.forEach(x -> x.update());
