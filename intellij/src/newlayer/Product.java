@@ -51,11 +51,7 @@ public class Product implements LayerObserver {
 
     @Override
     public void outputUpdated(Layer layer) {
-        /*int indexOfLayer = layers.indexOf(layer);
-        if(indexOfLayer + 1 < layers.size()) {
-            Layer nextLayer = layers.get(indexOfLayer + 1);
-            nextLayer.transform(layer);
-        }*/
+
     }
 
     @Override
@@ -74,7 +70,6 @@ public class Product implements LayerObserver {
 
             if(layers.size() > indexOfLayer) {
                 updateFromLayer(layers.get(indexOfLayer));
-                //layers.get(indexOfLayer).transform(layers.get(indexOfLayer));
             }
         }
     }
@@ -89,22 +84,18 @@ public class Product implements LayerObserver {
 
         engine.put("addClass", (Consumer<String>) s -> {
             classes[0].add(new ClassResource(currentLayer[0], s));
-            //currentLayer[0].addClass(s);
         });
         engine.put("getClass", (Function<String, ClassResource>) s -> {
             return classes[0].stream().filter(x -> x.getName().equals(s)).findFirst().get();
-            //return currentLayer[0].getClass(s);
         });
         engine.put("getClasses", (Supplier<List<ClassResource>>) () -> {
             return classes[0];
-            //return previousLayerHolder[0] != null ? previousLayerHolder[0].getClasses() : Collections.emptyList();
         });
         engine.put("parameter", (BiFunction<String, String, ClassResource.ParameterInfo>) (typeName, name) -> {
             return new ClassResource.ParameterInfo(typeName, name);
-            //return previousLayerHolder[0] != null ? previousLayerHolder[0].getClasses() : Collections.emptyList();
         });
 
-        for(int indexOfLayer = 0/*layers.indexOf(layer)*/; indexOfLayer < layers.size(); indexOfLayer++) {
+        for(int indexOfLayer = 0; indexOfLayer < layers.size(); indexOfLayer++) {
             layer = layers.get(indexOfLayer);
             currentLayer[0] = layer;
             if (indexOfLayer == 0) {
@@ -139,34 +130,11 @@ public class Product implements LayerObserver {
     }
 
     public JComponent toOverview(JTree tree, DefaultTreeModel treeModel, DefaultMutableTreeNode root, Overview overview) {
-        //DefaultMutableTreeNode root = new DefaultMutableTreeNode();
-        //DefaultTreeModel treeModel = new DefaultTreeModel(root);
-
-        //JTree tree = new JTree(treeModel);
-
-        /*tree.setRootVisible(false);
-        tree.setShowsRootHandles(true);
-        tree.setToggleClickCount(0);*/
-
         layers.forEach(x -> {
             DefaultMutableTreeNode layerNode = (DefaultMutableTreeNode) x.toTreeNode(treeModel, overview);
             treeModel.insertNodeInto(layerNode, root, root.getChildCount());
         });
         treeModel.nodeStructureChanged(root);
-
-        /*tree.addMouseListener(new MouseAdapter() {
-            public void mousePressed(MouseEvent e) {
-                int selRow = tree.getRowForLocation(e.getX(), e.getY());
-                TreePath selPath = tree.getPathForLocation(e.getX(), e.getY());
-                if(selRow != -1) {
-                    if(e.getClickCount() == 2) {
-                        DefaultMutableTreeNode clickedNode = (DefaultMutableTreeNode) selPath.getLastPathComponent();
-                        Resource resource = (Resource) clickedNode.getUserObject();
-                        overview.open(resource);
-                    }
-                }
-            }
-        });*/
 
         addObserver(new ProductObserver() {
             @Override

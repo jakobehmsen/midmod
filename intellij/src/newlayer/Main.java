@@ -1,6 +1,5 @@
 package newlayer;
 
-import com.sun.glass.events.KeyEvent;
 import jdk.nashorn.api.scripting.NashornScriptEngine;
 
 import javax.script.ScriptEngineManager;
@@ -14,38 +13,14 @@ import java.awt.event.*;
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.Hashtable;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class Main {
     private static Product product;
     private static boolean isSaved;
     private static String folderToSaveIn;
-    //private static String fileToSaveIn;
 
     public static void main(String[] args) throws ScriptException {
-        //product = new Product();
-
-        /*product.addLayer("Pre persistence");
-        product.addLayer("Persistence");
-
-        product.getLayer("Pre persistence").setSource(
-            "addClass('Person')\n" +
-            "getClass('Person').addField('firstName', 'private', 'String')\n" +
-            "getClass('Person').addField('lastName', 'private', 'String')\n" +
-            "getClass('Person').addMethod('toString', 'public', 'String', '', 'String str = \"test\";\\nreturn str;')\n" +
-            "addClass('Address')\n"
-        );
-
-        product.getLayer("Persistence").setSource(
-            "addClass('PersistenceStuff')\n" +
-            "getClass('Person').getFields().forEach(function(f) {\n" +
-            "    getClass('Person').addField(f.getName() + 'ForPersistence', 'private', f.getTypeName())\n" +
-            "})\n" +
-            "getClass('Person').addField('extraSpecialField', 'private', 'String')\n"
-        );*/
-
         LayerFactory layerFactory = new LayerFactory() {
             @Override
             public Layer createLayer(String name) {
@@ -337,35 +312,6 @@ public class Main {
         toolBar.add(saveProductAction);
 
         contentPane.add(toolBar, BorderLayout.NORTH);
-
-        JTextPane shell = new JTextPane();
-        shell.setBackground(Color.BLACK);
-        shell.setForeground(Color.WHITE);
-        shell.setCaretColor(Color.WHITE);
-        shell.registerKeyboardAction(e -> {
-            String command = shell.getText();
-
-            shell.setText("");
-
-            ScriptEngineManager engineManager = new ScriptEngineManager();
-            NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
-            engine.put("addLayer", (Consumer<String>) s -> {
-                product.addLayer(s);
-            });
-            engine.put("insertLayer", (BiConsumer<String, Integer>) (s, i) -> {
-                product.insertLayer(s, i);
-            });
-            engine.put("removeLayer", (Consumer<String>) s -> {
-                product.removeLayer(s);
-            });
-            try {
-                engine.eval(command);
-            } catch (ScriptException e1) {
-                e1.printStackTrace();
-            }
-        }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
-
-        contentPane.add(shell, BorderLayout.SOUTH);
 
         frame.setSize(1024, 768);
         frame.setLocationRelativeTo(null);
