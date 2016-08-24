@@ -38,6 +38,7 @@ public class Layer implements Resource {
 
     public void setSource(String source) throws ScriptException {
         this.source = source;
+        layerPersistor.changedSource(this);
         observers.forEach(o -> o.transformationChanged(this));
     }
 
@@ -156,6 +157,11 @@ public class Layer implements Resource {
 
             }
 
+            @Override
+            public void nameChanged(Layer layer) {
+                parentNode.nodeChanged(treeNode);
+            }
+
             private void updateClass(ClassResource newClass, ClassResource currentClass) {
                 DefaultMutableTreeNode node = getView(currentClass);
                 newClass.updateTreeNode(node);
@@ -207,5 +213,12 @@ public class Layer implements Resource {
 
     public List<ClassResource> getClasses() {
         return classes;
+    }
+
+    public void setName(String name) {
+        layerPersistor.changeName(this, name);
+        this.name = name;
+
+        observers.forEach(x -> x.nameChanged(this));
     }
 }

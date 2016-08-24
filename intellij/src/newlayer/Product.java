@@ -40,6 +40,7 @@ public class Product implements LayerObserver {
         layers.add(index, layer);
         layer.addObserver(this);
 
+        productPersistor.addedLayer(this, layer, index);
         observers.forEach(o -> o.addedLayer(this, layer, index));
 
         updateFromLayer(layer);
@@ -59,6 +60,11 @@ public class Product implements LayerObserver {
         updateFromLayer(layer);
     }
 
+    @Override
+    public void nameChanged(Layer layer) {
+        productPersistor.layerNameChanged(layer);
+    }
+
     public void removeLayer(String name) {
         int indexOfLayer = IntStream.range(0, layers.size()).filter(i -> layers.get(i).getName().equals(name)).findFirst().orElse(-1);
         if(indexOfLayer != -1) {
@@ -66,6 +72,7 @@ public class Product implements LayerObserver {
             layer.removeObserver(this);
             layers.remove(indexOfLayer);
 
+            productPersistor.removedLayer(this, layer, indexOfLayer);
             observers.forEach(o -> o.removedLayer(this, layer, indexOfLayer));
 
             if(layers.size() > indexOfLayer) {

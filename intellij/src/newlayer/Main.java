@@ -5,8 +5,11 @@ import jdk.nashorn.api.scripting.NashornScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.swing.*;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.MutableTreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.*;
@@ -18,22 +21,62 @@ import java.util.function.Consumer;
 public class Main {
     private static Product product;
     private static boolean isSaved;
+    private static boolean isLoading;
     private static String folderToSaveIn;
 
     public static void main(String[] args) throws ScriptException {
         LayerFactory layerFactory = new LayerFactory() {
             @Override
             public Layer createLayer(String name) {
+                return createLayer(name, true);
+            }
+
+            private Layer createLayer(String name, boolean isNew) {
                 return new Layer(new LayerPersistor() {
+                    private boolean hasChanges = isNew;
+                    private String lastName = name;
+                    private String currentName = name;
+
                     @Override
                     public void save(Layer layer) {
-                        String layerFile = getLayerFile(name);
+                        if(!hasChanges)
+                            return;
+
+                        if(!currentName.equals(lastName)) {
+                            String lastLayerFile = getLayerFile(lastName);
+                            try {
+                                java.nio.file.Files.delete(Paths.get(lastLayerFile));
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            lastName = currentName;
+                        }
+
+                        String layerFile = getLayerFile(currentName);
 
                         try {
                             java.nio.file.Files.write(Paths.get(layerFile), layer.getSource().getBytes());
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
+                    }
+
+                    @Override
+                    public void changeName(Layer layer, String newName) {
+                        currentName = newName;
+
+                        if(isLoading)
+                            return;
+
+                        hasChanges = true;
+                    }
+
+                    @Override
+                    public void changedSource(Layer layer) {
+                        if(isLoading)
+                            return;
+
+                        hasChanges = true;
                     }
                 }, name);
             }
@@ -44,7 +87,7 @@ public class Main {
 
             @Override
             public Layer openLayer(String name) {
-                Layer layer = createLayer(name);
+                Layer layer = createLayer(name, false);
 
                 String layerFile = getLayerFile(name);
                 try {
@@ -68,8 +111,13 @@ public class Main {
         };
 
         ProductPersistor productPersistor = new ProductPersistor() {
+            private boolean hasChanges;
+
             @Override
             public void saveProduct(Product product) {
+                if(!hasChanges)
+                    return;
+
                 try {
                     String fileToSaveIn = Paths.get(folderToSaveIn, "product").toString();
                     OutputStream output = new FileOutputStream(fileToSaveIn);
@@ -80,6 +128,8 @@ public class Main {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+
+                hasChanges = false;
             }
 
             @Override
@@ -88,6 +138,30 @@ public class Main {
                     new File(folderToSaveIn).mkdir();
 
                 layerFactory.allocateForPersistence();
+            }
+
+            @Override
+            public void layerNameChanged(Layer layer) {
+                if(isLoading)
+                    return;
+
+                hasChanges = true;
+            }
+
+            @Override
+            public void addedLayer(Product product, Layer layer, int index) {
+                if(isLoading)
+                    return;
+
+                hasChanges = true;
+            }
+
+            @Override
+            public void removedLayer(Product product, Layer layer, int index) {
+                if(isLoading)
+                    return;
+
+                hasChanges = true;
             }
         };
 
@@ -282,7 +356,9 @@ public class Main {
                         engine.put("openLayer", (Consumer<String>) s -> {
                             product.openLayer(s);
                         });
+                        isLoading = true;
                         engine.eval(source);
+                        isLoading = false;
                     } catch (IOException e1) {
                         e1.printStackTrace();
                     } catch (ScriptException e1) {
@@ -310,6 +386,29 @@ public class Main {
         });
 
         toolBar.add(saveProductAction);
+
+        Action renameLayer = new AbstractAction("Rename layer...") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Layer layer = (Layer) ((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).getUserObject();
+                String layerName = JOptionPane.showInputDialog(frame, "Layer name", layer.getName());
+                if(layerName != null)
+                    layer.setName(layerName);
+            }
+        };
+        renameLayer.setEnabled(false);
+
+        tree.getSelectionModel().addTreeSelectionListener(new TreeSelectionListener() {
+            @Override
+            public void valueChanged(TreeSelectionEvent e) {
+                DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) e.getPath().getLastPathComponent();
+                if(selectedNode != null) {
+                    renameLayer.setEnabled(selectedNode.getUserObject() instanceof Layer);
+                }
+            }
+        });
+
+        toolBar.add(renameLayer);
 
         contentPane.add(toolBar, BorderLayout.NORTH);
 
