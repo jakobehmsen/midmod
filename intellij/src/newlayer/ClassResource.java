@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ClassResource extends AnnotatableResource implements Resource {
-    private String name;
-
     public static class FieldInfo extends AnnotatableResource {
         private String name;
         private String accessModifier;
@@ -150,6 +148,8 @@ public class ClassResource extends AnnotatableResource implements Resource {
     }
 
     private Layer layer;
+    private String name;
+    private String superClassName;
 
     public ClassResource(Layer layer, String name) {
         this.layer = layer;
@@ -166,6 +166,14 @@ public class ClassResource extends AnnotatableResource implements Resource {
         return name;
     }
 
+    public String getSuperClassName() {
+        return superClassName;
+    }
+
+    public void setSuperClassName(String superClassName) {
+        this.superClassName = superClassName;
+    }
+
     private ArrayList<FieldInfo> fields = new ArrayList<>();
     private ArrayList<MethodInfo> methods = new ArrayList<>();
     private ArrayList<ConstructorInfo> constructors = new ArrayList<>();
@@ -179,12 +187,20 @@ public class ClassResource extends AnnotatableResource implements Resource {
         return fields.stream().filter(x -> x.getName().equals(name)).findFirst().get();
     }
 
+    public List<FieldInfo> getFields() {
+        return fields.stream().collect(Collectors.toList());
+    }
+
     public void addMethod(String name, String accessModifier, String returnType, List<ParameterInfo> parameters, String body) {
         methods.add(new MethodInfo(name, accessModifier, returnType, parameters, body));
     }
 
     public MethodInfo getMethod(String name) {
         return methods.stream().filter(x -> x.getName().equals(name)).findFirst().get();
+    }
+
+    public List<MethodInfo> getMethods() {
+        return methods.stream().collect(Collectors.toList());
     }
 
     public void addConstructor(String accessModifier, List<ParameterInfo> parameters, String body) {
@@ -197,16 +213,16 @@ public class ClassResource extends AnnotatableResource implements Resource {
             .findFirst().get();
     }
 
+    public List<ConstructorInfo> getConstructors() {
+        return constructors.stream().collect(Collectors.toList());
+    }
+
     public void addObserver(ClassResourceObserver observer) {
         observers.add(observer);
     }
 
     public void removeObserver(ClassResourceObserver observer) {
         observers.remove(observer);
-    }
-
-    public List<FieldInfo> getFields() {
-        return fields.stream().collect(Collectors.toList());
     }
 
     @Override
@@ -226,7 +242,10 @@ public class ClassResource extends AnnotatableResource implements Resource {
                 StringBuilder text = new StringBuilder();
 
                 getAnnotations().forEach(x -> text.append(x.toString() + "\n"));
-                text.append("public class " + name + " {\n");
+                text.append("public class " + name);
+                if(superClassName != null)
+                    text.append(" extends " + superClassName);
+                text.append(" {" + "\n");
 
                 ArrayList<String> members = new ArrayList<>();
                 c.fields.forEach(f -> f.render(members));
@@ -264,6 +283,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
     public ClassResource copy(Layer layer) {
         ClassResource copy = new ClassResource(layer, name);
 
+        copy.superClassName = superClassName;
         copy.fields.addAll(fields.stream().map(x -> x.copy()).collect(Collectors.toList()));
         copy.constructors.addAll(constructors.stream().map(x -> x.copy(copy)).collect(Collectors.toList()));
         copy.methods.addAll(methods.stream().map(x -> x.copy()).collect(Collectors.toList()));
@@ -272,6 +292,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
     }
 
     public void updateFrom(ClassResource newClass) {
+        superClassName = newClass.superClassName;
         fields.clear();
         fields.addAll(newClass.fields.stream().map(x -> x.copy()).collect(Collectors.toList()));
         constructors.clear();

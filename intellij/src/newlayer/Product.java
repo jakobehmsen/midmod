@@ -14,6 +14,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Product implements LayerObserver {
@@ -96,7 +97,7 @@ public class Product implements LayerObserver {
             return classes[0].stream().filter(x -> x.getName().equals(s)).findFirst().get();
         });
         engine.put("getClasses", (Supplier<List<ClassResource>>) () -> {
-            return classes[0];
+            return classes[0].stream().collect(Collectors.toList());
         });
         engine.put("parameter", (BiFunction<String, String, ClassResource.ParameterInfo>) (typeName, name) -> {
             return new ClassResource.ParameterInfo(typeName, name);
