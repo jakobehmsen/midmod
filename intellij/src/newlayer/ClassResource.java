@@ -150,10 +150,12 @@ public class ClassResource extends AnnotatableResource implements Resource {
     private Layer layer;
     private String name;
     private String superClassName;
+    private ArrayList<String> interfaceNames;
 
     public ClassResource(Layer layer, String name) {
         this.layer = layer;
         this.name = name;
+        interfaceNames = new ArrayList<>();
     }
 
     @Override
@@ -172,6 +174,18 @@ public class ClassResource extends AnnotatableResource implements Resource {
 
     public void setSuperClassName(String superClassName) {
         this.superClassName = superClassName;
+    }
+
+    public void addInterfaceName(String interfaceName) {
+        interfaceNames.add(interfaceName);
+    }
+
+    public void removeInterfaceName(String interfaceName) {
+        interfaceNames.remove(interfaceName);
+    }
+
+    public List<String> getInterfaceNames() {
+        return interfaceNames.stream().collect(Collectors.toList());
     }
 
     private ArrayList<FieldInfo> fields = new ArrayList<>();
@@ -245,6 +259,8 @@ public class ClassResource extends AnnotatableResource implements Resource {
                 text.append("public class " + name);
                 if(superClassName != null)
                     text.append(" extends " + superClassName);
+                if(interfaceNames.size() > 0)
+                    text.append(" implements " + interfaceNames.stream().collect(Collectors.joining(", ")));
                 text.append(" {" + "\n");
 
                 ArrayList<String> members = new ArrayList<>();
@@ -283,16 +299,15 @@ public class ClassResource extends AnnotatableResource implements Resource {
     public ClassResource copy(Layer layer) {
         ClassResource copy = new ClassResource(layer, name);
 
-        copy.superClassName = superClassName;
-        copy.fields.addAll(fields.stream().map(x -> x.copy()).collect(Collectors.toList()));
-        copy.constructors.addAll(constructors.stream().map(x -> x.copy(copy)).collect(Collectors.toList()));
-        copy.methods.addAll(methods.stream().map(x -> x.copy()).collect(Collectors.toList()));
+        copy.updateFrom(this);
 
         return copy;
     }
 
     public void updateFrom(ClassResource newClass) {
         superClassName = newClass.superClassName;
+        interfaceNames.clear();
+        interfaceNames.addAll(newClass.interfaceNames);
         fields.clear();
         fields.addAll(newClass.fields.stream().map(x -> x.copy()).collect(Collectors.toList()));
         constructors.clear();
