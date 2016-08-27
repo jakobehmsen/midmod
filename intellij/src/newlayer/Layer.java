@@ -76,9 +76,28 @@ public class Layer implements Resource {
 
         textPane.setText(source);
 
+        LayerObserver observer = new LayerObserver() {
+            @Override
+            public void outputUpdated(Layer layer) {
+
+            }
+
+            @Override
+            public void transformationChanged(Layer layer) {
+                textPane.setText(source);
+            }
+
+            @Override
+            public void nameChanged(Layer layer) {
+
+            }
+        };
+
         javax.swing.Timer timer = new javax.swing.Timer(100, e -> {
             try {
+                removeObserver(observer);
                 setSource(textPane.getText());
+                addObserver(observer);
             } catch (ScriptException se) {
                 se.printStackTrace();
             }
@@ -106,6 +125,8 @@ public class Layer implements Resource {
                 timer.restart();
             }
         });
+
+        addObserver(observer);
 
         return textPane;
     }
@@ -220,5 +241,10 @@ public class Layer implements Resource {
         this.name = name;
 
         observers.forEach(x -> x.nameChanged(this));
+    }
+
+    public void appendSource(String sourcePart) throws ScriptException {
+        String separator = source.length() == 0 || source.endsWith("\n") ? "" : "\n";
+        setSource(source + separator + sourcePart);
     }
 }

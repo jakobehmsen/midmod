@@ -375,54 +375,22 @@ public class Main {
             }
         });
 
+        // http://stackoverflow.com/questions/17863179/how-do-i-make-jtree-stop-cell-editing-when-either-focus-lost-or-left-click-occu
+        // Could be interesting for handling node editing/cancel editing when focus is lost
         toolBar.add(new AbstractAction("Add Layer") {
             @Override
             public void actionPerformed(ActionEvent e) {
                 DefaultMutableTreeNode newLayerNode = new DefaultMutableTreeNode();
                 treeModel.insertNodeInto(newLayerNode, root, root.getChildCount());
-                tree.setEditable(true);
-                tree.startEditingAtPath(new TreePath(treeModel.getPathToRoot(newLayerNode)));
-                tree.getCellEditor().addCellEditorListener(new CellEditorListener() {
-                    @Override
-                    public void editingStopped(ChangeEvent e) {
-                        tree.getCellEditor().removeCellEditorListener(this);
-                    }
 
-                    @Override
-                    public void editingCanceled(ChangeEvent e) {
-                        tree.getCellEditor().removeCellEditorListener(this);
-                        treeModel.removeNodeFromParent(newLayerNode);
-                        tree.setEditable(false);
-                    }
-                });
-                tree.getModel().addTreeModelListener(new TreeModelListener() {
-                    @Override
-                    public void treeNodesChanged(TreeModelEvent e) {
-                        tree.getModel().removeTreeModelListener(this);
+                editNode(tree, new TreePath(treeModel.getPathToRoot(newLayerNode)), () -> {
+                    treeModel.removeNodeFromParent(newLayerNode);
+                }, () -> {
+                    String layerName = (String)((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).getUserObject();
+                    treeModel.removeNodeFromParent(newLayerNode);
 
-                        String layerName = (String)((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).getUserObject();
-                        treeModel.removeNodeFromParent(newLayerNode);
-
-                        if(layerName.length() > 0) {
-                            product.addLayer(layerName);
-                        }
-
-                        tree.setEditable(false);
-                    }
-
-                    @Override
-                    public void treeNodesInserted(TreeModelEvent e) {
-
-                    }
-
-                    @Override
-                    public void treeNodesRemoved(TreeModelEvent e) {
-
-                    }
-
-                    @Override
-                    public void treeStructureChanged(TreeModelEvent e) {
-
+                    if(layerName.length() > 0) {
+                        product.addLayer(layerName);
                     }
                 });
             }
@@ -436,55 +404,50 @@ public class Main {
                 DefaultMutableTreeNode layerNode = (DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent();
                 Layer layer = (Layer) layerNode.getUserObject();
 
-                tree.setEditable(true);
-                tree.startEditingAtPath(tree.getSelectionPath());
-                tree.getCellEditor().addCellEditorListener(new CellEditorListener() {
-                    @Override
-                    public void editingStopped(ChangeEvent e) {
-                        tree.getCellEditor().removeCellEditorListener(this);
+                editNode(tree, tree.getSelectionPath(), () -> {
+
+                },  () -> {
+                    String layerName = (String)((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).getUserObject();
+
+                    if(layerName.length() > 0) {
+                        layer.setName(layerName);
                     }
 
-                    @Override
-                    public void editingCanceled(ChangeEvent e) {
-                        tree.getCellEditor().removeCellEditorListener(this);
-                        tree.setEditable(false);
-                    }
-                });
-                tree.getModel().addTreeModelListener(new TreeModelListener() {
-                    @Override
-                    public void treeNodesChanged(TreeModelEvent e) {
-                        tree.getModel().removeTreeModelListener(this);
-
-                        String layerName = (String)((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).getUserObject();
-
-                        if(layerName.length() > 0) {
-                            layer.setName(layerName);
-                        }
-
-                        layerNode.setUserObject(layer);
-                        treeModel.nodeChanged(layerNode);
-
-                        tree.setEditable(false);
-                    }
-
-                    @Override
-                    public void treeNodesInserted(TreeModelEvent e) {
-
-                    }
-
-                    @Override
-                    public void treeNodesRemoved(TreeModelEvent e) {
-
-                    }
-
-                    @Override
-                    public void treeStructureChanged(TreeModelEvent e) {
-
-                    }
+                    layerNode.setUserObject(layer);
+                    treeModel.nodeChanged(layerNode);
                 });
             }
         };
         renameLayer.setEnabled(false);
+
+        toolBar.add(new AbstractAction("Add class") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                DefaultMutableTreeNode newClassNode = new DefaultMutableTreeNode();
+                DefaultMutableTreeNode layerNode = (DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent();
+                Layer layer = (Layer) layerNode.getUserObject();
+                treeModel.insertNodeInto(newClassNode, layerNode, layerNode.getChildCount());
+
+                editNode(tree, new TreePath(treeModel.getPathToRoot(newClassNode)), () -> {
+                    treeModel.removeNodeFromParent(newClassNode);
+
+                    tree.setSelectionPath(new TreePath(treeModel.getPathToRoot(layerNode)));
+                }, () -> {
+                    String className = (String)((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).getUserObject();
+                    treeModel.removeNodeFromParent(newClassNode);
+
+                    if(className.length() > 0) {
+                        try {
+                            layer.appendSource("addClass('" + className + "')");
+                        } catch (ScriptException e1) {
+                            e1.printStackTrace();
+                        }
+                    }
+
+                    tree.setSelectionPath(new TreePath(treeModel.getPathToRoot(layerNode)));
+                });
+            }
+        });
 
         tree.getSelectionModel().addTreeSelectionListener(new TreeSelectionListener() {
             @Override
@@ -523,6 +486,49 @@ public class Main {
                     }
                 };
                 swingWorker.execute();
+            }
+        });
+    }
+
+    private static void editNode(JTree tree, TreePath selectionPath, Runnable editingCanceled, Runnable editingComitted) {
+        tree.setEditable(true);
+        tree.startEditingAtPath(selectionPath);
+        tree.getCellEditor().addCellEditorListener(new CellEditorListener() {
+            @Override
+            public void editingStopped(ChangeEvent e) {
+                tree.getCellEditor().removeCellEditorListener(this);
+            }
+
+            @Override
+            public void editingCanceled(ChangeEvent e) {
+                tree.getCellEditor().removeCellEditorListener(this);
+                tree.setEditable(false);
+                editingCanceled.run();
+            }
+        });
+        tree.getModel().addTreeModelListener(new TreeModelListener() {
+            @Override
+            public void treeNodesChanged(TreeModelEvent e) {
+                tree.getModel().removeTreeModelListener(this);
+
+                editingComitted.run();
+
+                tree.setEditable(false);
+            }
+
+            @Override
+            public void treeNodesInserted(TreeModelEvent e) {
+
+            }
+
+            @Override
+            public void treeNodesRemoved(TreeModelEvent e) {
+
+            }
+
+            @Override
+            public void treeStructureChanged(TreeModelEvent e) {
+
             }
         });
     }
