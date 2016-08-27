@@ -4,7 +4,7 @@ import javax.swing.*;
 
 public interface Resource {
     String getName();
-    JComponent toView();
+    ViewBinding<JComponent> toView();
     Resource getParent();
     default String getPath() {
         if(getParent() != null)

@@ -228,17 +228,17 @@ public class Main {
         tabbedPane.addMouseMotionListener(mouseAdapter);
 
         Overview overview = new Overview() {
-            private Hashtable<Resource, JComponent> openedResources = new Hashtable<>();
+            private Hashtable<Resource, ViewBinding<JComponent>> openedResources = new Hashtable<>();
 
             @Override
             public void open(Resource resource) {
                 if(openedResources.containsKey(resource)) {
-                    JComponent resourceView = openedResources.get(resource);
-                    int tabIndex = tabbedPane.indexOfComponent(resourceView);
+                    ViewBinding<JComponent> resourceView = openedResources.get(resource);
+                    int tabIndex = tabbedPane.indexOfComponent(resourceView.getView());
                     tabbedPane.setSelectedIndex(tabIndex);
                 } else {
-                    JComponent resourceView = resource.toView();
-                    tabbedPane.add(resource.getPath(), resourceView);
+                    ViewBinding<JComponent> resourceView = resource.toView();
+                    tabbedPane.add(resource.getPath(), resourceView.getView());
                     openedResources.put(resource, resourceView);
                     tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);
                 }

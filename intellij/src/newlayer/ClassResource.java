@@ -1,7 +1,13 @@
 package newlayer;
 
+import com.sun.glass.events.KeyEvent;
+
+import javax.script.ScriptException;
 import javax.swing.*;
+import javax.swing.text.*;
 import javax.swing.tree.DefaultMutableTreeNode;
+import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -240,8 +246,151 @@ public class ClassResource extends AnnotatableResource implements Resource {
     }
 
     @Override
-    public JComponent toView() {
-        JTextPane textPane = new JTextPane();
+    public ViewBinding<JComponent> toView() {
+        return new ViewBinding<JComponent>() {
+            private boolean isCreating;
+            private JTextPane textPane = new JTextPane();
+            private boolean isUpdating;
+            private int editStart;
+            private int editEnd;
+
+            {
+                textPane.setDocument(new DefaultStyledDocument() {
+                    @Override
+                    public void insertString(int offs, String str, AttributeSet a) throws BadLocationException {
+                        if(isUpdating) {
+                            super.insertString(offs, str, a);
+                            return;
+                        }
+
+                        boolean useAttributes = true;
+
+                        if(!isCreating) {
+                            editStart = offs;
+                            editEnd = 0;
+                            isCreating = true;
+
+                            if(str.trim().length() == 0)
+                                useAttributes = false;
+                        }
+
+                        editEnd = Math.max(editEnd, offs + str.length());
+
+                        if(useAttributes) {
+                            SimpleAttributeSet style = new SimpleAttributeSet();
+                            StyleConstants.setBackground(style, Color.BLUE);
+                            StyleConstants.setForeground(style, Color.WHITE);
+
+                            super.insertString(offs, str, style);
+                        } else {
+                            super.insertString(offs, str, a);
+                        }
+                    }
+                });
+
+                textPane.registerKeyboardAction(e -> {
+                    if(isCreating) {
+                        isCreating = false;
+                        try {
+                            String creationString = textPane.getDocument().getText(editStart, editEnd - editStart);
+                            textPane.getDocument().remove(editStart, editEnd - editStart);
+                            String[] parts = creationString.trim().split(" ");
+                            String accessModifier = parts[0];
+                            String typeName = parts[1];
+                            String name = parts[2].substring(0, parts[2].length() - 1);
+                            try {
+                                layer.appendSource("getClass('" + ClassResource.this.name + "').addField('" + name + "', '" + accessModifier + "', '" + typeName + "')");
+                            } catch (ScriptException e1) {
+                                e1.printStackTrace();
+                            }
+                        } catch (BadLocationException e1) {
+                            e1.printStackTrace();
+                        }
+                    } else {
+                        try {
+                            textPane.getDocument().insertString(textPane.getCaretPosition(), "\n    ", null);
+                        } catch (BadLocationException e1) {
+                            e1.printStackTrace();
+                        }
+                    }
+                }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), 0);
+
+                JPopupMenu popupMenu = new JPopupMenu();
+
+                popupMenu.add(new AbstractAction("Add field") {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+
+                    }
+                });
+
+                textPane.setComponentPopupMenu(popupMenu);
+
+                //textPane.setEditable(false);
+
+                addObserver(new ClassResourceObserver() {
+                    ClassResource c = ClassResource.this;
+
+                    {
+                        updateText();
+                    }
+
+                    private void updateText() {
+                        isUpdating = true;
+
+                        StringBuilder text = new StringBuilder();
+
+                        getAnnotations().forEach(x -> text.append(x.toString() + "\n"));
+                        text.append("public class " + name);
+                        if(superClassName != null)
+                            text.append(" extends " + superClassName);
+                        if(interfaceNames.size() > 0)
+                            text.append(" implements " + interfaceNames.stream().collect(Collectors.joining(", ")));
+                        text.append(" {" + "\n");
+
+                        ArrayList<String> members = new ArrayList<>();
+                        c.fields.forEach(f -> f.render(members));
+                        c.constructors.forEach(c -> c.render(members));
+                        c.methods.forEach(m -> m.render(members));
+                        text.append(members.stream().collect(Collectors.joining("\n    ", "    ", "\n")));
+
+                        text.append("}");
+
+                        textPane.setText(text.toString());
+
+                        isUpdating = false;
+                    }
+
+                    @Override
+                    public void update() {
+                        updateText();
+                    }
+                });
+            }
+
+            @Override
+            public JComponent getView() {
+                return textPane;
+            }
+
+            @Override
+            public void remove() {
+
+            }
+        };
+
+        /*JTextPane textPane = new JTextPane();
+
+        JPopupMenu popupMenu = new JPopupMenu();
+
+        popupMenu.add(new AbstractAction("Add field") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+            }
+        });
+
+        textPane.setComponentPopupMenu(popupMenu);
 
         textPane.setEditable(false);
 
@@ -280,7 +429,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
             }
         });
 
-        return textPane;
+        return textPane;*/
     }
 
     public DefaultMutableTreeNode toTreeNode(DefaultMutableTreeNode parentNode, Overview overview) {

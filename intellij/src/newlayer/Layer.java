@@ -71,8 +71,78 @@ public class Layer implements Resource {
     }
 
     @Override
-    public JComponent toView() {
-        JTextPane textPane = new JTextPane();
+    public ViewBinding<JComponent> toView() {
+        return new ViewBinding<JComponent>() {
+            JTextPane textPane = new JTextPane();
+
+            {
+                textPane.setText(source);
+
+                LayerObserver observer = new LayerObserver() {
+                    @Override
+                    public void outputUpdated(Layer layer) {
+
+                    }
+
+                    @Override
+                    public void transformationChanged(Layer layer) {
+                        textPane.setText(source);
+                    }
+
+                    @Override
+                    public void nameChanged(Layer layer) {
+
+                    }
+                };
+
+                javax.swing.Timer timer = new javax.swing.Timer(100, e -> {
+                    try {
+                        removeObserver(observer);
+                        setSource(textPane.getText());
+                        addObserver(observer);
+                    } catch (ScriptException se) {
+                        se.printStackTrace();
+                    }
+                });
+
+                timer.setRepeats(false);
+
+                textPane.getStyledDocument().addDocumentListener(new DocumentListener() {
+                    @Override
+                    public void insertUpdate(DocumentEvent e) {
+                        timeUpdate();
+                    }
+
+                    @Override
+                    public void removeUpdate(DocumentEvent e) {
+                        timeUpdate();
+                    }
+
+                    @Override
+                    public void changedUpdate(DocumentEvent e) {
+                        timeUpdate();
+                    }
+
+                    private void timeUpdate() {
+                        timer.restart();
+                    }
+                });
+
+                addObserver(observer);
+            }
+
+            @Override
+            public JComponent getView() {
+                return textPane;
+            }
+
+            @Override
+            public void remove() {
+
+            }
+        };
+
+        /*JTextPane textPane = new JTextPane();
 
         textPane.setText(source);
 
@@ -128,7 +198,7 @@ public class Layer implements Resource {
 
         addObserver(observer);
 
-        return textPane;
+        return textPane;*/
     }
 
     @Override
