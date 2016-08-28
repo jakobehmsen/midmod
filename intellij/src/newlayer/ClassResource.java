@@ -251,10 +251,35 @@ public class ClassResource extends AnnotatableResource implements Resource {
             private boolean isCreating;
             private JTextPane textPane = new JTextPane();
             private boolean isUpdating;
+            private int memberCreationStart;
             private int editStart;
             private int editEnd;
 
             {
+                JPopupMenu popupMenu = new JPopupMenu();
+
+                popupMenu.add(new AbstractAction("Add field") {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        String indention = "    ";
+                        try {
+                            isUpdating = true;
+                            textPane.getDocument().insertString(memberCreationStart, indention + "\n", null);
+                            isUpdating = false;
+                        } catch (BadLocationException e1) {
+                            e1.printStackTrace();
+                        }
+                        isCreating = true;
+                        textPane.requestFocusInWindow();
+                        textPane.setEditable(true);
+                        textPane.setCaretPosition(memberCreationStart + indention.length());
+                        editStart = textPane.getCaretPosition();
+                        editEnd = editStart;
+                    }
+                });
+
+                textPane.setComponentPopupMenu(popupMenu);
+
                 textPane.setDocument(new DefaultStyledDocument() {
                     @Override
                     public void insertString(int offs, String str, AttributeSet a) throws BadLocationException {
@@ -263,27 +288,28 @@ public class ClassResource extends AnnotatableResource implements Resource {
                             return;
                         }
 
-                        boolean useAttributes = true;
+                        if(isCreating) {
+                            editEnd = Math.max(editEnd, offs + str.length());
 
-                        if(!isCreating) {
-                            editStart = offs;
-                            editEnd = 0;
-                            isCreating = true;
-
-                            if(str.trim().length() == 0)
-                                useAttributes = false;
-                        }
-
-                        editEnd = Math.max(editEnd, offs + str.length());
-
-                        if(useAttributes) {
                             SimpleAttributeSet style = new SimpleAttributeSet();
-                            StyleConstants.setBackground(style, Color.BLUE);
-                            StyleConstants.setForeground(style, Color.WHITE);
+                            StyleConstants.setBold(style, true);
+                            //StyleConstants.setBackground(style, Color.BLUE);
+                            //StyleConstants.setForeground(style, Color.WHITE);
 
                             super.insertString(offs, str, style);
-                        } else {
-                            super.insertString(offs, str, a);
+                        }
+                    }
+
+                    @Override
+                    public void remove(int offs, int len) throws BadLocationException {
+                        if(isUpdating) {
+                            super.remove(offs, len);
+                            return;
+                        }
+
+                        if(isCreating) {
+                            super.remove(offs, len);
+                            editEnd -= len;
                         }
                     }
                 });
@@ -298,6 +324,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
                             String accessModifier = parts[0];
                             String typeName = parts[1];
                             String name = parts[2].substring(0, parts[2].length() - 1);
+                            textPane.setEditable(false);
                             try {
                                 layer.appendSource("getClass('" + ClassResource.this.name + "').addField('" + name + "', '" + accessModifier + "', '" + typeName + "')");
                             } catch (ScriptException e1) {
@@ -306,16 +333,10 @@ public class ClassResource extends AnnotatableResource implements Resource {
                         } catch (BadLocationException e1) {
                             e1.printStackTrace();
                         }
-                    } else {
-                        try {
-                            textPane.getDocument().insertString(textPane.getCaretPosition(), "\n    ", null);
-                        } catch (BadLocationException e1) {
-                            e1.printStackTrace();
-                        }
                     }
                 }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), 0);
 
-                JPopupMenu popupMenu = new JPopupMenu();
+                /*JPopupMenu popupMenu = new JPopupMenu();
 
                 popupMenu.add(new AbstractAction("Add field") {
                     @Override
@@ -324,9 +345,9 @@ public class ClassResource extends AnnotatableResource implements Resource {
                     }
                 });
 
-                textPane.setComponentPopupMenu(popupMenu);
+                textPane.setComponentPopupMenu(popupMenu);*/
 
-                //textPane.setEditable(false);
+                textPane.setEditable(false);
 
                 addObserver(new ClassResourceObserver() {
                     ClassResource c = ClassResource.this;
@@ -348,6 +369,8 @@ public class ClassResource extends AnnotatableResource implements Resource {
                             text.append(" implements " + interfaceNames.stream().collect(Collectors.joining(", ")));
                         text.append(" {" + "\n");
 
+                        memberCreationStart = text.length();
+
                         ArrayList<String> members = new ArrayList<>();
                         c.fields.forEach(f -> f.render(members));
                         c.constructors.forEach(c -> c.render(members));
@@ -356,7 +379,13 @@ public class ClassResource extends AnnotatableResource implements Resource {
 
                         text.append("}");
 
-                        textPane.setText(text.toString());
+                        textPane.setText("");
+                        try {
+                            textPane.getStyledDocument().insertString(0, text.toString(), null);
+                        } catch (BadLocationException e) {
+                            e.printStackTrace();
+                        }
+                        //textPane.setText(text.toString());
 
                         isUpdating = false;
                     }
