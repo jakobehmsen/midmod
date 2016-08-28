@@ -420,6 +420,70 @@ public class Main {
         };
         renameLayer.setEnabled(false);
 
+        tree.getSelectionModel().addTreeSelectionListener(new TreeSelectionListener() {
+            @Override
+            public void valueChanged(TreeSelectionEvent e) {
+                DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) e.getPath().getLastPathComponent();
+                if(selectedNode != null) {
+                    renameLayer.setEnabled(selectedNode.getUserObject() instanceof Layer);
+                }
+            }
+        });
+
+        toolBar.add(renameLayer);
+
+        Action moveUpLayer = new AbstractAction("Move up layer") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                DefaultMutableTreeNode layerNode = (DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent();
+                Layer layer = (Layer) layerNode.getUserObject();
+
+                product.moveUpLayer(layer);
+            }
+        };
+        moveUpLayer.setEnabled(false);
+
+        tree.getSelectionModel().addTreeSelectionListener(new TreeSelectionListener() {
+            @Override
+            public void valueChanged(TreeSelectionEvent e) {
+                DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) e.getPath().getLastPathComponent();
+                if(selectedNode != null) {
+                    if(selectedNode.getUserObject() instanceof Layer) {
+                        Layer layer = (Layer) selectedNode.getUserObject();
+                        moveUpLayer.setEnabled(!product.isFirstLayer(layer));
+                    }
+                }
+            }
+        });
+
+        toolBar.add(moveUpLayer);
+
+        Action moveDownLayer = new AbstractAction("Move down layer") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                DefaultMutableTreeNode layerNode = (DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent();
+                Layer layer = (Layer) layerNode.getUserObject();
+
+                product.moveDownLayer(layer);
+            }
+        };
+        moveDownLayer.setEnabled(false);
+
+        tree.getSelectionModel().addTreeSelectionListener(new TreeSelectionListener() {
+            @Override
+            public void valueChanged(TreeSelectionEvent e) {
+                DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) e.getPath().getLastPathComponent();
+                if(selectedNode != null) {
+                    if(selectedNode.getUserObject() instanceof Layer) {
+                        Layer layer = (Layer) selectedNode.getUserObject();
+                        moveDownLayer.setEnabled(!product.isLastLayer(layer));
+                    }
+                }
+            }
+        });
+
+        toolBar.add(moveDownLayer);
+
         toolBar.add(new AbstractAction("Add class") {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -448,18 +512,6 @@ public class Main {
                 });
             }
         });
-
-        tree.getSelectionModel().addTreeSelectionListener(new TreeSelectionListener() {
-            @Override
-            public void valueChanged(TreeSelectionEvent e) {
-                DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) e.getPath().getLastPathComponent();
-                if(selectedNode != null) {
-                    renameLayer.setEnabled(selectedNode.getUserObject() instanceof Layer);
-                }
-            }
-        });
-
-        toolBar.add(renameLayer);
 
         contentPane.add(toolBar, BorderLayout.NORTH);
 

@@ -70,6 +70,13 @@ public class Product implements LayerObserver {
         int indexOfLayer = IntStream.range(0, layers.size()).filter(i -> layers.get(i).getName().equals(name)).findFirst().orElse(-1);
         if(indexOfLayer != -1) {
             Layer layer = layers.get(indexOfLayer);
+            removeLayer(layer);
+        }
+    }
+
+    public void removeLayer(Layer layer) {
+        int indexOfLayer = layers.indexOf(layer);
+        if(indexOfLayer != -1) {
             layer.removeObserver(this);
             layers.remove(indexOfLayer);
 
@@ -192,5 +199,25 @@ public class Product implements LayerObserver {
 
     public String getName() {
         return name;
+    }
+
+    public void moveUpLayer(Layer layer) {
+        int indexOfLayer = layers.indexOf(layer);
+        removeLayer(layer);
+        insertLayer(layer, indexOfLayer - 1);
+    }
+
+    public void moveDownLayer(Layer layer) {
+        int indexOfLayer = layers.indexOf(layer);
+        removeLayer(layer);
+        insertLayer(layer, indexOfLayer + 1);
+    }
+
+    public boolean isFirstLayer(Layer layer) {
+        return layers.indexOf(layer) == 0;
+    }
+
+    public boolean isLastLayer(Layer layer) {
+        return layers.indexOf(layer) == layers.size() - 1;
     }
 }
