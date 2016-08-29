@@ -1,6 +1,17 @@
 package newlayer;
 
 import jdk.nashorn.api.scripting.NashornScriptEngine;
+import jdk.nashorn.api.scripting.ScriptUtils;
+import jdk.nashorn.internal.ir.FunctionNode;
+import jdk.nashorn.internal.ir.LexicalContext;
+import jdk.nashorn.internal.ir.Node;
+import jdk.nashorn.internal.ir.VarNode;
+import jdk.nashorn.internal.ir.visitor.NodeOperatorVisitor;
+import jdk.nashorn.internal.parser.Parser;
+import jdk.nashorn.internal.runtime.Context;
+import jdk.nashorn.internal.runtime.ErrorManager;
+import jdk.nashorn.internal.runtime.Source;
+import jdk.nashorn.internal.runtime.options.Options;
 
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -24,6 +35,35 @@ public class Main {
     private static String folderToSaveIn;
 
     public static void main(String[] args) throws ScriptException {
+        // From http://stackoverflow.com/questions/6511556/javascript-parser-for-java
+        Options options = new Options("nashorn");
+        options.set("anon.functions", true);
+        options.set("parse.only", true);
+        options.set("scripting", true);
+
+        ErrorManager errors = new ErrorManager();
+        Context context = new Context(options, errors, Thread.currentThread().getContextClassLoader());
+        Source source   = Source.sourceFor("test", "var a; var b = a + 1;" +
+            "function someFunction() { return b + 1; }  ");
+
+        Parser parser = new Parser(context.getEnv(), source, errors);
+        FunctionNode program = parser.parse();
+
+        program.getBody().getStatements().forEach(s -> {
+            s.accept(new NodeOperatorVisitor<LexicalContext>(null) {
+                @Override
+                public boolean enterVarNode(VarNode varNode) {
+                    return super.enterVarNode(varNode);
+                }
+
+                @Override
+                public Node leaveVarNode(VarNode varNode) {
+                    return super.leaveVarNode(varNode);
+                }
+            });
+            System.out.println(source.getString(s.getStart(), s.getFinish() - s.getStart()));
+        });
+
         LayerFactory layerFactory = new LayerFactory() {
             @Override
             public Layer createLayer(String name) {
