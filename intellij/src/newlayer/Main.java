@@ -2,10 +2,7 @@ package newlayer;
 
 import jdk.nashorn.api.scripting.NashornScriptEngine;
 import jdk.nashorn.api.scripting.ScriptUtils;
-import jdk.nashorn.internal.ir.FunctionNode;
-import jdk.nashorn.internal.ir.LexicalContext;
-import jdk.nashorn.internal.ir.Node;
-import jdk.nashorn.internal.ir.VarNode;
+import jdk.nashorn.internal.ir.*;
 import jdk.nashorn.internal.ir.visitor.NodeOperatorVisitor;
 import jdk.nashorn.internal.parser.Parser;
 import jdk.nashorn.internal.runtime.Context;
@@ -43,22 +40,68 @@ public class Main {
 
         ErrorManager errors = new ErrorManager();
         Context context = new Context(options, errors, Thread.currentThread().getContextClassLoader());
-        Source source   = Source.sourceFor("test", "var a; var b = a + 1;" +
+        Source source   = Source.sourceFor("test",
+            "var a = 0\n" +
+            "var b = a + 1\n" +
             "function someFunction() { return b + 1; }  ");
 
         Parser parser = new Parser(context.getEnv(), source, errors);
         FunctionNode program = parser.parse();
 
+        StringBuilder sb = new StringBuilder();
+
         program.getBody().getStatements().forEach(s -> {
-            s.accept(new NodeOperatorVisitor<LexicalContext>(null) {
+            s.accept(new NodeOperatorVisitor<LexicalContext>(new LexicalContext()) {
+                private int depth;
+
+                @Override
+                protected boolean enterDefault(Node node) {
+                    if(depth == 0)
+                        sb.append("enter(" + node.getStart() + ", " + node.getFinish() + ");\n");
+
+                    depth++;
+
+                    return super.enterDefault(node);
+                }
+
+                @Override
+                protected Node leaveDefault(Node node) {
+                    depth--;
+
+                    if(depth == 0)
+                        sb.append("leave();\n");
+
+                    return super.leaveDefault(node);
+                }
+
                 @Override
                 public boolean enterVarNode(VarNode varNode) {
-                    return super.enterVarNode(varNode);
+                    super.enterVarNode(varNode);
+
+                    sb.append("var " + varNode.getName().getName() + " = ");
+
+                    return true;
                 }
 
                 @Override
                 public Node leaveVarNode(VarNode varNode) {
+
+                    sb.append("\n");
+
                     return super.leaveVarNode(varNode);
+                }
+
+                @Override
+                public boolean enterLiteralNode(LiteralNode<?> literalNode) {
+                    if(literalNode.getType().isInteger())
+                        sb.append(literalNode.getValue());
+
+                    return super.enterLiteralNode(literalNode);
+                }
+
+                @Override
+                public Node leaveLiteralNode(LiteralNode<?> literalNode) {
+                    return super.leaveLiteralNode(literalNode);
                 }
             });
             System.out.println(source.getString(s.getStart(), s.getFinish() - s.getStart()));
