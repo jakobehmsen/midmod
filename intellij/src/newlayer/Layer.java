@@ -1,6 +1,13 @@
 package newlayer;
 
 import jdk.nashorn.api.scripting.NashornScriptEngine;
+import jdk.nashorn.internal.ir.*;
+import jdk.nashorn.internal.ir.visitor.NodeOperatorVisitor;
+import jdk.nashorn.internal.parser.Parser;
+import jdk.nashorn.internal.runtime.Context;
+import jdk.nashorn.internal.runtime.ErrorManager;
+import jdk.nashorn.internal.runtime.Source;
+import jdk.nashorn.internal.runtime.options.Options;
 
 import javax.script.ScriptException;
 import javax.swing.*;
@@ -9,6 +16,7 @@ import javax.swing.event.DocumentListener;
 import javax.swing.tree.*;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Layer implements Resource {
     private LayerPersistor layerPersistor;
@@ -282,16 +290,236 @@ public class Layer implements Resource {
         return name;
     }
 
-    public void transform(NashornScriptEngine engine ) {
+    public void transform(NashornScriptEngine engine) {
         try {
             if(source != null) {
-                engine.eval(source);
+                String modifiedSource = modifiedSource(source);
+                engine.eval(modifiedSource);
             }
         } catch (ScriptException e) {
             e.printStackTrace();
         } catch (ClassCastException e) {
             e.printStackTrace();
         }
+    }
+
+    private String modifiedSource(String src) {
+        // From http://stackoverflow.com/questions/6511556/javascript-parser-for-java
+        Options options = new Options("nashorn");
+        options.set("anon.functions", true);
+        options.set("parse.only", true);
+        options.set("scripting", true);
+
+        ErrorManager errors = new ErrorManager();
+        Context context = new Context(options, errors, Thread.currentThread().getContextClassLoader());
+        Source source   = Source.sourceFor(getName(), src);
+
+        Parser parser = new Parser(context.getEnv(), source, errors);
+        FunctionNode program = parser.parse();
+
+        StringBuilder sb = new StringBuilder();
+
+        /*
+        ExpressionStatement
+        CallNode
+        LiteralNode$StringLiteralNode
+        LiteralNode$NumberLiteralNode
+        AccessNode
+        ObjectNode
+        PropertyNode
+        */
+
+        program.getBody().getStatements().forEach(s -> {
+            s.accept(new NodeOperatorVisitor<LexicalContext>(new LexicalContext()) {
+                /*private int depth;
+
+                @Override
+                protected boolean enterDefault(Node node) {
+                    if(depth == 0)
+                        sb.append("enter(" + node.getStart() + ", " + node.getFinish() + ");\n");
+
+                    depth++;
+
+                    return super.enterDefault(node);
+                }
+
+                @Override
+                protected Node leaveDefault(Node node) {
+                    depth--;
+
+                    if(depth == 0)
+                        sb.append("leave();\n");
+
+                    return super.leaveDefault(node);
+                }*/
+
+                @Override
+                public boolean enterExpressionStatement(ExpressionStatement expressionStatement) {
+                    append("enter(" +
+                        expressionStatement.getStart() + ", " +
+                        expressionStatement.getFinish() + ", " +
+                        expressionStatement.position() + ", " +
+                        expressionStatement.getLineNumber() + ");\n");
+
+                    append(src.substring(expressionStatement.getStart(), expressionStatement.getFinish()));
+                    append("\nleave();\n");
+
+                    //return super.enterExpressionStatement(expressionStatement);
+
+                    return false;
+                }
+
+                @Override
+                public Node leaveExpressionStatement(ExpressionStatement expressionStatement) {
+                    append("\nleave();\n");
+
+                    return super.leaveExpressionStatement(expressionStatement);
+                }
+
+                @Override
+                public boolean enterCallNode(CallNode callNode) {
+                    callNode.getFunction().accept(this);
+                    append("(");
+                    boolean isFirst = true;
+                    for (Expression arg : callNode.getArgs()) {
+                        if(!isFirst)
+                            append(", ");
+                        arg.accept(this);
+                        isFirst = false;
+                    }
+
+                    append(")");
+
+                    return false;
+                }
+
+                @Override
+                public boolean enterAccessNode(AccessNode accessNode) {
+                    accessNode.getBase().accept(this);
+                    append(".");
+                    append(accessNode.getProperty());
+
+                    return false;
+                }
+
+                @Override
+                public Node leaveAccessNode(AccessNode accessNode) {
+                    return super.leaveAccessNode(accessNode);
+                }
+
+                @Override
+                public boolean enterObjectNode(ObjectNode objectNode) {
+                    append("{");
+                    boolean isFirst = true;
+                    for (PropertyNode propertyNode : objectNode.getElements()) {
+                        if(!isFirst)
+                            append(", ");
+                        propertyNode.getKey().accept(this);
+                        append(": ");
+                        propertyNode.getValue().accept(this);
+                        isFirst = false;
+                    }
+                    append("}");
+                    return false;
+                }
+
+                @Override
+                public boolean enterIdentNode(IdentNode identNode) {
+                    append(identNode.getName());
+
+                    return false;
+                }
+
+                @Override
+                public boolean enterVarNode(VarNode varNode) {
+                    super.enterVarNode(varNode);
+
+                    append("var " + varNode.getName().getName() + " = ");
+
+                    return true;
+                }
+
+                @Override
+                public Node leaveVarNode(VarNode varNode) {
+                    append("\n");
+
+                    return super.leaveVarNode(varNode);
+                }
+
+                @Override
+                public boolean enterLiteralNode(LiteralNode<?> literalNode) {
+                    append(literalNode.toString());
+
+                    return super.enterLiteralNode(literalNode);
+                }
+
+                @Override
+                public Node leaveLiteralNode(LiteralNode<?> literalNode) {
+                    return super.leaveLiteralNode(literalNode);
+                }
+
+                private int indentationDepth = 0;
+                private String indentationString = "";
+                private boolean atFirstColumn = true;
+
+                private void append(String str) {
+                    for(int i = 0; i < str.length(); i++) {
+                        if (atFirstColumn) {
+                            sb.append(indentationString);
+                            atFirstColumn = false;
+                        }
+                        char ch = str.charAt(i);
+                        sb.append(ch);
+                        if(ch == '\n') {
+                            atFirstColumn = true;
+                        }
+                    }
+                }
+
+                private void indent() {
+                    indentationDepth++;
+                    indentationString = IntStream.range(0, indentationDepth * 4).mapToObj(x -> " ").collect(Collectors.joining());
+                }
+
+                private void dedent() {
+                    indentationDepth--;
+                    indentationString = IntStream.range(0, indentationDepth * 4).mapToObj(x -> " ").collect(Collectors.joining());
+                }
+
+                @Override
+                public boolean enterFunctionNode(FunctionNode functionNode) {
+                    append("function");
+                    if(functionNode.isNamedFunctionExpression())
+                        append(functionNode.getName());
+                    append("(");
+                    boolean isFirst = true;
+                    for (IdentNode parameter : functionNode.getParameters()) {
+                        if(!isFirst)
+                            append(", ");
+                        append(parameter.getName());
+                        isFirst = false;
+                    }
+                    append(") {\n");
+                    indent();
+                    functionNode.getBody().accept(this);
+                    dedent();
+                    append("\n}");
+
+                    return false;
+                }
+
+                @Override
+                public boolean enterADD(BinaryNode binaryNode) {
+                    binaryNode.lhs().accept(this);
+                    append(" + ");
+                    binaryNode.rhs().accept(this);
+
+                    return false;
+                }
+            });
+        });
+
+        return sb.toString();
     }
 
     public void save() {

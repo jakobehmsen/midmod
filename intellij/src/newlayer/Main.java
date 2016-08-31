@@ -41,6 +41,7 @@ public class Main {
         ErrorManager errors = new ErrorManager();
         Context context = new Context(options, errors, Thread.currentThread().getContextClassLoader());
         Source source   = Source.sourceFor("test",
+            "var a = function() { return 1; }\n" +
             "var a = 0\n" +
             "var b = a + 1\n" +
             "function someFunction() { return b + 1; }  ");
@@ -102,6 +103,11 @@ public class Main {
                 @Override
                 public Node leaveLiteralNode(LiteralNode<?> literalNode) {
                     return super.leaveLiteralNode(literalNode);
+                }
+
+                @Override
+                public boolean enterFunctionNode(FunctionNode functionNode) {
+                    return super.enterFunctionNode(functionNode);
                 }
             });
             System.out.println(source.getString(s.getStart(), s.getFinish() - s.getStart()));

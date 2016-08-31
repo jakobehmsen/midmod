@@ -10,6 +10,7 @@ import javax.swing.tree.MutableTreeNode;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -89,6 +90,51 @@ public class Product implements LayerObserver {
         }
     }
 
+    @FunctionalInterface
+    public interface EnterInterface {
+        void enter(int start, int end, int column, int line);
+    }
+
+    private static class NodeInfo {
+        private int start;
+        private int end;
+        private int column;
+        private int line;
+
+        private NodeInfo(int start, int end, int column, int line) {
+            this.start = start;
+            this.end = end;
+            this.column = column;
+            this.line = line;
+        }
+
+        public int getStart() {
+            return start;
+        }
+
+        public int getEnd() {
+            return end;
+        }
+
+        public int getColumn() {
+            return column;
+        }
+
+        public int getLine() {
+            return line;
+        }
+
+        @Override
+        public String toString() {
+            return "NodeInfo{" +
+                "start=" + start +
+                ", end=" + end +
+                ", column=" + column +
+                ", line=" + line +
+                '}';
+        }
+    }
+
     private void updateFromLayer(Layer layer) {
         ScriptEngineManager engineManager = new ScriptEngineManager();
         NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
@@ -97,7 +143,10 @@ public class Product implements LayerObserver {
         Layer[] currentLayer = new Layer[1];
         List<ClassResource>[] classes = new List[1];
 
+        Stack<NodeInfo> sourceNodeStack = new Stack<>();
+
         engine.put("addClass", (Consumer<String>) s -> {
+            System.out.println("Adding class " + s + " from source at " + sourceNodeStack.peek());
             classes[0].add(new ClassResource(currentLayer[0], s));
         });
         engine.put("getClass", (Function<String, ClassResource>) s -> {
@@ -108,6 +157,12 @@ public class Product implements LayerObserver {
         });
         engine.put("parameter", (BiFunction<String, String, ClassResource.ParameterInfo>) (typeName, name) -> {
             return new ClassResource.ParameterInfo(typeName, name);
+        });
+        engine.put("enter", (EnterInterface) (start, end, column, line) -> {
+            sourceNodeStack.push(new NodeInfo(start, end, column, line));
+        });
+        engine.put("leave", (Runnable) () -> {
+            sourceNodeStack.pop();
         });
 
         for(int indexOfLayer = 0; indexOfLayer < layers.size(); indexOfLayer++) {
