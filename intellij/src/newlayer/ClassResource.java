@@ -247,6 +247,69 @@ public class ClassResource extends AnnotatableResource implements Resource {
 
     @Override
     public ViewBinding<JComponent> toView() {
+        ViewBinding<JComponent> viewBinding = new ViewBinding<JComponent>() {
+            JPanel view = new JPanel();
+
+            {
+                view.setLayout(new BoxLayout(view, BoxLayout.Y_AXIS));
+                //view.setBackground(Color.RED);
+
+                // Build annottions view
+                //getAnnotations().forEach(x -> text.append(x.toString() + "\n"));
+                StringBuilder header = new StringBuilder();
+                header.append("public class " + name);
+                if(superClassName != null)
+                    header.append(" extends " + superClassName);
+                if(interfaceNames.size() > 0)
+                    header.append(" implements " + interfaceNames.stream().collect(Collectors.joining(", ")));
+                header.append(" {" + "\n");
+
+
+                Box headerView = Box.createHorizontalBox();
+                headerView.add(new JLabel(header.toString()));
+                headerView.add(Box.createHorizontalGlue());
+                view.add(headerView);
+
+                Box membersViewLine = Box.createHorizontalBox();
+                membersViewLine.setBackground(Color.BLUE);
+                membersViewLine.add(Box.createRigidArea(new Dimension(20, 0)));
+                //membersViewLine.add(Box.createHorizontalStrut(20));
+
+                Box membersViewColumn = Box.createVerticalBox();
+
+                membersViewColumn.setBackground(Color.GREEN);
+                membersViewColumn.add(new JLabel("private int x;"));
+                membersViewColumn.add(new JLabel("private int y;"));
+                //membersViewColumn.add(Box.createVerticalStrut(0));
+
+                membersViewLine.add(membersViewColumn);
+                //membersViewLine.add(new JLabel("test"));
+                membersViewLine.add(Box.createHorizontalGlue());
+
+                view.add(membersViewLine);
+                //view.add(Box.createVerticalGlue());
+
+                Box footerView = Box.createHorizontalBox();
+                footerView.add(new JLabel("}"));
+                footerView.add(Box.createHorizontalGlue());
+                view.add(footerView);
+                view.add(Box.createVerticalGlue());
+            }
+
+            @Override
+            public JComponent getView() {
+                return view;
+            }
+
+            @Override
+            public void remove() {
+
+            }
+        };
+
+        if(1 != 2)
+            return viewBinding;
+
         return new ViewBinding<JComponent>() {
             private boolean isCreating;
             private JTextPane textPane = new JTextPane();
