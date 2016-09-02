@@ -4,6 +4,8 @@ import com.sun.glass.events.KeyEvent;
 
 import javax.script.ScriptException;
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.text.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
@@ -254,7 +256,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
                 view.setLayout(new BoxLayout(view, BoxLayout.Y_AXIS));
                 //view.setBackground(Color.RED);
 
-                // Build annottions view
+                // Build annotations view
                 //getAnnotations().forEach(x -> text.append(x.toString() + "\n"));
                 StringBuilder header = new StringBuilder();
                 header.append("public class " + name);
@@ -266,7 +268,32 @@ public class ClassResource extends AnnotatableResource implements Resource {
 
 
                 Box headerView = Box.createHorizontalBox();
-                headerView.add(new JLabel(header.toString()));
+                JButton headerViewContent = new JButton(header.toString()) {
+                    @Override
+                    public Insets getInsets() {
+                        return new Insets(0, 0, 0, 0);
+                    }
+                };
+                headerViewContent.setContentAreaFilled(false);
+                headerViewContent.setBorderPainted(false);
+                headerViewContent.setFocusPainted(false);
+                headerViewContent.setOpaque(true);
+                headerViewContent.getModel().addChangeListener(new ChangeListener() {
+                    @Override
+                    public void stateChanged(ChangeEvent e) {
+                        ButtonModel model = (ButtonModel) e.getSource();
+                        if (model.isRollover()) {
+                            headerViewContent.setBackground(Color.CYAN);
+                        } else {
+                            headerViewContent.setBackground(null);
+                        }
+                    }
+                });
+                headerViewContent.addActionListener(e -> {
+
+                });
+                //headerView.add(new JLabel(header.toString()));
+                headerView.add(headerViewContent);
                 headerView.add(Box.createHorizontalGlue());
                 view.add(headerView);
 

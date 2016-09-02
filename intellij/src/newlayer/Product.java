@@ -95,46 +95,6 @@ public class Product implements LayerObserver {
         void enter(int start, int end, int column, int line);
     }
 
-    private static class NodeInfo {
-        private int start;
-        private int end;
-        private int column;
-        private int line;
-
-        private NodeInfo(int start, int end, int column, int line) {
-            this.start = start;
-            this.end = end;
-            this.column = column;
-            this.line = line;
-        }
-
-        public int getStart() {
-            return start;
-        }
-
-        public int getEnd() {
-            return end;
-        }
-
-        public int getColumn() {
-            return column;
-        }
-
-        public int getLine() {
-            return line;
-        }
-
-        @Override
-        public String toString() {
-            return "NodeInfo{" +
-                "start=" + start +
-                ", end=" + end +
-                ", column=" + column +
-                ", line=" + line +
-                '}';
-        }
-    }
-
     private void updateFromLayer(Layer layer) {
         ScriptEngineManager engineManager = new ScriptEngineManager();
         NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
