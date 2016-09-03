@@ -1,7 +1,6 @@
 package newlayer;
 
 import jdk.nashorn.api.scripting.NashornScriptEngine;
-import jdk.nashorn.api.scripting.ScriptUtils;
 import jdk.nashorn.internal.ir.*;
 import jdk.nashorn.internal.ir.visitor.NodeOperatorVisitor;
 import jdk.nashorn.internal.parser.Parser;
@@ -16,7 +15,6 @@ import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.MutableTreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.*;
@@ -326,11 +324,16 @@ public class Main {
                     int tabIndex = tabbedPane.indexOfComponent(resourceView.getView());
                     tabbedPane.setSelectedIndex(tabIndex);
                 } else {
-                    ViewBinding<JComponent> resourceView = resource.toView();
+                    ViewBinding<JComponent> resourceView = resource.toView(this);
                     tabbedPane.add(resource.getPath(), resourceView.getView());
                     openedResources.put(resource, resourceView);
                     tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);
                 }
+            }
+
+            @Override
+            public ViewBinding<JComponent> getView(Resource resource) {
+                return openedResources.get(resource);
             }
         };
 

@@ -66,9 +66,9 @@ public class Layer implements Resource {
         observers.forEach(o -> o.outputUpdated(this));
     }
 
-    public void addClass(String name) {
+    /*public void addClass(String name) {
         classes.add(new ClassResource(this, name));
-    }
+    }*/
 
     public JComponent toDesign() {
         return null;
@@ -79,7 +79,7 @@ public class Layer implements Resource {
     }
 
     @Override
-    public ViewBinding<JComponent> toView() {
+    public ViewBinding<JComponent> toView(Overview overview) {
         return new ViewBinding<JComponent>() {
             JTextPane textPane = new JTextPane();
 
@@ -147,6 +147,11 @@ public class Layer implements Resource {
             @Override
             public void remove() {
 
+            }
+
+            @Override
+            public void select(NodeInfo nodeInfo) {
+                textPane.select(nodeInfo.getStart(), nodeInfo.getEnd());
             }
         };
 

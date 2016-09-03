@@ -1,5 +1,7 @@
 package newlayer;
 
+import javax.swing.*;
+
 public class ResourceNodeInfo {
     private Resource resource;
     private NodeInfo nodeInfo;
@@ -15,5 +17,11 @@ public class ResourceNodeInfo {
 
     public NodeInfo getNodeInfo() {
         return nodeInfo;
+    }
+
+    public void open(Overview overview) {
+        overview.open(resource);
+        ViewBinding<JComponent> resourceView = overview.getView(resource);
+        resourceView.select(nodeInfo);
     }
 }

@@ -106,8 +106,9 @@ public class Product implements LayerObserver {
         Stack<NodeInfo> sourceNodeStack = new Stack<>();
 
         engine.put("addClass", (Consumer<String>) s -> {
+            NodeInfo nodeInfo = sourceNodeStack.peek();
             System.out.println("Adding class " + s + " from source at " + sourceNodeStack.peek());
-            classes[0].add(new ClassResource(currentLayer[0], s));
+            classes[0].add(new ClassResource(new ResourceNodeInfo(currentLayer[0], nodeInfo), s));
         });
         engine.put("getClass", (Function<String, ClassResource>) s -> {
             return classes[0].stream().filter(x -> x.getName().equals(s)).findFirst().get();

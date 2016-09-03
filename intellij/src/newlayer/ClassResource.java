@@ -155,20 +155,20 @@ public class ClassResource extends AnnotatableResource implements Resource {
         }
     }
 
-    private Layer layer;
+    private ResourceNodeInfo resourceNodeInfo;
     private String name;
     private String superClassName;
     private ArrayList<String> interfaceNames;
 
-    public ClassResource(Layer layer, String name) {
-        this.layer = layer;
+    public ClassResource(ResourceNodeInfo resourceNodeInfo, String name) {
+        this.resourceNodeInfo = resourceNodeInfo;
         this.name = name;
         interfaceNames = new ArrayList<>();
     }
 
     @Override
     public Resource getParent() {
-        return layer;
+        return resourceNodeInfo.getResource();
     }
 
     @Override
@@ -248,7 +248,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
     }
 
     @Override
-    public ViewBinding<JComponent> toView() {
+    public ViewBinding<JComponent> toView(Overview overview) {
         ViewBinding<JComponent> viewBinding = new ViewBinding<JComponent>() {
             JPanel view = new JPanel();
 
@@ -274,6 +274,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
                         return new Insets(0, 0, 0, 0);
                     }
                 };
+                headerViewContent.setToolTipText(resourceNodeInfo.getResource().getPath());
                 headerViewContent.setContentAreaFilled(false);
                 headerViewContent.setBorderPainted(false);
                 headerViewContent.setFocusPainted(false);
@@ -290,7 +291,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
                     }
                 });
                 headerViewContent.addActionListener(e -> {
-
+                    resourceNodeInfo.open(overview);
                 });
                 //headerView.add(new JLabel(header.toString()));
                 headerView.add(headerViewContent);
@@ -331,6 +332,11 @@ public class ClassResource extends AnnotatableResource implements Resource {
             @Override
             public void remove() {
 
+            }
+
+            @Override
+            public void select(NodeInfo nodeInfo) {
+                // Is this relevant to support?
             }
         };
 
@@ -416,6 +422,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
                             String name = parts[2].substring(0, parts[2].length() - 1);
                             textPane.setEditable(false);
                             try {
+                                Layer layer = (Layer)resourceNodeInfo.getResource();
                                 layer.appendSource("getClass('" + ClassResource.this.name + "').addField('" + name + "', '" + accessModifier + "', '" + typeName + "')");
                             } catch (ScriptException e1) {
                                 e1.printStackTrace();
@@ -496,6 +503,11 @@ public class ClassResource extends AnnotatableResource implements Resource {
             public void remove() {
 
             }
+
+            @Override
+            public void select(NodeInfo nodeInfo) {
+
+            }
         };
 
         /*JTextPane textPane = new JTextPane();
@@ -565,7 +577,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
     }
 
     public ClassResource copy(Layer layer) {
-        ClassResource copy = new ClassResource(layer, name);
+        ClassResource copy = new ClassResource(resourceNodeInfo, name);
 
         copy.updateFrom(this);
 
