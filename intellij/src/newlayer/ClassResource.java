@@ -10,6 +10,7 @@ import javax.swing.text.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -48,6 +49,17 @@ public class ClassResource extends AnnotatableResource implements Resource {
             FieldInfo fieldInfo = new FieldInfo(name, accessModifier, typeName);
             super.copyTo(fieldInfo);
             return fieldInfo;
+        }
+
+        public JComponent toView(Overview overview) {
+            return leftAligned(new JLabel(getAccessModifier() + " " + getTypeName() + " " + getName() + ";"));
+        }
+
+        private static JComponent leftAligned(JComponent component) {
+            Box view = Box.createHorizontalBox();
+            view.add(component);
+            view.add(Box.createHorizontalGlue());
+            return view;
         }
     }
 
@@ -104,6 +116,46 @@ public class ClassResource extends AnnotatableResource implements Resource {
         public ParameterInfo getParameter(int index) {
             return parameters.get(index);
         }
+
+        public JComponent toView(Overview overview) {
+            Box view = Box.createVerticalBox();
+
+            view.add(leftAligned(new JLabel(accessModifier + " " + returnTypeName + " " + name + "(" +
+                parameters.stream().map(x -> x.toString()).collect(Collectors.joining(", ")) +
+                ") {")));
+
+            Box bodyView = Box.createHorizontalBox();
+            bodyView.add(Box.createRigidArea(new Dimension(20, 0)));
+            JTextPane bodyContentView = new JTextPane() {
+                @Override
+                public Dimension getMaximumSize() {
+                    return getPreferredSize();
+                }
+
+                @Override
+                public Insets getInsets() {
+                    return new Insets(0, 0, 0, 0);
+                }
+            };
+            bodyContentView.setOpaque(false);
+            bodyContentView.setText(body);
+            bodyContentView.setEditable(false);
+            bodyView.add(bodyContentView);
+            bodyView.add(Box.createHorizontalGlue());
+
+            view.add(bodyView);
+
+            view.add(leftAligned(new JLabel("}")));
+
+            return view;
+        }
+
+        private static JComponent leftAligned(JComponent component) {
+            Box view = Box.createHorizontalBox();
+            view.add(component);
+            view.add(Box.createHorizontalGlue());
+            return view;
+        }
     }
 
     public static class ConstructorInfo extends MethodInfo {
@@ -128,6 +180,47 @@ public class ClassResource extends AnnotatableResource implements Resource {
                 ") {");
             lines.addAll(Arrays.asList(getBody().split("\n")).stream().map(x -> "    " + x).collect(Collectors.toList()));
             lines.add("}");
+        }
+
+        @Override
+        public JComponent toView(Overview overview) {
+            Box view = Box.createVerticalBox();
+
+            view.add(leftAligned(new JLabel(getAccessModifier() + " " + classResource.getName() + "(" +
+                getParameters().stream().map(x -> x.toString()).collect(Collectors.joining(", ")) +
+                ") {")));
+
+            Box bodyView = Box.createHorizontalBox();
+            bodyView.add(Box.createRigidArea(new Dimension(20, 0)));
+            JTextPane bodyContentView = new JTextPane() {
+                @Override
+                public Dimension getMaximumSize() {
+                    return getPreferredSize();
+                }
+
+                @Override
+                public Insets getInsets() {
+                    return new Insets(0, 0, 0, 0);
+                }
+            };
+            bodyContentView.setOpaque(false);
+            bodyContentView.setText(getBody());
+            bodyContentView.setEditable(false);
+            bodyView.add(bodyContentView);
+            bodyView.add(Box.createHorizontalGlue());
+
+            view.add(bodyView);
+
+            view.add(leftAligned(new JLabel("}")));
+
+            return view;
+        }
+
+        private static JComponent leftAligned(JComponent component) {
+            Box view = Box.createHorizontalBox();
+            view.add(component);
+            view.add(Box.createHorizontalGlue());
+            return view;
         }
     }
 
@@ -306,8 +399,21 @@ public class ClassResource extends AnnotatableResource implements Resource {
                 Box membersViewColumn = Box.createVerticalBox();
 
                 membersViewColumn.setBackground(Color.GREEN);
-                membersViewColumn.add(new JLabel("private int x;"));
-                membersViewColumn.add(new JLabel("private int y;"));
+                
+                fields.forEach(f -> {
+                    membersViewColumn.add(f.toView(overview));
+                });
+
+                constructors.forEach(c -> {
+                    membersViewColumn.add(c.toView(overview));
+                });
+
+                methods.forEach(m -> {
+                    membersViewColumn.add(m.toView(overview));
+                });
+                
+                //membersViewColumn.add(new JLabel("private int x;"));
+                //membersViewColumn.add(new JLabel("private int y;"));
                 //membersViewColumn.add(Box.createVerticalStrut(0));
 
                 membersViewLine.add(membersViewColumn);
