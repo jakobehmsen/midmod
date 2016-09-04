@@ -18,11 +18,13 @@ import java.util.stream.Collectors;
 
 public class ClassResource extends AnnotatableResource implements Resource {
     public static class FieldInfo extends AnnotatableResource {
+        private ResourceNodeInfo resourceNodeInfo;
         private String name;
         private String accessModifier;
         private String typeName;
 
-        private FieldInfo(String name, String accessModifier, String typeName) {
+        public FieldInfo(ResourceNodeInfo resourceNodeInfo, String name, String accessModifier, String typeName) {
+            this.resourceNodeInfo = resourceNodeInfo;
             this.name = name;
             this.accessModifier = accessModifier;
             this.typeName = typeName;
@@ -46,21 +48,23 @@ public class ClassResource extends AnnotatableResource implements Resource {
         }
 
         public FieldInfo copy() {
-            FieldInfo fieldInfo = new FieldInfo(name, accessModifier, typeName);
+            FieldInfo fieldInfo = new FieldInfo(resourceNodeInfo, name, accessModifier, typeName);
             super.copyTo(fieldInfo);
             return fieldInfo;
         }
 
         public JComponent toView(Overview overview) {
-            return leftAligned(new JLabel(getAccessModifier() + " " + getTypeName() + " " + getName() + ";"));
+            String text = getAccessModifier() + " " + getTypeName() + " " + getName() + ";";
+            JComponent headerViewContent = createLinkText(text, resourceNodeInfo, overview);
+            return leftAligned(headerViewContent);
         }
+    }
 
-        private static JComponent leftAligned(JComponent component) {
-            Box view = Box.createHorizontalBox();
-            view.add(component);
-            view.add(Box.createHorizontalGlue());
-            return view;
-        }
+    private static JComponent leftAligned(JComponent component) {
+        Box view = Box.createHorizontalBox();
+        view.add(component);
+        view.add(Box.createHorizontalGlue());
+        return view;
     }
 
     public static class MethodInfo extends AnnotatableResource {
@@ -149,13 +153,6 @@ public class ClassResource extends AnnotatableResource implements Resource {
 
             return view;
         }
-
-        private static JComponent leftAligned(JComponent component) {
-            Box view = Box.createHorizontalBox();
-            view.add(component);
-            view.add(Box.createHorizontalGlue());
-            return view;
-        }
     }
 
     public static class ConstructorInfo extends MethodInfo {
@@ -213,13 +210,6 @@ public class ClassResource extends AnnotatableResource implements Resource {
 
             view.add(leftAligned(new JLabel("}")));
 
-            return view;
-        }
-
-        private static JComponent leftAligned(JComponent component) {
-            Box view = Box.createHorizontalBox();
-            view.add(component);
-            view.add(Box.createHorizontalGlue());
             return view;
         }
     }
@@ -294,9 +284,13 @@ public class ClassResource extends AnnotatableResource implements Resource {
     private ArrayList<ConstructorInfo> constructors = new ArrayList<>();
     private ArrayList<ClassResourceObserver> observers = new ArrayList<>();
 
-    public void addField(String name, String accessModifier, String type) {
-        fields.add(new FieldInfo(name, accessModifier, type));
+    public void addField(FieldInfo fieldInfo) {
+        fields.add(fieldInfo);
     }
+
+    /*public void addField(String name, String accessModifier, String type) {
+        fields.add(new FieldInfo(name, accessModifier, type));
+    }*/
 
     public FieldInfo getField(String name) {
         return fields.stream().filter(x -> x.getName().equals(name)).findFirst().get();
@@ -340,6 +334,38 @@ public class ClassResource extends AnnotatableResource implements Resource {
         observers.remove(observer);
     }
 
+    private static JComponent createLinkText(String text, ResourceNodeInfo resourceNodeInfo, Overview overview) {
+        JButton linkText = new JButton(text) {
+            @Override
+            public Insets getInsets() {
+                return new Insets(0, 0, 0, 0);
+            }
+        };
+        linkText.setToolTipText(resourceNodeInfo.getResource().getPath());
+        linkText.setContentAreaFilled(false);
+        linkText.setBorderPainted(false);
+        linkText.setFocusPainted(false);
+        linkText.setOpaque(true);
+        linkText.getModel().addChangeListener(new ChangeListener() {
+            private Color bgColor;
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                ButtonModel model = (ButtonModel) e.getSource();
+                if (model.isRollover()) {
+                    bgColor = linkText.getBackground();
+                    linkText.setBackground(Color.CYAN);
+                } else {
+                    linkText.setBackground(bgColor);
+                    bgColor = null;
+                }
+            }
+        });
+        linkText.addActionListener(e -> {
+            resourceNodeInfo.open(overview);
+        });
+        return linkText;
+    }
+
     @Override
     public ViewBinding<JComponent> toView(Overview overview) {
         ViewBinding<JComponent> viewBinding = new ViewBinding<JComponent>() {
@@ -361,7 +387,8 @@ public class ClassResource extends AnnotatableResource implements Resource {
 
 
                 Box headerView = Box.createHorizontalBox();
-                JButton headerViewContent = new JButton(header.toString()) {
+                JComponent headerViewContent = createLinkText(header.toString(), resourceNodeInfo, overview);
+                /*JButton headerViewContent = new JButton(header.toString()) {
                     @Override
                     public Insets getInsets() {
                         return new Insets(0, 0, 0, 0);
@@ -385,7 +412,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
                 });
                 headerViewContent.addActionListener(e -> {
                     resourceNodeInfo.open(overview);
-                });
+                });*/
                 //headerView.add(new JLabel(header.toString()));
                 headerView.add(headerViewContent);
                 headerView.add(Box.createHorizontalGlue());

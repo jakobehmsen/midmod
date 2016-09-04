@@ -98,23 +98,28 @@ public class Product implements LayerObserver {
     private void updateFromLayer(Layer layer) {
         ScriptEngineManager engineManager = new ScriptEngineManager();
         NashornScriptEngine engine = (NashornScriptEngine) engineManager.getEngineByName("nashorn");
-
         Layer[] previousLayerHolder = new Layer[1];
         Layer[] currentLayer = new Layer[1];
         List<ClassResource>[] classes = new List[1];
 
         Stack<NodeInfo> sourceNodeStack = new Stack<>();
 
+        LayerMutator layerMutator = new LayerMutator(() -> sourceNodeStack.peek());
+
         engine.put("addClass", (Consumer<String>) s -> {
-            NodeInfo nodeInfo = sourceNodeStack.peek();
+            layerMutator.addClass(s);
+
+            /*NodeInfo nodeInfo = sourceNodeStack.peek();
             System.out.println("Adding class " + s + " from source at " + sourceNodeStack.peek());
-            classes[0].add(new ClassResource(new ResourceNodeInfo(currentLayer[0], nodeInfo), s));
+            classes[0].add(new ClassResource(new ResourceNodeInfo(currentLayer[0], nodeInfo), s));*/
         });
-        engine.put("getClass", (Function<String, ClassResource>) s -> {
-            return classes[0].stream().filter(x -> x.getName().equals(s)).findFirst().get();
+        engine.put("getClass", (Function<String, ClassResourceMutator>) s -> {
+            return layerMutator.getClass(s);
+            //return classes[0].stream().filter(x -> x.getName().equals(s)).findFirst().get();
         });
-        engine.put("getClasses", (Supplier<List<ClassResource>>) () -> {
-            return classes[0].stream().collect(Collectors.toList());
+        engine.put("getClasses", (Supplier<List<ClassResourceMutator>>) () -> {
+            return layerMutator.getClasses();
+            //return classes[0].stream().collect(Collectors.toList());
         });
         engine.put("parameter", (BiFunction<String, String, ClassResource.ParameterInfo>) (typeName, name) -> {
             return new ClassResource.ParameterInfo(typeName, name);
@@ -128,12 +133,15 @@ public class Product implements LayerObserver {
 
         for(int indexOfLayer = 0; indexOfLayer < layers.size(); indexOfLayer++) {
             layer = layers.get(indexOfLayer);
+            layerMutator.setLayer(layer);
+
             currentLayer[0] = layer;
             if (indexOfLayer == 0) {
                 classes[0] = new ArrayList();
 
                 layer.transform(engine);
-                layer.setClasses(classes[0]);
+                layerMutator.setClasses();
+                //layer.setClasses(classes[0]);
             } else {
                 List<ClassResource> innerLayerClasses = classes[0];
                 classes[0] = new ArrayList();
@@ -142,10 +150,11 @@ public class Product implements LayerObserver {
                     classes[0].add(x.copy(currentLayer[0]));
                 });
 
-                Layer previousLayer = layers.get(indexOfLayer - 1);
-                previousLayerHolder[0] = previousLayer;
+                //Layer previousLayer = layers.get(indexOfLayer - 1);
+                //previousLayerHolder[0] = previousLayer;
                 layer.transform(engine);
-                layer.setClasses(classes[0]);
+                //layer.setClasses(classes[0]);
+                layerMutator.setClasses();
             }
         }
     }
