@@ -58,6 +58,11 @@ public class ClassResource extends AnnotatableResource implements Resource {
             JComponent headerViewContent = createLinkText(text, resourceNodeInfo, overview);
             return leftAligned(headerViewContent);
         }
+
+        public ModelNode toModelNode(Overview overview) {
+            String text = getAccessModifier() + " " + getTypeName() + " " + getName() + ";";
+            return new HorizontalModelNode(Arrays.asList(new TextModelNode(text)));
+        }
     }
 
     private static JComponent leftAligned(JComponent component) {
@@ -370,8 +375,41 @@ public class ClassResource extends AnnotatableResource implements Resource {
     public ViewBinding<JComponent> toView(Overview overview) {
         ViewBinding<JComponent> viewBinding = new ViewBinding<JComponent>() {
             JPanel view = new JPanel();
+            JComponent view2 = new JPanel();
 
             {
+                VerticalModelNode classNode = new VerticalModelNode();
+                HorizontalModelNode classHeaderNode = new HorizontalModelNode();
+
+                classHeaderNode.add(new TextModelNode("public class " + name));
+                if(superClassName != null)
+                    classHeaderNode.add(new TextModelNode("extends " + superClassName));
+                if(interfaceNames.size() > 0)
+                    classHeaderNode.add(new TextModelNode("implements " + interfaceNames.stream().collect(Collectors.joining(", "))));
+                classHeaderNode.add(new TextModelNode("{"));
+
+                classNode.add(classHeaderNode);
+
+                AreaModelNode classMembersAreaNode = new AreaModelNode();
+                VerticalModelNode classMembersAreaNodeContent = new VerticalModelNode();
+                classMembersAreaNodeContent.dontAddGlue();
+
+                fields.forEach(x -> {
+                    classMembersAreaNodeContent.add(x.toModelNode(overview));
+                });
+
+                classMembersAreaNode.add(classMembersAreaNodeContent);
+
+                classNode.add(classMembersAreaNode);
+
+                classNode.add(new HorizontalModelNode(Arrays.asList(new TextModelNode("}"))));
+
+                if(1 != 2) {
+                    view2 = classNode.buildComponent();
+                }
+
+
+
                 view.setLayout(new BoxLayout(view, BoxLayout.Y_AXIS));
                 //view.setBackground(Color.RED);
 
@@ -388,31 +426,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
 
                 Box headerView = Box.createHorizontalBox();
                 JComponent headerViewContent = createLinkText(header.toString(), resourceNodeInfo, overview);
-                /*JButton headerViewContent = new JButton(header.toString()) {
-                    @Override
-                    public Insets getInsets() {
-                        return new Insets(0, 0, 0, 0);
-                    }
-                };
-                headerViewContent.setToolTipText(resourceNodeInfo.getResource().getPath());
-                headerViewContent.setContentAreaFilled(false);
-                headerViewContent.setBorderPainted(false);
-                headerViewContent.setFocusPainted(false);
-                headerViewContent.setOpaque(true);
-                headerViewContent.getModel().addChangeListener(new ChangeListener() {
-                    @Override
-                    public void stateChanged(ChangeEvent e) {
-                        ButtonModel model = (ButtonModel) e.getSource();
-                        if (model.isRollover()) {
-                            headerViewContent.setBackground(Color.CYAN);
-                        } else {
-                            headerViewContent.setBackground(null);
-                        }
-                    }
-                });
-                headerViewContent.addActionListener(e -> {
-                    resourceNodeInfo.open(overview);
-                });*/
+
                 //headerView.add(new JLabel(header.toString()));
                 headerView.add(headerViewContent);
                 headerView.add(Box.createHorizontalGlue());
@@ -459,7 +473,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
 
             @Override
             public JComponent getView() {
-                return view;
+                return view2;
             }
 
             @Override
