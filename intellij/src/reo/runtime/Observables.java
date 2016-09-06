@@ -258,7 +258,7 @@ public class Observables {
             private ArrayList<String> allErrors;
 
             private void update() {
-                // If receiver is resolved and all arguments are resolved, then the message can be sent
+                // If receive is resolved and all arguments are resolved, then the message can be sent
                 allErrors = new ArrayList<>();
                 if(receiverError != null)
                     allErrors.add("Receiver error: " + receiverError);
