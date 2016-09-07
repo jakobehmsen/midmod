@@ -5,6 +5,7 @@ public class BankAccount implements MessageReceiver {
 
     @Override
     public Object receive(MessageJournal journal, Message message) {
+        System.out.println("Receiving " + message.getSelector());
         switch (message.getSelector()) {
             case "deposit/1":
                 balance += message.getIntArgument(0);
