@@ -1,18 +1,25 @@
 package messjour;
 
+import java.io.*;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.IdentityHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class TransientMessageJournal implements MessageJournal {
-    private static interface Event {
+    public static class SerializedEvent {
+        private byte[] bytes;
+
+        public SerializedEvent(byte[] bytes) {
+            this.bytes = bytes;
+        }
+    }
+
+    public interface Event {
         void replay(MessageJournal journal, ObjectPool objectPool);
     }
 
-    private static class MessageSend implements Event {
+    public static class MessageSend implements Event, Serializable {
         private Function<ObjectPool, MessageReceiver> targetSupplier;
         private Function<ObjectPool, Message> messageSupplier;
 
@@ -29,7 +36,52 @@ public class TransientMessageJournal implements MessageJournal {
         }
     }
 
-    private static class NewInstance<T> implements Event {
+    public static class IdTargetSupplier implements Function<ObjectPool, MessageReceiver>, Serializable {
+        private int id;
+
+        public IdTargetSupplier(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public MessageReceiver apply(ObjectPool objectPool) {
+            return (MessageReceiver) objectPool.get(id);
+        }
+    }
+
+    public static class TransientMessageSupplier implements Function<ObjectPool, Message>, Serializable {
+        private Message message;
+        private String name;
+        private Object[] argumentsToPersist;
+        private boolean[] isReference;
+
+        public TransientMessageSupplier(ObjectPool objectPool, Message message) {
+            this.message = message;
+            /*name = message.getName();
+            argumentsToPersist = new Object[message.arity()];
+            isReference = new boolean[message.arity()];
+
+            for(int i = 0; i < message.arity(); i++) {
+                Object argument = message.getArgument(i);
+                if(argument instanceof Integer) {
+                    argumentsToPersist[i] = argument;
+                    isReference[i] = false;
+                } else {
+                    int id = objectPool.getId(argument);
+                    argumentsToPersist[i] = id;
+                    isReference[i] = true;
+                }
+            }*/
+        }
+
+        @Override
+        public Message apply(ObjectPool objectPool) {
+            //return new TransientMessage(objectPool, name, argumentsToPersist, isReference);
+            return message;
+        }
+    }
+
+    public static class NewInstance<T> implements Event, Serializable {
         private Supplier<T> instanceSupplier;
 
         private NewInstance(Supplier<T> instanceSupplier) {
@@ -42,7 +94,7 @@ public class TransientMessageJournal implements MessageJournal {
         }
     }
 
-    private class TransientMessage implements Message {
+    public static class TransientMessage implements Message, Serializable {
         private ObjectPool objectPool;
         private String name;
         private Object[] arguments;
@@ -75,11 +127,9 @@ public class TransientMessageJournal implements MessageJournal {
         }
     }
 
-    private ArrayList<Event> messages = new ArrayList<>();
+    private ArrayList<SerializedEvent> messages = new ArrayList<>();
     private ArrayList<Object> memoizations = new ArrayList<>();
     private ObjectPool objectPool = new ObjectPool();
-    //private IdentityHashMap<Object, Integer> referenceIdMap = new IdentityHashMap<>();
-    //private Hashtable<Integer, Object> referenceMap = new Hashtable<>();
 
     @Override
     public Object sendTo(Message message, MessageReceiver receiver) {
@@ -100,28 +150,94 @@ public class TransientMessageJournal implements MessageJournal {
             }
         }, message);
 
-        String name = message.getName();
-        Object[] argumentsToPersist = new Object[message.arity()];
-        boolean[] isReference = new boolean[message.arity()];
-        for(int i = 0; i < message.arity(); i++) {
-            Object argument = message.getArgument(i);
-            if(argument instanceof Integer) {
-                argumentsToPersist[i] = argument;
-                isReference[i] = false;
-            } else {
-                int id = objectPool.getId(argument);
-                argumentsToPersist[i] = id;
-                isReference[i] = true;
-            }
-        }
-        //messages.add(new TransientMessage(message.getName(), argumentsToPersist, isReference));
         int receiverId = objectPool.getId(receiver);
-        messages.add(new MessageSend(
-            op -> (MessageReceiver) op.get(receiverId),
-            op -> new TransientMessage(op, name, argumentsToPersist, isReference)
-        ));
+        //Event event = new MessageSend(new IdTargetSupplier(receiverId), new TransientMessageSupplier(objectPool, message));
+        Event event = new MessageSend(new IdTargetSupplier(receiverId), new TransientMessageSupplier(objectPool, message));
+
+        addEvent(event);
 
         return response;
+    }
+
+    private void addEvent(Event event) {
+        try {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            write(event, outputStream, objectPool);
+            byte[] bytes = outputStream.toByteArray();
+            messages.add(new SerializedEvent(bytes));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static class ObjectPoolObject implements Serializable {
+        private int id;
+        private Object object;
+        private ObjectPool objectPool;
+
+        public ObjectPoolObject(Object object) {
+            this.object = object;
+        }
+
+        private void writeObject(java.io.ObjectOutputStream out)
+            throws IOException {
+            //out.writeUTF(c.getName());
+            id = ((TransientMessageJournal.ObjectPoolObjectOutputStream)out).getObjectPool().getId(object);
+            out.writeInt(id);
+        }
+
+        private void readObject(java.io.ObjectInputStream in)
+            throws IOException, ClassNotFoundException {
+            objectPool = ((ObjectPoolObjectInputStream)in).getObjectPool();
+            id = in.readInt();
+            System.out.println("Reading ObjectPoolObject");
+        }
+
+        private Object readResolve() throws ObjectStreamException {
+            System.out.println("Resolving ObjectPoolObject");
+            return objectPool.get(id);
+        }
+    }
+
+    public static class ObjectPoolObjectOutputStream extends ObjectOutputStream {
+        private ObjectPool objectPool;
+
+        public ObjectPoolObjectOutputStream(OutputStream out, ObjectPool objectPool) throws IOException {
+            super(out);
+            this.objectPool = objectPool;
+        }
+
+        protected ObjectPoolObjectOutputStream() throws IOException, SecurityException { }
+
+        public ObjectPool getObjectPool() {
+            return objectPool;
+        }
+    }
+
+    public static class ObjectPoolObjectInputStream extends ObjectInputStream {
+        private ObjectPool objectPool;
+
+        public ObjectPoolObjectInputStream(InputStream in, ObjectPool objectPool) throws IOException {
+            super(in);
+            this.objectPool = objectPool;
+        }
+
+        protected ObjectPoolObjectInputStream() throws IOException, SecurityException { }
+
+        public ObjectPool getObjectPool() {
+            return objectPool;
+        }
+    }
+
+    private void write(Object obj, OutputStream outputStream, ObjectPool objectPool) throws IOException {
+        //ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        ObjectOutputStream objectOutputStream = new ObjectPoolObjectOutputStream(outputStream, objectPool);
+        objectOutputStream.writeObject(obj);
+    }
+
+    private Object read(InputStream inputStream, ObjectPool objectPool) throws IOException, ClassNotFoundException {
+        ObjectPoolObjectInputStream objectInputStream = new ObjectPoolObjectInputStream(inputStream, objectPool);
+        return objectInputStream.readObject();
     }
 
     @Override
@@ -135,7 +251,9 @@ public class TransientMessageJournal implements MessageJournal {
     public <T> T newInstance(Supplier<T> supplier) {
         T instance = supplier.get();
         objectPool.add(instance);
-        messages.add(new NewInstance(supplier));
+        //messages.add(new NewInstance(supplier));
+
+        addEvent(new NewInstance(supplier));
         /*int id = referenceIdMap.size();
         referenceIdMap.put(instance, id);
         referenceMap.put(id, instance);*/
@@ -163,8 +281,16 @@ public class TransientMessageJournal implements MessageJournal {
                 return instance;
             }
         };
-        for (Event x : messages) {
-            x.replay(mj, mjObjectPool);
+        for (SerializedEvent sx : messages) {
+            Event x = null;
+            try {
+                x = (Event) read(new ByteArrayInputStream(sx.bytes), mjObjectPool);
+                x.replay(mj, mjObjectPool);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
         }
     }
 }

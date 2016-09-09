@@ -1,6 +1,8 @@
 package messjour;
 
-public class DefaultMessage implements Message {
+import java.io.Serializable;
+
+public class DefaultMessage implements Message, Serializable {
     private String name;
     private Object[] arguments;
 

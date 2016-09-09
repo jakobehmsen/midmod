@@ -21,4 +21,8 @@ public class ObjectPool {
     public int getId(Object object) {
         return referenceIdMap.get(object);
     }
+
+    public boolean contains(Object obj) {
+        return referenceIdMap.containsKey(obj);
+    }
 }
