@@ -54,32 +54,13 @@ public class TransientMessageJournal implements MessageJournal {
 
     public static class TransientMessageSupplier implements Function<ObjectPool, Message>, Serializable {
         private Message message;
-        private String name;
-        private Object[] argumentsToPersist;
-        private boolean[] isReference;
 
-        public TransientMessageSupplier(ObjectPool objectPool, Message message) {
+        public TransientMessageSupplier(Message message) {
             this.message = message;
-            /*name = message.getName();
-            argumentsToPersist = new Object[message.arity()];
-            isReference = new boolean[message.arity()];
-
-            for(int i = 0; i < message.arity(); i++) {
-                Object argument = message.getArgument(i);
-                if(argument instanceof Integer) {
-                    argumentsToPersist[i] = argument;
-                    isReference[i] = false;
-                } else {
-                    int id = objectPool.getId(argument);
-                    argumentsToPersist[i] = id;
-                    isReference[i] = true;
-                }
-            }*/
         }
 
         @Override
         public Message apply(ObjectPool objectPool) {
-            //return new TransientMessage(objectPool, name, argumentsToPersist, isReference);
             return message;
         }
     }
@@ -94,39 +75,6 @@ public class TransientMessageJournal implements MessageJournal {
         @Override
         public void replay(MessageJournal journal, ObjectPool objectPool) {
             journal.newInstance(instanceSupplier);
-        }
-    }
-
-    public static class TransientMessage implements Message, Serializable {
-        private ObjectPool objectPool;
-        private String name;
-        private Object[] arguments;
-        private boolean[] isReference;
-
-        private TransientMessage(ObjectPool objectPool, String name, Object[] arguments, boolean[] isReference) {
-            this.objectPool = objectPool;
-            this.name = name;
-            this.arguments = arguments;
-            this.isReference = isReference;
-        }
-
-        @Override
-        public String getName() {
-            return name;
-        }
-
-        @Override
-        public int arity() {
-            return arguments.length;
-        }
-
-        @Override
-        public Object getArgument(int ordinal) {
-            if(isReference[ordinal]) {
-                int id = (int) arguments[ordinal];
-                return objectPool.get(id);
-            }
-            return arguments[ordinal];
         }
     }
 
@@ -157,8 +105,7 @@ public class TransientMessageJournal implements MessageJournal {
         }, message);
 
         int receiverId = objectPool.getId(receiver);
-        //Event event = new MessageSend(new IdTargetSupplier(receiverId), new TransientMessageSupplier(objectPool, message));
-        Event event = new MessageSend(new IdTargetSupplier(receiverId), new TransientMessageSupplier(objectPool, message));
+        Event event = new MessageSend(new IdTargetSupplier(receiverId), new TransientMessageSupplier(message));
 
         addEvent(event);
 
@@ -192,7 +139,6 @@ public class TransientMessageJournal implements MessageJournal {
 
         private void writeObject(java.io.ObjectOutputStream out)
             throws IOException {
-            //out.writeUTF(c.getName());
             id = ((TransientMessageJournal.ObjectPoolObjectOutputStream)out).getObjectPool().getId(object);
             out.writeInt(id);
         }
@@ -241,7 +187,6 @@ public class TransientMessageJournal implements MessageJournal {
     }
 
     private void write(Object obj, OutputStream outputStream, ObjectPool objectPool) throws IOException {
-        //ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         ObjectOutputStream objectOutputStream = new ObjectPoolObjectOutputStream(outputStream, objectPool);
         objectOutputStream.writeObject(obj);
     }
@@ -255,7 +200,6 @@ public class TransientMessageJournal implements MessageJournal {
     public <T> T memoize(Supplier<T> supplier) {
         T result = supplier.get();
         memoizations.add(result);
-        //addEvent(new Memoization(result));
         return result;
     }
 
@@ -264,18 +208,13 @@ public class TransientMessageJournal implements MessageJournal {
         prepareEvent();
         T instance = supplier.get();
         objectPool.add(instance);
-        //messages.add(new NewInstance(supplier));
-
         addEvent(new NewInstance(supplier));
-        /*int id = referenceIdMap.size();
-        referenceIdMap.put(instance, id);
-        referenceMap.put(id, instance);*/
         return instance;
     }
 
     public void replay(ObjectPool mjObjectPool) {
         ArrayDeque<Object> memoizations = new ArrayDeque<>();
-        //ObjectPool mjObjectPool = new ObjectPool();
+
         MessageJournal mj = new MessageJournal() {
             @Override
             public Object sendTo(Message message, MessageReceiver receiver) {
