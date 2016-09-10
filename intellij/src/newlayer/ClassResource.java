@@ -473,7 +473,7 @@ public class ClassResource extends AnnotatableResource implements Resource {
 
             @Override
             public JComponent getView() {
-                return view2;
+                return view;
             }
 
             @Override
