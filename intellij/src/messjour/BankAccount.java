@@ -36,11 +36,4 @@ public class BankAccount implements MessageReceiver, Serializable {
     private Object writeReplace() throws ObjectStreamException {
         return new TransientMessageJournal.ObjectPoolObject(this);
     }
-
-    /*private void writeObject(java.io.ObjectOutputStream out)
-        throws IOException {
-        //out.writeUTF(c.getName());
-        int id = ((TransientMessageJournal.ObjectPoolObjectOutputStream)out).getObjectPool().getId(this);
-        out.writeObject(new TransientMessageJournal.ObjectPoolObject(id));
-    }*/
 }
