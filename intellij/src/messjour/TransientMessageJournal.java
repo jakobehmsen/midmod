@@ -3,15 +3,18 @@ package messjour;
 import java.io.*;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class TransientMessageJournal implements MessageJournal {
     public static class SerializedEvent {
         private byte[] bytes;
+        private List<Object> memoizations;
 
-        public SerializedEvent(byte[] bytes) {
+        public SerializedEvent(byte[] bytes, List<Object> memoizations) {
             this.bytes = bytes;
+            this.memoizations = memoizations;
         }
     }
 
@@ -133,6 +136,8 @@ public class TransientMessageJournal implements MessageJournal {
 
     @Override
     public Object sendTo(Message message, MessageReceiver receiver) {
+        prepareEvent();
+
         Object response = receiver.receive(new MessageJournal() {
             @Override
             public Object sendTo(Message message, MessageReceiver receiver) {
@@ -140,7 +145,7 @@ public class TransientMessageJournal implements MessageJournal {
             }
 
             @Override
-            public Object memoize(Supplier<Object> supplier) {
+            public <T> T memoize(Supplier<T> supplier) {
                 return TransientMessageJournal.this.memoize(supplier);
             }
 
@@ -148,6 +153,7 @@ public class TransientMessageJournal implements MessageJournal {
             public <T> T newInstance(Supplier<T> supplier) {
                 return TransientMessageJournal.this.newInstance(supplier);
             }
+
         }, message);
 
         int receiverId = objectPool.getId(receiver);
@@ -159,12 +165,17 @@ public class TransientMessageJournal implements MessageJournal {
         return response;
     }
 
+    private void prepareEvent() {
+        memoizations = new ArrayList<>();
+    }
+
     private void addEvent(Event event) {
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             write(event, outputStream, objectPool);
             byte[] bytes = outputStream.toByteArray();
-            messages.add(new SerializedEvent(bytes));
+            messages.add(new SerializedEvent(bytes, memoizations));
+            memoizations = null;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -241,14 +252,16 @@ public class TransientMessageJournal implements MessageJournal {
     }
 
     @Override
-    public Object memoize(Supplier<Object> supplier) {
-        Object result = supplier.get();
+    public <T> T memoize(Supplier<T> supplier) {
+        T result = supplier.get();
         memoizations.add(result);
+        //addEvent(new Memoization(result));
         return result;
     }
 
     @Override
     public <T> T newInstance(Supplier<T> supplier) {
+        prepareEvent();
         T instance = supplier.get();
         objectPool.add(instance);
         //messages.add(new NewInstance(supplier));
@@ -261,7 +274,7 @@ public class TransientMessageJournal implements MessageJournal {
     }
 
     public void replay(ObjectPool mjObjectPool) {
-        ArrayDeque<Object> memoizations = new ArrayDeque<>(this.memoizations);
+        ArrayDeque<Object> memoizations = new ArrayDeque<>();
         //ObjectPool mjObjectPool = new ObjectPool();
         MessageJournal mj = new MessageJournal() {
             @Override
@@ -270,8 +283,8 @@ public class TransientMessageJournal implements MessageJournal {
             }
 
             @Override
-            public Object memoize(Supplier<Object> supplier) {
-                return memoizations.pop();
+            public <T> T memoize(Supplier<T> supplier) {
+                return (T)memoizations.pop();
             }
 
             @Override
@@ -282,10 +295,15 @@ public class TransientMessageJournal implements MessageJournal {
             }
         };
         for (SerializedEvent sx : messages) {
-            Event x = null;
+            memoizations.clear();
+            memoizations.addAll(sx.memoizations);
+            Event x;
             try {
                 x = (Event) read(new ByteArrayInputStream(sx.bytes), mjObjectPool);
                 x.replay(mj, mjObjectPool);
+
+                if(memoizations.size() > 0)
+                    throw new RuntimeException("Not all memoizations were consumed.");
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (ClassNotFoundException e) {

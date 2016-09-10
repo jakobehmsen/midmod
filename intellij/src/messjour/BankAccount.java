@@ -3,6 +3,7 @@ package messjour;
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
+import java.util.Random;
 
 public class BankAccount implements MessageReceiver, Serializable {
     private int balance;
@@ -22,6 +23,10 @@ public class BankAccount implements MessageReceiver, Serializable {
                 journal.sendTo(new DefaultMessage("withdraw", new Object[]{amount}), this);
                 BankAccount targetAccount = (BankAccount) message.getArgument(1);
                 journal.sendTo(new DefaultMessage("deposit", new Object[]{amount}), targetAccount);
+                return null;
+            case "doRandom/0":
+                int value = journal.memoize(() -> new Random().nextInt(100));
+                System.out.println("Random value: " + value);
                 return null;
             default:
                 throw new IllegalArgumentException("Does not understand " + message.getSelector() + ".");

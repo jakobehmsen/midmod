@@ -12,6 +12,7 @@ public class Main {
         BankAccount b1Target = messageJournal.newInstance(new ClassBasedSupplier<>(BankAccount.class));
         messageJournal.sendTo(new DefaultMessage("transferTo", new Object[]{5, b1Target}), b1);
         messageJournal.sendTo(new DefaultMessage("transferTo", new Object[]{3, b1Target}), b1);
+        messageJournal.sendTo(new DefaultMessage("doRandom", new Object[]{}), b1);
 
         //BankAccount b2 = new BankAccount();
 
