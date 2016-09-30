@@ -30,6 +30,13 @@ public class Main {
     private static String folderToSaveIn;
 
     public static void main(String[] args) throws ScriptException {
+        String src = "m(0, x())";
+        String src2 = Layer.modifiedSource("Name", src);
+
+        System.out.println(src);
+        System.out.println("=>");
+        System.out.println(src2);
+
         // From http://stackoverflow.com/questions/6511556/javascript-parser-for-java
         Options options = new Options("nashorn");
         options.set("anon.functions", true);

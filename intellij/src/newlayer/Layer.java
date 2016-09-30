@@ -298,7 +298,7 @@ public class Layer implements Resource {
     public void transform(NashornScriptEngine engine) {
         try {
             if(source != null) {
-                String modifiedSource = modifiedSource(source);
+                String modifiedSource = modifiedSource(getName(), source);
                 engine.eval(modifiedSource);
             }
         } catch (ScriptException e) {
@@ -308,7 +308,7 @@ public class Layer implements Resource {
         }
     }
 
-    private String modifiedSource(String src) {
+    public static String modifiedSource(String name, String src) {
         // From http://stackoverflow.com/questions/6511556/javascript-parser-for-java
         Options options = new Options("nashorn");
         options.set("anon.functions", true);
@@ -317,7 +317,7 @@ public class Layer implements Resource {
 
         ErrorManager errors = new ErrorManager();
         Context context = new Context(options, errors, Thread.currentThread().getContextClassLoader());
-        Source source   = Source.sourceFor(getName(), src);
+        Source source   = Source.sourceFor(name, src);
 
         Parser parser = new Parser(context.getEnv(), source, errors);
         FunctionNode program = parser.parse();
@@ -358,15 +358,49 @@ public class Layer implements Resource {
                     return super.leaveDefault(node);
                 }*/
 
+                private int depth;
+
                 @Override
                 public boolean enterExpressionStatement(ExpressionStatement expressionStatement) {
+                    /*if(depth > 0) {
+                        append("function() {\n");
+                        indent();
+                        append("enter(" +
+                            expressionStatement.getStart() + ", " +
+                            expressionStatement.getFinish() + ", " +
+                            expressionStatement.position() + ", " +
+                            expressionStatement.getLineNumber() + ");\n");
+                        append("var result = ");
+                        expressionStatement.getExpression().accept(this);
+                        append(";\n");
+                        append("\nleave();\n");
+                        append("return result\n");
+                        dedent();
+                        append("}");
+                    } else {
+                        append("enter(" +
+                            expressionStatement.getStart() + ", " +
+                            expressionStatement.getFinish() + ", " +
+                            expressionStatement.position() + ", " +
+                            expressionStatement.getLineNumber() + ");\n");
+                        depth++;
+
+                        //append(src.substring(expressionStatement.getStart(), expressionStatement.getFinish()));
+                        expressionStatement.getExpression().accept(this);
+
+                        depth--;
+                        append("\nleave();\n");
+                    }*/
+
                     append("enter(" +
                         expressionStatement.getStart() + ", " +
                         expressionStatement.getFinish() + ", " +
                         expressionStatement.position() + ", " +
                         expressionStatement.getLineNumber() + ");\n");
 
-                    append(src.substring(expressionStatement.getStart(), expressionStatement.getFinish()));
+                    //append(src.substring(expressionStatement.getStart(), expressionStatement.getFinish()));
+                    expressionStatement.getExpression().accept(this);
+
                     append("\nleave();\n");
 
                     //return super.enterExpressionStatement(expressionStatement);
@@ -383,17 +417,57 @@ public class Layer implements Resource {
 
                 @Override
                 public boolean enterCallNode(CallNode callNode) {
+                    /*if(depth > 0) {
+                        append("function() {\n");
+                        indent();
+                        append("enter(" +
+                            callNode.getStart() + ", " +
+                            callNode.getFinish() + ", " +
+                            callNode.position() + ", " +
+                            callNode.getLineNumber() + ");\n");
+                        append("var result = ");
+                    }*/
+
+                    int i = 0;
+                    for (Expression arg : callNode.getArgs()) {
+                        append("enter(" +
+                            arg.getStart() + ", " +
+                            arg.getFinish() + ", " +
+                            arg.position() + ", " +
+                            /*arg.getLineNumber() + */ "-1);\n");
+                        append("var __arg__" + depth + "__" + i + " = ");
+                        depth++;
+                        arg.accept(this);
+                        depth--;
+                        append(";");
+                        append("\nleave();\n");
+                        i++;
+                    }
+
                     callNode.getFunction().accept(this);
                     append("(");
+                    i = 0;
                     boolean isFirst = true;
                     for (Expression arg : callNode.getArgs()) {
                         if(!isFirst)
                             append(", ");
-                        arg.accept(this);
+                        //depth++;
+                        append("__arg__" + depth + "__" + i);
+                        //arg.accept(this);
+                        //depth--;
                         isFirst = false;
+                        i++;
                     }
 
                     append(")");
+
+                    /*if(depth > 0) {
+                        append(";");
+                        append("\nleave();\n");
+                        append("return result;\n");
+                        dedent();
+                        append("}()");
+                    }*/
 
                     return false;
                 }

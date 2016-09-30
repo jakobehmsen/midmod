@@ -26,6 +26,7 @@ public class Main {
             transformerFactory.createTransformer(script2)
         );
 
+        // Run validators after each transform?
         transformers.forEach(t -> t.transform(model));
 
         model.toString();
