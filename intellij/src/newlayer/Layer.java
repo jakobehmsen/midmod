@@ -392,16 +392,16 @@ public class Layer implements Resource {
                         append("\nleave();\n");
                     }*/
 
-                    append("enter(" +
+                    /*append("enter(" +
                         expressionStatement.getStart() + ", " +
                         expressionStatement.getFinish() + ", " +
                         expressionStatement.position() + ", " +
-                        expressionStatement.getLineNumber() + ");\n");
+                        expressionStatement.getLineNumber() + ");\n");*/
 
                     //append(src.substring(expressionStatement.getStart(), expressionStatement.getFinish()));
                     expressionStatement.getExpression().accept(this);
 
-                    append("\nleave();\n");
+                    //append("\nleave();\n");
 
                     //return super.enterExpressionStatement(expressionStatement);
 
@@ -417,16 +417,13 @@ public class Layer implements Resource {
 
                 @Override
                 public boolean enterCallNode(CallNode callNode) {
-                    /*if(depth > 0) {
-                        append("function() {\n");
-                        indent();
+                    if(depth == 0) {
                         append("enter(" +
                             callNode.getStart() + ", " +
                             callNode.getFinish() + ", " +
                             callNode.position() + ", " +
                             callNode.getLineNumber() + ");\n");
-                        append("var result = ");
-                    }*/
+                    }
 
                     int i = 0;
                     for (Expression arg : callNode.getArgs()) {
@@ -461,13 +458,9 @@ public class Layer implements Resource {
 
                     append(")");
 
-                    /*if(depth > 0) {
-                        append(";");
+                    if(depth == 0) {
                         append("\nleave();\n");
-                        append("return result;\n");
-                        dedent();
-                        append("}()");
-                    }*/
+                    }
 
                     return false;
                 }
