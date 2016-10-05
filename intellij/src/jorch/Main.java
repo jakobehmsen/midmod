@@ -47,7 +47,7 @@ public class Main {
 
         proceedButton.addActionListener(e -> token.proceed());
 
-        Step testProcess = new Step() {
+        ActivityModel testProcessModel = new QuotedActivityModel(new Step() {
             @Override
             public void perform(Token token) {
                 System.out.println("First step yay!!!");
@@ -58,7 +58,7 @@ public class Main {
             public String toString() {
                 return "Step 1";
             }
-        }.then(new Step() {
+        }).then(new QuotedActivityModel(new Step() {
             @Override
             public void perform(Token token) {
                 System.out.println("Second step yay!!!");
@@ -69,7 +69,7 @@ public class Main {
             public String toString() {
                 return "Step 2";
             }
-        }).then(new Step() {
+        })).then(new QuotedActivityModel(new Step() {
             @Override
             public void perform(Token token) {
                 System.out.println("Third step yay!!!");
@@ -80,19 +80,30 @@ public class Main {
             public String toString() {
                 return "Step 3";
             }
-        });
+        }));
 
+        Step testProcess = testProcessModel.toStep();
+
+        /*token.enterFrame(input -> {
+            input.put("X", 100);
+        }, testProcess, (t, output) -> {
+            System.out.println("Finished it all!!!");
+
+            proceedButton.setEnabled(false);
+        });*/
+
+        token.enterFrame(input -> {
+            input.put("X", 100);
+        }, output -> {
+            output.toString();
+        });
         token.moveInto(testProcess, new Step() {
             @Override
             public void perform(Token token) {
                 System.out.println("Finished it all!!!");
 
                 proceedButton.setEnabled(false);
-            }
-
-            @Override
-            public String toString() {
-                return "Root call site";
+                token.exitFrame();;
             }
         });
 
