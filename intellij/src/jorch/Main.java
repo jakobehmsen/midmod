@@ -1,57 +1,16 @@
 package jorch;
 
 import javax.swing.*;
+import java.util.Hashtable;
+import java.util.Map;
 
-/**
- * Created by jakob on 04-10-16.
- */
 public class Main {
     public static void main(String[] args) {
-        JFrame frame = new JFrame();
-        JButton proceedButton = new JButton("Proceed");
-        frame.getContentPane().add(proceedButton);
-
-        DefaultToken token = new DefaultToken() {
-            @Override
-            public void moveForward(Step step) {
-                System.out.println("Move forward to " + step);
-                super.moveForward(step);
-                System.out.println("Moved forward to " + step);
-
-                //scheduleProceed();
-            }
-
-            @Override
-            public void moveInto(Step step, Step callSite) {
-                System.out.println("Move into " + step);
-                super.moveInto(step, callSite);
-                System.out.println("Moved into " + step);
-
-                //scheduleProceed();
-            }
-
-            @Override
-            public void moveOut() {
-                Step currentStep = getCurrentStep();
-                System.out.println("Moving out from " + currentStep);
-                super.moveOut();
-                System.out.println("Moved out from " + currentStep);
-
-                //scheduleProceed();
-            }
-
-            /*private void scheduleProceed() {
-                new Thread(() -> proceed()).run();
-            }*/
-        };
-
-        proceedButton.addActionListener(e -> token.proceed());
-
         ActivityModel testProcessModel = new QuotedActivityModel(new Step() {
             @Override
-            public void perform(Token token) {
+            public void perform(Token token, Map<String, Object> context) {
                 System.out.println("First step yay!!!");
-                token.moveOut();
+                token.moveNext();
             }
 
             @Override
@@ -60,9 +19,9 @@ public class Main {
             }
         }).then(new QuotedActivityModel(new Step() {
             @Override
-            public void perform(Token token) {
+            public void perform(Token token, Map<String, Object> context) {
                 System.out.println("Second step yay!!!");
-                token.moveOut();
+                token.moveNext();
             }
 
             @Override
@@ -71,9 +30,9 @@ public class Main {
             }
         })).then(new QuotedActivityModel(new Step() {
             @Override
-            public void perform(Token token) {
+            public void perform(Token token, Map<String, Object> context) {
                 System.out.println("Third step yay!!!");
-                token.moveOut();
+                token.moveNext();
             }
 
             @Override
@@ -82,30 +41,63 @@ public class Main {
             }
         }));
 
+        CallStep callStep = new CallStep(callSiteContext -> {
+            Hashtable<String, Object> callContext = new Hashtable<>();
+
+            callContext.put("x", 100);
+
+            return callContext;
+        }, (callSiteContext, callContext) -> {
+            callContext.put("result", callSiteContext.get("result"));
+        }, new Step() {
+            @Override
+            public void perform(Token token, Map<String, Object> context) {
+                int x = (int) context.get("x");
+
+                int result = x * x;
+
+                context.put("result", result);
+
+                token.moveNext();
+            }
+        });
+
+        Hashtable<String, Object> testCallContext = new Hashtable<>();
+        DefaultToken.run(testCallContext, callStep);
+
         Step testProcess = testProcessModel.toStep();
 
-        /*token.enterFrame(input -> {
-            input.put("X", 100);
-        }, testProcess, (t, output) -> {
+        JFrame frame = new JFrame();
+        JButton proceedButton = new JButton("Proceed");
+        frame.getContentPane().add(proceedButton);
+
+        Hashtable<String, Object> context = new Hashtable<>();
+
+        DefaultToken token = new DefaultToken(context, testProcess, (t, ctx) -> {
             System.out.println("Finished it all!!!");
 
             proceedButton.setEnabled(false);
-        });*/
-
-        token.enterFrame(input -> {
-            input.put("X", 100);
-        }, output -> {
-            output.toString();
-        });
-        token.moveInto(testProcess, new Step() {
+        }) {
             @Override
-            public void perform(Token token) {
-                System.out.println("Finished it all!!!");
-
-                proceedButton.setEnabled(false);
-                token.exitFrame();;
+            public void perform(Map<String, Object> context, Step step, Step callback) {
+                System.out.println("Performing " + step);
+                super.perform(context, step, callback);
+                System.out.println("Performed " + step);
             }
-        });
+
+            @Override
+            public void moveNext() {
+                System.out.println("Moving next");
+                super.moveNext();
+                System.out.println("Moved next");
+            }
+
+            /*private void scheduleProceed() {
+                new Thread(() -> proceed()).run();
+            }*/
+        };
+
+        proceedButton.addActionListener(e -> token.proceed());
 
         frame.setSize(640, 480);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

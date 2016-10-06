@@ -1,6 +1,7 @@
 package jorch;
 
 import java.util.List;
+import java.util.Map;
 
 public class SequentialStep implements Step {
     private List<Step> sequence;
@@ -10,20 +11,25 @@ public class SequentialStep implements Step {
     }
 
     @Override
-    public void perform(Token token) {
-        perform(token, 0);
+    public void perform(Token token, Map<String, Object> context) {
+        perform(token, context, 0);
     }
 
-    private void perform(Token token, int index) {
+    private void perform(Token token, Map<String, Object> context, int index) {
         if(index == sequence.size()) {
-            token.moveOut();
+            token.moveNext();
         } else {
-            token.moveInto(sequence.get(index), new Step() {
+            token.perform(context, sequence.get(index), new Step() {
                 @Override
-                public void perform(Token token) {
-                    SequentialStep.this.perform(token, index + 1);
+                public void perform(Token token, Map<String, Object> context) {
+                    SequentialStep.this.perform(token, context, index + 1);
                 }
             });
         }
+    }
+
+    @Override
+    public String toString() {
+        return sequence.toString();
     }
 }

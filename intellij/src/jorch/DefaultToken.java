@@ -3,104 +3,54 @@ package jorch;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Stack;
-import java.util.function.Consumer;
 
-/**
- * Created by jakob on 04-10-16.
- */
 public class DefaultToken implements Token {
-    private static class FrameStep {
-        private Step step;
-        private Step callSite;
+    private Stack<Frame> frames = new Stack<>();
+    private Runnable nextPart;
 
-        private FrameStep(Step step, Step callSite) {
-            this.step = step;
-            this.callSite = callSite;
-        }
+    public DefaultToken(Map<String, Object> context, Step step2, Step callback) {
+        perform(context, step2, callback);
+    }
 
-        public Step getStep() {
-            return step;
-        }
+    @Override
+    public void perform(Map<String, Object> context, Step step, Step callback) {
+        Frame frame = new Frame(context, step, callback);
+        frames.push(frame);
+        nextPart = () -> frame.step.perform(this, frame.context);
+    }
 
-        public void setStep(Step step) {
-            this.step = step;
-        }
-
-        public Step getCallSite() {
-            return callSite;
-        }
+    @Override
+    public void moveNext() {
+        Frame frame = frames.pop();
+        nextPart = () -> frame.callback.perform(this, frame.context);
     }
 
     private static class Frame {
-        private Map<String, Object> locals;
-        private Stack<FrameStep> frames = new Stack<>();
-        private Consumer<Map<String, Object>> ouputMapper;
+        private Map<String, Object> context;
+        private Step step;
+        private Step callback;
 
-        private Frame(Map<String, Object> locals, Consumer<Map<String, Object>> ouputMapper) {
-            this.locals = locals;
-            this.ouputMapper = ouputMapper;
+        private Frame(Map<String, Object> context, Step step, Step callback) {
+            this.context = context;
+            this.step = step;
+            this.callback = callback;
         }
-
-        public Map<String, Object> getLocals() {
-            return locals;
-        }
-
-        public Consumer<Map<String, Object>> getOuputMapper() {
-            return ouputMapper;
-        }
-    }
-
-    private Stack<Frame> frames = new Stack<>();
-    private Step nextStep;
-
-    @Override
-    public void moveForward(Step step) {
-        frames.peek().frames.peek().setStep(step);
-        nextStep = step;
-    }
-
-    @Override
-    public void moveOut() {
-        FrameStep frame = frames.peek().frames.pop();
-        nextStep = frame.getCallSite();
-    }
-
-    @Override
-    public void moveInto(Step step, Step callSite) {
-        frames.peek().frames.push(new FrameStep(step, callSite));
-        nextStep = step;
-    }
-
-    @Override
-    public void enterFrame(Consumer<Map<String, Object>> inputSupplier, Consumer<Map<String, Object>> ouputMapper) {
-        Hashtable<String, Object> locals = new Hashtable<>();
-        inputSupplier.accept(locals);
-
-        frames.push(new Frame(locals, ouputMapper));
-    }
-
-    @Override
-    public void exitFrame() {
-        Map<String, Object> outerLocals = frames.size() > 1 ?  frames.get(frames.size() - 2).getLocals() : new Hashtable<>();
-        frames.peek().getOuputMapper().accept(outerLocals);
-        frames.pop();
-    }
-
-    @Override
-    public Object getValue(String name) {
-        return frames.peek().getLocals().get(name);
-    }
-
-    @Override
-    public void setValue(String name, Object value) {
-        frames.peek().getLocals().put(name, value);
-    }
-
-    public Step getCurrentStep() {
-        return frames.peek().frames.peek().getStep();
     }
 
     public void proceed() {
-        nextStep.perform(this);
+        nextPart.run();
+        nextPart = null;
+    }
+
+    public static void run(Map<String, Object> context, Step step) {
+        boolean[] finished = new boolean[1];
+
+        DefaultToken token = new DefaultToken(context, step, (t, ctx) -> {
+            finished[0] = true;
+        });
+
+        while(!finished[0]) {
+            token.proceed();
+        }
     }
 }
