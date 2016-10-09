@@ -16,13 +16,25 @@ public class DefaultToken implements Token {
     public void perform(Map<String, Object> context, Step step, Step callback) {
         Frame frame = new Frame(context, step, callback);
         frames.push(frame);
-        nextPart = () -> frame.step.perform(this, frame.context);
+        nextPart = () -> {
+            performTask(() -> {
+                frame.step.perform(this, frame.context);
+            });
+        };
+    }
+
+    protected void performTask(Runnable taskPerformer) {
+        taskPerformer.run();
     }
 
     @Override
     public void moveNext() {
         Frame frame = frames.pop();
         nextPart = () -> frame.callback.perform(this, frame.context);
+    }
+
+    protected void moveNextTask(Runnable moveNextPerformer) {
+        moveNextPerformer.run();
     }
 
     private static class Frame {
@@ -38,8 +50,9 @@ public class DefaultToken implements Token {
     }
 
     public void proceed() {
-        nextPart.run();
+        Runnable part = nextPart;
         nextPart = null;
+        part.run();
     }
 
     public static void run(Map<String, Object> context, Step step) {
