@@ -1,26 +1,23 @@
 package jorch;
 
-import java.util.Hashtable;
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Stack;
+import java.util.function.Consumer;
 
-public class DefaultToken implements Token {
+public class DefaultToken implements Token, Serializable {
     private Stack<Frame> frames = new Stack<>();
-    private Runnable nextPart;
+    private Consumer<DefaultToken> nextPart;
 
-    public DefaultToken(Map<String, Object> context, Step step2, Step callback) {
-        perform(context, step2, callback);
+    public DefaultToken(Map<String, Object> context, Step step2) {
+        perform(context, step2, new Finish());
     }
 
     @Override
     public void perform(Map<String, Object> context, Step step, Step callback) {
         Frame frame = new Frame(context, step, callback);
         frames.push(frame);
-        nextPart = () -> {
-            performTask(() -> {
-                frame.step.perform(this, frame.context);
-            });
-        };
+        nextPart = new PerformTask(frame);
     }
 
     protected void performTask(Runnable taskPerformer) {
@@ -30,14 +27,14 @@ public class DefaultToken implements Token {
     @Override
     public void moveNext() {
         Frame frame = frames.pop();
-        nextPart = () -> frame.callback.perform(this, frame.context);
+        nextPart = new MoveNext(frame);
     }
 
     protected void moveNextTask(Runnable moveNextPerformer) {
         moveNextPerformer.run();
     }
 
-    private static class Frame {
+    private static class Frame implements Serializable {
         private Map<String, Object> context;
         private Step step;
         private Step callback;
@@ -50,20 +47,47 @@ public class DefaultToken implements Token {
     }
 
     public void proceed() {
-        Runnable part = nextPart;
+        Consumer<DefaultToken> part = nextPart;
         nextPart = null;
-        part.run();
+        part.accept(this);
     }
 
-    public static void run(Map<String, Object> context, Step step) {
-        boolean[] finished = new boolean[1];
+    private static class PerformTask implements Consumer<DefaultToken>, Serializable {
+        private final Frame frame;
 
-        DefaultToken token = new DefaultToken(context, step, (t, ctx) -> {
-            finished[0] = true;
-        });
+        public PerformTask(Frame frame) {
+            this.frame = frame;
+        }
 
-        while(!finished[0]) {
-            token.proceed();
+        @Override
+        public void accept(DefaultToken defaultToken) {
+            defaultToken.performTask(() -> {
+                frame.step.perform(defaultToken, frame.context);
+            });
+        }
+    }
+
+    private static class MoveNext implements Consumer<DefaultToken>, Serializable {
+        private final Frame frame;
+
+        public MoveNext(Frame frame) {
+            this.frame = frame;
+        }
+
+        @Override
+        public void accept(DefaultToken defaultToken) {
+            frame.callback.perform(defaultToken, frame.context);
+        }
+    }
+
+    protected void finished() {
+
+    }
+
+    private static class Finish implements Step {
+        @Override
+        public void perform(Token token, Map<String, Object> context) {
+            ((DefaultToken)token).finished();
         }
     }
 }

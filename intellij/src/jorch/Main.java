@@ -2,11 +2,14 @@ package jorch;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.ObjectOutputStream;
 import java.util.Hashtable;
 import java.util.Map;
 
 public class Main {
     public static void main(String[] args) {
+        // Todo: all kinds of steps should be serializable
+        // Todo: token should serialize steps along its flow
         DefaultDependencyInjector dependencyInjector = new DefaultDependencyInjector();
 
         Step testProcess =
@@ -53,38 +56,11 @@ public class Main {
 
         boolean[] halt = new boolean[1];
 
-        dependencyInjector.put(SwingStepContext.class, new SwingStepContext() {
-            @Override
-            public JFrame getFrame() {
-                return frame;
-            }
-
-            @Override
-            public JComponent getComponent() {
-                return stepComponent;
-            }
-
-            @Override
-            public void halt() {
-                halt[0] = true;
-            }
-
-            @Override
-            public void resume() {
-                halt[0] = false;
-            }
-        });
-
         Hashtable<String, Object> context = new Hashtable<>();
 
-        DefaultToken token = new DefaultToken(context, testProcess, (t, ctx) -> {
-            stepComponent.removeAll();
-            stepComponent.add(new JLabel("Finished it all."));
-            stepComponent.repaint();
-            stepComponent.revalidate();
-
-            proceedButton.setEnabled(false);
-        }) {
+        DefaultToken token = new DefaultToken(context, testProcess) {
+            // stepComponent should not be serialized
+            // stepComponent should be bound to the stepComponent made just above
             @Override
             public void perform(Map<String, Object> context, Step step, Step callback) {
                 System.out.println("Performing " + step);
@@ -127,7 +103,42 @@ public class Main {
 
                 new Thread(() -> proceed()).run();
             }
+
+            @Override
+            protected void finished() {
+                stepComponent.removeAll();
+                stepComponent.add(new JLabel("Finished it all."));
+                stepComponent.repaint();
+                stepComponent.revalidate();
+
+                proceedButton.setEnabled(false);
+            }
         };
+
+        dependencyInjector.put(SwingStepContext.class, new SwingStepContext() {
+            @Override
+            public JFrame getFrame() {
+                return frame;
+            }
+
+            @Override
+            public JComponent getComponent() {
+                return stepComponent;
+            }
+
+            @Override
+            public void halt() {
+                halt[0] = true;
+
+
+                //ObjectOutputStream objectOutputStream = new ObjectOutputStream();
+            }
+
+            @Override
+            public void resume() {
+                halt[0] = false;
+            }
+        });
 
         proceedButton.addActionListener(e ->
             token.proceed());
