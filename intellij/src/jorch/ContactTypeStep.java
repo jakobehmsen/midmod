@@ -33,4 +33,9 @@ public class ContactTypeStep implements Step {
         swingStepContext.getComponent().add(contactForms);
         swingStepContext.getComponent().add(continueButton);
     }
+
+    @Override
+    public String toString() {
+        return "Contact Type";
+    }
 }

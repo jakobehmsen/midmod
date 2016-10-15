@@ -33,4 +33,9 @@ public class LegitimationStep implements Step {
         swingStepContext.getComponent().add(legitimationValidations);
         swingStepContext.getComponent().add(continueButton);
     }
+
+    @Override
+    public String toString() {
+        return "Legitimation";
+    }
 }

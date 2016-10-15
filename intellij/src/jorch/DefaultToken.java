@@ -90,4 +90,9 @@ public class DefaultToken implements Token, Serializable {
             ((DefaultToken)token).finished();
         }
     }
+
+    @Override
+    public Step currentStep() {
+        return frames.peek().step;
+    }
 }
