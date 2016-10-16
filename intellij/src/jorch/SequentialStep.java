@@ -24,6 +24,11 @@ public class SequentialStep implements Step {
                 public void perform(Token token, Map<String, Object> context) {
                     SequentialStep.this.perform(token, context, index + 1);
                 }
+
+                @Override
+                public String toString() {
+                    return sequence.get(index).toString();
+                }
             });
         }
     }

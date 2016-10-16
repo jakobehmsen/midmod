@@ -6,4 +6,5 @@ public interface Token {
     void perform(Map<String, Object> context, Step step, Step callback);
     void moveNext();
     Step currentStep();
+    void halt();
 }

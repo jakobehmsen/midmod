@@ -12,7 +12,7 @@ public class LegitimationStep implements Step {
 
     @Override
     public void perform(Token token, Map<String, Object> context) {
-        swingStepContext.halt();
+        token.halt();
 
         JButton continueButton = new JButton("Continue");
 

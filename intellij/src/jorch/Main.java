@@ -58,9 +58,9 @@ public class Main {
         stepComponent.add(new JLabel("Awaiting..."));
         contentPane.add(stepComponent, BorderLayout.CENTER);
 
-        JList<Token> tokens = new JList<>(new DefaultListModel<>());
+        JList<SwingToken> tokens = new JList<>(new DefaultListModel<>());
 
-        contentPane.add(tokens, BorderLayout.WEST);
+        contentPane.add(new JScrollPane(tokens), BorderLayout.WEST);
 
         boolean[] halt = new boolean[1];
 
@@ -75,13 +75,13 @@ public class Main {
                 return stepComponent;
             }
 
-            @Override
+            /*@Override
             public void halt() {
                 halt[0] = true;
 
 
                 //ObjectOutputStream objectOutputStream = new ObjectOutputStream();
-            }
+            }*/
 
             @Override
             public void resume() {
@@ -148,83 +148,114 @@ public class Main {
             }
         };*/
 
-        /*proceedButton.addActionListener(e ->
-            token.proceed());*/
+        proceedButton.addActionListener(e -> {
+            if(tokens.getSelectedIndex() != -1)
+                tokens.getSelectedValue().proceed();
+        });
 
         newButton.addActionListener(e -> {
-            DefaultToken token = new DefaultToken(context, testProcess) {
-                // stepComponent should not be serialized
-                // stepComponent should be bound to the stepComponent made just above
-                @Override
-                public void perform(Map<String, Object> context, Step step, Step callback) {
-                    System.out.println("Performing " + step);
-                    super.perform(context, step, callback);
-                    System.out.println("Performed " + step);
+            SwingToken token = new SwingToken(context, testProcess, stepComponent, tokens, proceedButton);
 
-                    scheduleProceed();
-                }
-
-                @Override
-                protected void performTask(Runnable taskPerformer) {
-                    stepComponent.removeAll();
-                    stepComponent.repaint();
-                    stepComponent.revalidate();
-                    super.performTask(taskPerformer);
-                }
-
-                @Override
-                public void moveNext() {
-                    System.out.println("Moving next");
-                    super.moveNext();
-                    System.out.println("Moved next");
-                    halt[0] = false;
-                    scheduleProceed();
-
-                    int indexOfToken = ((DefaultListModel<Token>)tokens.getModel()).indexOf(this);
-                    ((DefaultListModel<Token>)tokens.getModel()).set(indexOfToken, this);
-                }
-
-                @Override
-                protected void moveNextTask(Runnable moveNextPerformer) {
-                    super.moveNextTask(moveNextPerformer);
-
-                    stepComponent.removeAll();
-                    stepComponent.add(new JLabel("Awaiting..."));
-                    stepComponent.repaint();
-                    stepComponent.revalidate();
-                }
-
-                private void scheduleProceed() {
-                    if(halt[0])
-                        return;
-
-                    new Thread(() -> proceed()).run();
-                }
-
-                @Override
-                protected void finished() {
-                    ((DefaultListModel<Token>)tokens.getModel()).removeElement(this);
-
-                    stepComponent.removeAll();
-                    stepComponent.add(new JLabel("Finished it all."));
-                    stepComponent.repaint();
-                    stepComponent.revalidate();
-
-                    proceedButton.setEnabled(false);
-                }
-
-                @Override
-                public String toString() {
-                    return "Token at " + currentStep();
-                }
-            };
-
-            ((DefaultListModel<Token>)tokens.getModel()).addElement(token);
+            ((DefaultListModel<SwingToken>)tokens.getModel()).addElement(token);
         });
 
         frame.setSize(640, 480);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
+    }
+
+    private static class SwingToken extends DefaultToken {
+        private final JPanel stepComponent;
+        private boolean halt;
+        private final JList<SwingToken> tokens;
+        private final JButton proceedButton;
+        private boolean initialized;
+
+        public SwingToken(Hashtable<String, Object> context, Step testProcess, JPanel stepComponent, JList<SwingToken> tokens, JButton proceedButton) {
+            super(context, testProcess);
+            this.stepComponent = stepComponent;
+            this.tokens = tokens;
+            this.proceedButton = proceedButton;
+            halt = true;
+            initialized = true;
+        }
+
+        // stepComponent should not be serialized
+        // stepComponent should be bound to the stepComponent made just above
+        @Override
+        public void perform(Map<String, Object> context, Step step, Step callback) {
+            System.out.println("Performing " + step);
+            super.perform(context, step, callback);
+            System.out.println("Performed " + step);
+
+            scheduleProceed();
+        }
+
+        @Override
+        protected void performTask(Runnable taskPerformer) {
+            stepComponent.removeAll();
+            stepComponent.repaint();
+            stepComponent.revalidate();
+            super.performTask(taskPerformer);
+        }
+
+        @Override
+        public void moveNext() {
+            System.out.println("Moving next");
+            super.moveNext();
+            System.out.println("Moved next");
+            halt = false;
+            scheduleProceed();
+
+            int indexOfToken = ((DefaultListModel<SwingToken>) tokens.getModel()).indexOf(this);
+            if(indexOfToken != -1) // Might have finished
+                ((DefaultListModel<SwingToken>) tokens.getModel()).set(indexOfToken, this);
+        }
+
+        @Override
+        protected void moveNextTask(Runnable moveNextPerformer) {
+            super.moveNextTask(moveNextPerformer);
+
+            stepComponent.removeAll();
+            stepComponent.add(new JLabel("Awaiting..."));
+            stepComponent.repaint();
+            stepComponent.revalidate();
+        }
+
+        private void scheduleProceed() {
+            if(!initialized)
+                return;
+
+            if(halt)
+                return;
+
+            new Thread(() -> super.proceed()).run();
+        }
+
+        @Override
+        protected void finished() {
+            ((DefaultListModel<SwingToken>) tokens.getModel()).removeElement(this);
+
+            stepComponent.removeAll();
+            stepComponent.add(new JLabel("Finished it all."));
+            stepComponent.repaint();
+            stepComponent.revalidate();
+        }
+
+        @Override
+        public String toString() {
+            return "Token at " + currentStep();
+        }
+
+        @Override
+        public void halt() {
+            halt = true;
+        }
+
+        public void proceed() {
+            halt = false;
+            scheduleProceed();
+        }
     }
 }

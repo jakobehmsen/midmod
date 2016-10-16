@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Stack;
 import java.util.function.Consumer;
 
-public class DefaultToken implements Token, Serializable {
+public abstract class DefaultToken implements Token, Serializable {
     private Stack<Frame> frames = new Stack<>();
     private Consumer<DefaultToken> nextPart;
 
@@ -17,7 +17,6 @@ public class DefaultToken implements Token, Serializable {
     public void perform(Map<String, Object> context, Step step, Step callback) {
         Frame frame = new Frame(context, step, callback);
         frames.push(frame);
-        nextPart = new PerformTask(frame);
     }
 
     protected void performTask(Runnable taskPerformer) {
@@ -47,6 +46,9 @@ public class DefaultToken implements Token, Serializable {
     }
 
     public void proceed() {
+        if(nextPart == null)
+            nextPart = new PerformTask(frames.peek());
+
         Consumer<DefaultToken> part = nextPart;
         nextPart = null;
         part.accept(this);
