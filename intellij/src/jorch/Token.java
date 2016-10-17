@@ -7,4 +7,5 @@ public interface Token {
     void moveNext();
     Step currentStep();
     void halt();
+    void proceed();
 }
