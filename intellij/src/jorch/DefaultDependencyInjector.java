@@ -28,4 +28,8 @@ public class DefaultDependencyInjector implements DependencyInjector {
             return null;
         });
     }
+
+    public ActivityModel newActivity(Class<? extends Step> c) {
+        return new ReflectiveActivityModel(this, c);
+    }
 }

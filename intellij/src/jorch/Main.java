@@ -13,9 +13,8 @@ public class Main {
         // Todo: token should serialize steps along its flow
         DefaultDependencyInjector dependencyInjector = new DefaultDependencyInjector();
 
-        Step testProcess =
-            new JavaStep(dependencyInjector, ContactTypeStep.class)
-            .then(new JavaStep(dependencyInjector, LegitimationStep.class));
+        ActivityModel testProcessModel = dependencyInjector.newActivity(ContactTypeStep.class)
+            .then(dependencyInjector.newActivity(LegitimationStep.class));
 
         /*CallStep callStep = new CallStep(callSiteContext -> {
             Hashtable<String, Object> callContext = new Hashtable<>();
@@ -154,6 +153,7 @@ public class Main {
         });
 
         newButton.addActionListener(e -> {
+            Step testProcess = testProcessModel.toStep();
             SwingToken token = new SwingToken(context, testProcess, stepComponent, tokens, proceedButton);
 
             ((DefaultListModel<SwingToken>)tokens.getModel()).addElement(token);
