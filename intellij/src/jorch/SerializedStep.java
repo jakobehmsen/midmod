@@ -1,25 +1,38 @@
 package jorch;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 
-public class ReflectiveActivityModel implements ActivityModel {
+public class SerializedStep implements Step {
     private DependencyInjector dependencyInjector;
     private Class<? extends Step> c;
+    private Step step;
 
-    public ReflectiveActivityModel(DependencyInjector dependencyInjector, Class<? extends Step> c) {
+    public SerializedStep(DependencyInjector dependencyInjector, Class<? extends Step> c, Step step) {
         this.dependencyInjector = dependencyInjector;
         this.c = c;
+        this.step = step;
     }
 
-    @Override
-    public String toString() {
-        return c.getName();
+    private void writeObject(ObjectOutputStream oos)
+        throws IOException {
+        oos.writeUTF(c.getName());
     }
 
-    @Override
-    public Step toStep() {
+    private void readObject(ObjectInputStream ois)
+        throws ClassNotFoundException, IOException {
+        String className = ois.readUTF();
+        c = (Class<? extends Step>) Class.forName(className);
+        dependencyInjector = DependencyInjectorContext.getInstance();
+
+        step = load();
+    }
+
+    public Step load() {
         try {
             Constructor<? extends Step> constructor = (Constructor<? extends Step>) c.getConstructors()[0];
             Object[] arguments = new Object[constructor.getParameterCount()];
@@ -29,7 +42,7 @@ public class ReflectiveActivityModel implements ActivityModel {
             }
 
             Step step = constructor.newInstance(arguments);
-            return new SerializedStep(dependencyInjector, c, step);
+            return step;
         } catch (InstantiationException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
@@ -39,5 +52,15 @@ public class ReflectiveActivityModel implements ActivityModel {
         }
 
         return null;
+    }
+
+    @Override
+    public void perform(Token token, Map<String, Object> context) {
+        step.perform(token, context);
+    }
+
+    @Override
+    public String toString() {
+        return step.toString();
     }
 }

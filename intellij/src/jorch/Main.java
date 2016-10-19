@@ -1,15 +1,19 @@
 package jorch;
 
 import javax.swing.*;
+import javax.swing.event.ListDataEvent;
+import javax.swing.event.ListDataListener;
 import java.awt.*;
-import java.util.Hashtable;
-import java.util.Map;
+import java.io.*;
+import java.util.*;
+import java.util.List;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
         // Todo: all kinds of steps should be serializable
         // Todo: token should serialize steps along its flow
         DefaultDependencyInjector dependencyInjector = new DefaultDependencyInjector();
+        DependencyInjectorContext.setInstance(dependencyInjector);
 
         ActivityModel testProcessModel = dependencyInjector.newActivity(ContactTypeStep.class)
             .then(dependencyInjector.newActivity(LegitimationStep.class));
@@ -31,10 +35,6 @@ public class Main {
         stepComponent.add(new JLabel("Awaiting..."));
         contentPane.add(stepComponent, BorderLayout.CENTER);
 
-        JList<Token> tokens = new JList<>(new DefaultListModel<>());
-
-        contentPane.add(new JScrollPane(tokens), BorderLayout.WEST);
-
         dependencyInjector.put(SwingStepContext.class, new SwingStepContext() {
             @Override
             public JFrame getFrame() {
@@ -47,6 +47,107 @@ public class Main {
             }
         });
 
+        java.util.List<Token> persistedTokens;
+        File persistedTokensFile = new File("tokens23464186.tks");
+
+        /*ArrayList<String> al=new ArrayList<String>();
+        al.add("Hello");
+        al.add("Hi");
+        al.add("Howdy");
+
+        try{
+            FileOutputStream fos= new FileOutputStream(persistedTokensFile);
+            ObjectOutputStream oos= new ObjectOutputStream(fos);
+            oos.writeObject(al);
+            oos.close();
+            fos.close();
+        }catch(IOException ioe){
+            ioe.printStackTrace();
+        }
+
+        ArrayList<String> arraylist= new ArrayList<String>();
+        try
+        {
+            FileInputStream fis = new FileInputStream(persistedTokensFile);
+            ObjectInputStream ois = new ObjectInputStream(fis);
+            arraylist = (ArrayList) ois.readObject();
+            ois.close();
+            fis.close();
+        }catch(IOException ioe){
+            ioe.printStackTrace();
+            return;
+        }catch(ClassNotFoundException c){
+            System.out.println("Class not found");
+            c.printStackTrace();
+            return;
+        }
+        for(String tmp: arraylist){
+            System.out.println(tmp);
+        }*/
+
+        if(!persistedTokensFile.exists()) {
+            persistedTokens = new ArrayList<>();
+            FileOutputStream fos = new FileOutputStream(persistedTokensFile);
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeObject(persistedTokens);
+            oos.close();
+            fos.close();
+
+            /*FileInputStream fis = new FileInputStream(persistedTokensFile);
+            ObjectInputStream ois = new ObjectInputStream(fis);
+            persistedTokens2 = (ArrayList) ois.readObject();
+            ois.close();
+            fis.close();*/
+        } else {
+
+            FileInputStream fis = new FileInputStream(persistedTokensFile);
+            ObjectInputStream ois = new ObjectInputStream(fis);
+            persistedTokens = (ArrayList) ois.readObject();
+            ois.close();
+            fis.close();
+        }
+
+        DefaultListModel<Token> tokensModel = new DefaultListModel<>();
+
+        persistedTokens.forEach(t -> tokensModel.addElement(t));
+
+        tokensModel.addListDataListener(new ListDataListener() {
+            @Override
+            public void intervalAdded(ListDataEvent e) {
+                persistedTokens.addAll(e.getIndex0(), Collections.list(tokensModel.elements()));
+                persistTokens();
+            }
+
+            @Override
+            public void intervalRemoved(ListDataEvent e) {
+                persistedTokens.subList(e.getIndex0(), e.getIndex1()).clear();
+                persistTokens();
+            }
+
+            @Override
+            public void contentsChanged(ListDataEvent e) {
+                persistedTokens.clear();
+                persistedTokens.addAll(Collections.list(tokensModel.elements()));
+                persistTokens();
+            }
+
+            private void persistTokens() {
+                try {
+                    FileOutputStream fos = new FileOutputStream(persistedTokensFile);
+                    ObjectOutputStream oos = new ObjectOutputStream(fos);
+                    oos.writeObject(persistedTokens);
+                    oos.close();
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        JList<Token> tokens = new JList<>(tokensModel);
+
+        contentPane.add(new JScrollPane(tokens), BorderLayout.WEST);
+
         Hashtable<String, Object> context = new Hashtable<>();
 
         TokenFactory tokenFactory = new TokenFactory() {
@@ -54,7 +155,17 @@ public class Main {
             public Token newToken(Map<String, Object> context, Step start) {
                 return new DefaultToken(context, start) {
                     private boolean halt;
-                    private Runnable pending;
+                    private DefaultTokenConsumer pending;
+
+                    private JComponent getStepComponent() {
+                        return ((SwingStepContext)DependencyInjectorContext.getInstance().getInstance(SwingStepContext.class)).getComponent();
+                    }
+
+                    private JList<Token> getTokens() {
+                        //return ((SwingStepContext)DependencyInjectorContext.getInstance().getInstance(SwingStepContext.class)).getComponent();
+                        return
+                            (JList<Token>) ((JScrollPane) ((BorderLayout)((SwingStepContext)DependencyInjectorContext.getInstance().getInstance(SwingStepContext.class)).getFrame().getContentPane().getLayout()).getLayoutComponent(BorderLayout.WEST)).getViewport().getView();
+                    }
 
                     @Override
                     public void moveNext() {
@@ -69,31 +180,31 @@ public class Main {
 
                     @Override
                     protected void finished() {
-                        ((DefaultListModel<Token>) tokens.getModel()).removeElement(this);
+                        ((DefaultListModel<Token>) getTokens().getModel()).removeElement(this);
 
-                        stepComponent.removeAll();
-                        stepComponent.add(new JLabel("Finished it all."));
-                        stepComponent.repaint();
-                        stepComponent.revalidate();
+                        getStepComponent().removeAll();
+                        getStepComponent().add(new JLabel("Finished it all."));
+                        getStepComponent().repaint();
+                        getStepComponent().revalidate();
                     }
 
                     @Override
-                    protected void schedule(Runnable runnable) {
+                    protected void schedule(DefaultTokenConsumer runnable) {
                         pending = runnable;
 
                         if(halt)
                             return;
 
                         new Thread(() -> {
-                            stepComponent.removeAll();
-                            stepComponent.repaint();
-                            stepComponent.revalidate();
+                            getStepComponent().removeAll();
+                            getStepComponent().repaint();
+                            getStepComponent().revalidate();
 
-                            runnable.run();
+                            runnable.accept(this);
 
-                            int indexOfToken = ((DefaultListModel<Token>) tokens.getModel()).indexOf(this);
+                            int indexOfToken = ((DefaultListModel<Token>) getTokens().getModel()).indexOf(this);
                             if(indexOfToken != -1) // Might have finished
-                                ((DefaultListModel<Token>) tokens.getModel()).set(indexOfToken, this);
+                                ((DefaultListModel<Token>) getTokens().getModel()).set(indexOfToken, this);
                         }).run();
                     }
 
@@ -106,6 +217,18 @@ public class Main {
                     public void proceed() {
                         halt = false;
                         schedule(pending);
+                    }
+
+                    private void writeObject(ObjectOutputStream oos)
+                        throws IOException {
+                        oos.writeBoolean(halt);
+                        oos.writeObject(pending);
+                    }
+
+                    private void readObject(ObjectInputStream ois)
+                        throws ClassNotFoundException, IOException {
+                        halt = ois.readBoolean();
+                        pending = (DefaultTokenConsumer) ois.readObject();
                     }
                 };
             }
