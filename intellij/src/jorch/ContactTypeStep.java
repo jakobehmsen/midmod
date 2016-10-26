@@ -1,7 +1,6 @@
 package jorch;
 
 import javax.swing.*;
-import java.util.Map;
 
 public class ContactTypeStep implements Step {
     private SwingStepContext swingStepContext;
@@ -11,7 +10,7 @@ public class ContactTypeStep implements Step {
     }
 
     @Override
-    public void perform(Token token, Map<String, Object> context) {
+    public void perform(Token token) {
         token.halt();
 
         JButton continueButton = new JButton("Continue");
@@ -21,7 +20,7 @@ public class ContactTypeStep implements Step {
         continueButton.addActionListener(e -> {
             String contactForm = (String) contactForms.getSelectedItem();
 
-            context.put("contactForm", contactForm);
+            token.put("contactForm", contactForm);
 
             token.moveNext();
         });

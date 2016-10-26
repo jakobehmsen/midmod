@@ -5,7 +5,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Map;
 
 public class SerializedStep implements Step {
     private DependencyInjector dependencyInjector;
@@ -55,8 +54,8 @@ public class SerializedStep implements Step {
     }
 
     @Override
-    public void perform(Token token, Map<String, Object> context) {
-        step.perform(token, context);
+    public void perform(Token token) {
+        step.perform(token);
     }
 
     @Override

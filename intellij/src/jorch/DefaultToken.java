@@ -15,20 +15,24 @@ public class DefaultToken implements Token, Serializable {
         perform(context, step, new Finish());
     }
 
-    @Override
-    public void perform(Map<String, Object> context, Step step, Step callback) {
+    private  void perform(Map<String, Object> context, Step step, Step callback) {
         Frame frame = new Frame(context, step, callback);
         frames.push(frame);
 
         schedule(token ->
-            token.frames.peek().step.perform(token, frame.context));
+            token.frames.peek().step.perform(token));
+    }
+
+    @Override
+    public void perform(Step step, Step callback) {
+        perform(frames.peek().context, step, callback);
     }
 
     @Override
     public void moveNext() {
         schedule(token -> {
             Frame frame = token.frames.pop();
-            frame.callback.perform(token, frame.context);
+            frame.callback.perform(token);
         });
     }
 
@@ -60,7 +64,7 @@ public class DefaultToken implements Token, Serializable {
 
     private static class Finish implements Step {
         @Override
-        public void perform(Token token, Map<String, Object> context) {
+        public void perform(Token token) {
             ((DefaultToken)token).finished();
         }
     }
@@ -79,6 +83,11 @@ public class DefaultToken implements Token, Serializable {
 
     @Override
     public void proceed() { }
+
+    @Override
+    public void put(String name, Object value) {
+        frames.peek().context.put(name, value);
+    }
 
     protected interface DefaultTokenConsumer extends Consumer<DefaultToken>, Serializable {
 
