@@ -9,6 +9,8 @@ import java.util.*;
 import java.util.List;
 
 public class Main {
+    private static java.util.List<Token> persistedTokens;
+
     public static void main(String[] args) throws IOException, ClassNotFoundException {
         // Todo: all kinds of steps should be serializable
         // Todo: token should serialize steps along its flow
@@ -47,8 +49,7 @@ public class Main {
             }
         });
 
-        java.util.List<Token> persistedTokens;
-        File persistedTokensFile = new File("tokens2346411466.tks");
+        File persistedTokensFile = new File("tokens2346414866466.tks");
 
         /*ArrayList<String> al=new ArrayList<String>();
         al.add("Hello");
@@ -111,49 +112,16 @@ public class Main {
 
         persistedTokens.forEach(t -> tokensModel.addElement(t));
 
-        tokensModel.addListDataListener(new ListDataListener() {
-            @Override
-            public void intervalAdded(ListDataEvent e) {
-                persistedTokens.addAll(e.getIndex0(), Collections.list(tokensModel.elements()));
-                persistTokens();
-            }
-
-            @Override
-            public void intervalRemoved(ListDataEvent e) {
-                persistedTokens.subList(e.getIndex0(), e.getIndex1()).clear();
-                persistTokens();
-            }
-
-            @Override
-            public void contentsChanged(ListDataEvent e) {
-                persistedTokens.clear();
-                persistedTokens.addAll(Collections.list(tokensModel.elements()));
-                persistTokens();
-            }
-
-            private void persistTokens() {
-                try {
-                    FileOutputStream fos = new FileOutputStream(persistedTokensFile);
-                    ObjectOutputStream oos = new ObjectOutputStream(fos);
-                    oos.writeObject(persistedTokens);
-                    oos.close();
-                    fos.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-
         JList<Token> tokens = new JList<>(tokensModel);
 
         contentPane.add(new JScrollPane(tokens), BorderLayout.WEST);
 
         Hashtable<String, Object> context = new Hashtable<>();
 
-        TokenFactory tokenFactory = new TokenFactory() {
+        TokenStore tokenStore = new TokenStore() {
             @Override
             public Token newToken(Map<String, Object> context, Step start) {
-                return new DefaultToken(context, start) {
+                Token token = new DefaultToken(context, start) {
                     private boolean halt;
                     private DefaultTokenConsumer pending;
 
@@ -171,6 +139,8 @@ public class Main {
                     public void moveNext() {
                         halt = false;
                         super.moveNext();
+
+                        persistTokens();
                     }
 
                     @Override
@@ -180,12 +150,16 @@ public class Main {
 
                     @Override
                     protected void finished() {
+                        persistedTokens.remove(this);
+
                         ((DefaultListModel<Token>) getTokens().getModel()).removeElement(this);
 
                         getStepComponent().removeAll();
                         getStepComponent().add(new JLabel("Finished it all."));
                         getStepComponent().repaint();
                         getStepComponent().revalidate();
+
+                        persistTokens();
                     }
 
                     @Override
@@ -231,6 +205,36 @@ public class Main {
                         pending = (DefaultTokenConsumer) ois.readObject();
                     }
                 };
+
+                persistedTokens.add(token);
+
+                persistTokens();
+
+                return token;
+            }
+
+            @Override
+            public void removeToken(Token token) {
+                persistedTokens.remove(token);
+
+                persistTokens();
+            }
+
+            @Override
+            public List<Token> getTokens() {
+                return persistedTokens;
+            }
+
+            private void persistTokens() {
+                try {
+                    FileOutputStream fos = new FileOutputStream(persistedTokensFile);
+                    ObjectOutputStream oos = new ObjectOutputStream(fos);
+                    oos.writeObject(persistedTokens);
+                    oos.close();
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         };
 
@@ -241,7 +245,7 @@ public class Main {
 
         newButton.addActionListener(e -> {
             Step testProcess = testProcessModel.toStep();
-            Token token = tokenFactory.newToken(context, testProcess);
+            Token token = tokenStore.newToken(context, testProcess);
 
             ((DefaultListModel<Token>)tokens.getModel()).addElement(token);
         });
