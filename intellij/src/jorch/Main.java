@@ -12,6 +12,65 @@ public class Main {
     private static java.util.List<Token> persistedTokens;
 
     public static void main(String[] args) throws IOException, ClassNotFoundException {
+        boolean[] finished = new boolean[1];
+        boolean[] halted = new boolean[1];
+
+        DefaultScheduler scheduler = new DefaultScheduler("token14.tk", new Task() {
+            @Override
+            public void perform(Scheduler scheduler) {
+                System.out.println("Before halt 1");
+
+                scheduler.halt(new Task() {
+                    @Override
+                    public void perform(Scheduler scheduler) {
+                        System.out.println("After halt 1");
+
+                        System.out.println("Before halt 2");
+
+                        scheduler.halt(new Task() {
+                            @Override
+                            public void perform(Scheduler scheduler) {
+                                System.out.println("After halt 2");
+
+                                scheduler.finish();
+                            }
+                        });
+                    }
+                });
+            }
+
+        }) {
+            @Override
+            protected void halted() {
+                halted[0] = true;
+            }
+
+            @Override
+            protected void scheduleTask(Task task) {
+                super.scheduleTask(task);
+            }
+
+            @Override
+            public void finish() {
+                finished[0] = true;
+            }
+        };
+
+        while(!finished[0]) {
+            if(halted[0]) {
+                System.out.print("Halted - hit any key to continue...");
+                System.in.read();
+                scheduler.resume();
+            }
+
+            scheduler.proceed();
+        }
+
+        System.out.println("Finished");
+
+        if(1 != 2)
+            return;
+
         // Todo: all kinds of steps should be serializable
         // Todo: token should serialize steps along its flow
         DefaultDependencyInjector dependencyInjector = new DefaultDependencyInjector();
@@ -146,6 +205,8 @@ public class Main {
                     @Override
                     public void halt() {
                         halt = true;
+
+                            persistTokens();
                     }
 
                     @Override
@@ -191,6 +252,8 @@ public class Main {
                     public void proceed() {
                         halt = false;
                         schedule(pending);
+
+                        persistTokens();
                     }
 
                     private void writeObject(ObjectOutputStream oos)
