@@ -141,7 +141,7 @@ public class Main {
         statements.forEach(statement -> {
             s2.processNext(statement);
 
-            //modelAspect.process(statement);
+            //modelAspect.proceedToFinish(statement);
 
 
             /*patternActions.entrySet().stream().filter(x -> {

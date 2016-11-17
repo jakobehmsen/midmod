@@ -1,17 +1,123 @@
 package jorch;
 
 import javax.swing.*;
-import javax.swing.event.ListDataEvent;
-import javax.swing.event.ListDataListener;
 import java.awt.*;
 import java.io.*;
 import java.util.*;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class Main {
+    public static class Step1 implements Task2<Integer>, Consumer<SequentialScheduler> {
+        @Override
+        public Integer perform(TaskScheduler scheduler) {
+            System.out.println("Step 1");
+            scheduler.schedule(new StepLast());
+            return -1;
+        }
+
+        @Override
+        public void accept(SequentialScheduler sequentialScheduler) {
+            System.out.println("Step 1 started");
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Step 1 ended");
+            sequentialScheduler.finish(-1);
+        }
+    }
+
+    public static class Step2 implements Task2<Integer>, Consumer<SequentialScheduler> {
+        @Override
+        public Integer perform(TaskScheduler scheduler) {
+            System.out.println("Step 2");
+            return new Random().nextInt();
+        }
+
+        @Override
+        public void accept(SequentialScheduler sequentialScheduler) {
+            System.out.println("Step 2 started");
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Step 2 ended");
+            sequentialScheduler.finish(new Random().nextInt());
+        }
+    }
+
+    public static class StepLast implements Task2<Integer>, Consumer<SequentialScheduler> {
+        @Override
+        public Integer perform(TaskScheduler scheduler) {
+            scheduler.merge();
+            return -1;
+        }
+
+        @Override
+        public void accept(SequentialScheduler sequentialScheduler) {
+            sequentialScheduler.finish(-1);
+        }
+    }
+
+    public static class Step3ForkAndMerge implements Task2<Integer>, Consumer<SequentialScheduler> {
+        @Override
+        public Integer perform(TaskScheduler scheduler) {
+            TaskScheduler inner = scheduler.fork();
+
+            TaskFuture<Integer> s1 = inner.schedule(new Step1());
+            TaskFuture<Integer> s2 = inner.schedule(new Step2());
+
+            int s1Result = s1.get();
+            int s2Result = s2.get();
+
+            System.out.println("Result from s1: " + s1Result);
+            System.out.println("Result from s2: " + s2Result);
+
+            System.out.println("Merged and all are finished");
+            return new Random().nextInt();
+        }
+
+        @Override
+        public void accept(SequentialScheduler sequentialScheduler) {
+            ConcurrentScheduler inner = sequentialScheduler.split();
+
+            TaskFuture<Integer> s1 = inner.call(new Step1());
+            TaskFuture<Integer> s2 = inner.call(new Step2());
+
+            int s1Result = s1.get();
+            int s2Result = s2.get();
+
+            System.out.println("Result from s1: " + s1Result);
+            System.out.println("Result from s2: " + s2Result);
+
+            System.out.println("Merged and all are finished");
+            sequentialScheduler.finish(new Random().nextInt());
+        }
+    }
+
     private static java.util.List<Token> persistedTokens;
 
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
+    public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
+        DefaultSequentialScheduler ss = new DefaultSequentialScheduler();
+
+        ss.scheduleNext(new Step3ForkAndMerge());
+        ss.proceedToFinish();
+
+        if(1 != 2)
+            return;
+
+        DefaultTaskScheduler s = new DefaultTaskScheduler();
+
+        s.schedule(new Step3ForkAndMerge());
+
+        s.start();
+
+        s.waitTillStop();
+
+
         boolean[] finished = new boolean[1];
         boolean[] halted = new boolean[1];
 
