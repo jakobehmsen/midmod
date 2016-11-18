@@ -3,12 +3,13 @@ package jorch;
 import javax.swing.*;
 import java.awt.*;
 import java.io.*;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.List;
 import java.util.function.Consumer;
 
 public class Main {
-    public static class Step1 implements Task2<Integer>, Consumer<SequentialScheduler> {
+    public static class Step1 implements Task2<Integer>, Consumer<SequentialScheduler>, Serializable {
         @Override
         public Integer perform(TaskScheduler scheduler) {
             System.out.println("Step 1");
@@ -100,11 +101,18 @@ public class Main {
 
     private static java.util.List<Token> persistedTokens;
 
-    public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
-        DefaultSequentialScheduler ss = new DefaultSequentialScheduler();
+    public static void main(String[] args) throws Exception {
+        SQLRepository repository = new SQLRepository();
+        //SQLSequentialScheduler ss = repository.newSequentialScheduler();
+        SQLSequentialScheduler ss = repository.allSequentialSchedulers().get(0);
+        //ss.scheduledNext(new Step1());
 
-        ss.scheduleNext(new Step3ForkAndMerge());
-        ss.proceedToFinish();
+        //DefaultSequentialScheduler ss = new DefaultSequentialScheduler();
+
+        //ss.scheduleNext(new Step3ForkAndMerge());
+        //ss.proceedToFinish();
+        Object result = ss.getResult();
+        ss.close();
 
         if(1 != 2)
             return;

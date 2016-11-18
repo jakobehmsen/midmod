@@ -20,6 +20,9 @@ public class DefaultSequentialScheduler implements SequentialScheduler {
     }
 
     public Object proceedToFinish() {
+        if(isFinished())
+            throw new RuntimeException("Finished");
+
         while(hasMore())
             proceed();
         Object result = getResult();
@@ -37,8 +40,16 @@ public class DefaultSequentialScheduler implements SequentialScheduler {
         return result;
     }
 
+    private boolean isFinished() {
+        return nextTask == null;
+    }
+
     public void proceed() {
         nextTask.accept(this);
+    }
+
+    protected void setNextTask(Consumer<SequentialScheduler> nextTask) {
+        this.nextTask = nextTask;
     }
 
     public boolean hasMore() {
@@ -76,5 +87,10 @@ public class DefaultSequentialScheduler implements SequentialScheduler {
 
     protected ConcurrentScheduler newConcurrentScheduler() {
         return new DefaultConcurrentScheduler();
+    }
+
+    protected void setFinished(Object result) {
+        nextTask = null;
+        this.result = result;
     }
 }
