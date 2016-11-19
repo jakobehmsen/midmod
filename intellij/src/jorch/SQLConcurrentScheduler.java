@@ -5,14 +5,14 @@ import java.util.function.Supplier;
 
 public class SQLConcurrentScheduler extends DefaultConcurrentScheduler {
     private int id;
-    private Supplier<Connection> connectionSupplier;
+    private SQLRepository connectionSupplier;
 
-    public SQLConcurrentScheduler(int id, Supplier<Connection> connectionSupplier) {
+    public SQLConcurrentScheduler(int id, SQLRepository connectionSupplier) {
         this.id = id;
         this.connectionSupplier = connectionSupplier;
     }
 
-    public static SQLConcurrentScheduler add(Supplier<Connection> connectionSupplier, int sequentialSchedulerId) throws SQLException {
+    public static SQLConcurrentScheduler add(SQLRepository connectionSupplier, int sequentialSchedulerId) throws SQLException {
         try(Connection connection = connectionSupplier.get()) {
             try(PreparedStatement statement = connection.prepareStatement("INSERT INTO concurrent_scheduler (sequential_scheduler_id) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
                 statement.setInt(1, sequentialSchedulerId);

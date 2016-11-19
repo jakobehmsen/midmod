@@ -10,15 +10,15 @@ import java.util.function.Supplier;
 public class SQLSequentialScheduler extends DefaultSequentialScheduler {
     private int id;
     private int concurrentSchedulerId;
-    private Supplier<Connection> connectionSupplier;
+    private SQLRepository connectionSupplier;
 
-    public SQLSequentialScheduler(int id, int concurrentSchedulerId, Supplier<Connection> connectionSupplier) {
+    public SQLSequentialScheduler(int id, int concurrentSchedulerId, SQLRepository connectionSupplier) {
         this.id = id;
         this.concurrentSchedulerId = concurrentSchedulerId;
         this.connectionSupplier = connectionSupplier;
     }
 
-    public static List<SQLSequentialScheduler> all(Supplier<Connection> connectionSupplier) throws SQLException {
+    public static List<SQLSequentialScheduler> all(SQLRepository connectionSupplier) throws SQLException {
         try(Connection connection = connectionSupplier.get()) {
             try(PreparedStatement statement = connection.prepareStatement("SELECT * FROM sequential_scheduler WHERE concurrent_scheduler_id IS NULL", Statement.RETURN_GENERATED_KEYS)) {
                 ArrayList<SQLSequentialScheduler> all = new ArrayList<>();
@@ -33,6 +33,7 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
                             try(InputStream inputStream = nextTaskAsBlob.getBinaryStream()) {
                                 try(ObjectInputStream objectInputStream = new ObjectInputStream(inputStream)) {
                                     Consumer<SequentialScheduler> nextTask = (Consumer<SequentialScheduler>) objectInputStream.readObject();
+                                    nextTask = connectionSupplier.load(nextTask);
                                     ss.setNextTask(nextTask);
                                 } catch (ClassNotFoundException e) {
                                     e.printStackTrace();
@@ -56,6 +57,7 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
                         }
                         // Load all related concurrent schedulers; change select to be a join?
                         // Can be loaded lazily?
+                        // Or must be loaded all of it?
                         all.add(ss);
                     }
                 }
@@ -65,11 +67,11 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
         }
     }
 
-    public static SQLSequentialScheduler add(Supplier<Connection> connectionSupplier) throws SQLException {
+    public static SQLSequentialScheduler add(SQLRepository connectionSupplier) throws SQLException {
         return add(connectionSupplier, 0);
     }
 
-    public static SQLSequentialScheduler add(Supplier<Connection> connectionSupplier, int concurrentSchedulerId) throws SQLException {
+    public static SQLSequentialScheduler add(SQLRepository connectionSupplier, int concurrentSchedulerId) throws SQLException {
         try(Connection connection = connectionSupplier.get()) {
             try(PreparedStatement statement = connection.prepareStatement("INSERT INTO sequential_scheduler (concurrent_scheduler_id) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
                 if(concurrentSchedulerId != 0)

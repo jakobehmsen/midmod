@@ -2,11 +2,14 @@ package jorch;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.*;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class Main {
     public static class Step1 implements Task2<Integer>, Consumer<SequentialScheduler>, Serializable {
@@ -27,6 +30,94 @@ public class Main {
             }
             System.out.println("Step 1 ended");
             sequentialScheduler.finish(-1);
+        }
+    }
+
+    public static class Step1_2 implements Task2<Integer>, Consumer<SequentialScheduler>, Serializable, Deprecated {
+        private static final long serialVersionUID = -5029221089424988655L;
+
+        @Override
+        public Integer perform(TaskScheduler scheduler) {
+            System.out.println("Step 1");
+            scheduler.schedule(new StepLast());
+            return -1;
+        }
+
+        @Override
+        public void accept(SequentialScheduler sequentialScheduler) {
+            System.out.println("Step 1 started");
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Step 1 ended");
+            sequentialScheduler.finish(-1);
+        }
+
+        @Override
+        public String toString() {
+            return "Step 1 (Version 2)";
+        }
+
+        @Override
+        public <T> T upgrade() {
+            return (T) new Step1_3();
+        }
+    }
+
+    public static class Step1_3 implements Task2<Integer>, Consumer<SequentialScheduler>, Serializable {
+        private static final long serialVersionUID = -5434560544366655728L;
+
+        @Override
+        public Integer perform(TaskScheduler scheduler) {
+            System.out.println("Step 1");
+            scheduler.schedule(new StepLast());
+            return -1;
+        }
+
+        @Override
+        public void accept(SequentialScheduler sequentialScheduler) {
+            System.out.println("Step 1 started");
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Step 1 ended");
+            sequentialScheduler.scheduleNext(new Step4());
+        }
+
+        @Override
+        public String toString() {
+            return "Step 1 (Version 3)";
+        }
+    }
+
+    public static class Step4 implements Task2<Integer>, Consumer<SequentialScheduler>, Serializable {
+        private static final long serialVersionUID = -6465559582561789121L;
+
+        @Override
+        public Integer perform(TaskScheduler scheduler) {
+            System.out.println("Step 4");
+            return new Random().nextInt();
+        }
+
+        @Override
+        public void accept(SequentialScheduler sequentialScheduler) {
+            System.out.println("Step 4 started");
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Step 4 ended");
+            sequentialScheduler.finish(new Random().nextInt());
+        }
+
+        @Override
+        public String toString() {
+            return "Step 4";
         }
     }
 
@@ -102,17 +193,128 @@ public class Main {
     private static java.util.List<Token> persistedTokens;
 
     public static void main(String[] args) throws Exception {
-        SQLRepository repository = new SQLRepository();
+        SQLRepository repository = new SQLRepository(new LoadStrategy() {
+            @Override
+            public Consumer<SequentialScheduler> load(Consumer<SequentialScheduler> task) {
+                while(true) {
+                    if (task instanceof Deprecated)
+                        task = ((Deprecated) task).upgrade();
+                    else if (task instanceof Step1)
+                        task = new Step1_2();
+                    else
+                        break;
+                }
+
+                return task;
+            }
+        });
         //SQLSequentialScheduler ss = repository.newSequentialScheduler();
-        SQLSequentialScheduler ss = repository.allSequentialSchedulers().get(0);
+        //SQLSequentialScheduler ss = repository.allSequentialSchedulers().get(0);
+
+        ArrayList<Supplier<Consumer<SequentialScheduler>>> procedures = new ArrayList<>();
+
+        procedures.add(new Supplier<Consumer<SequentialScheduler>>() {
+            @Override
+            public Consumer<SequentialScheduler> get() {
+                return new Step1();
+            }
+
+            @Override
+            public String toString() {
+                return "Procedure 1";
+            }
+        });
+
+        DefaultListModel<Supplier<Consumer<SequentialScheduler>>> proceduresModel = new DefaultListModel<>();
+        JList<Supplier<Consumer<SequentialScheduler>>> proceduresView = new JList<>(proceduresModel);
+        procedures.forEach(p -> proceduresModel.addElement(p));
+        proceduresView.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if(e.getClickCount() == 2 && proceduresView.getSelectedIndex() != -1) {
+                    Supplier<Consumer<SequentialScheduler>> procedures = proceduresView.getSelectedValue();
+                    Consumer<SequentialScheduler> task = procedures.get();
+                    try {
+                        repository.newSequentialScheduler(task);
+                    } catch (SQLException e1) {
+                        e1.printStackTrace();
+                    }
+                }
+            }
+        });
+
+        JFrame f = new JFrame();
+        JPanel contentPane2 = (JPanel) f.getContentPane();
+
+        JScrollPane proceduresViewScrollPane = new JScrollPane(proceduresView);
+        proceduresViewScrollPane.setBorder(BorderFactory.createTitledBorder("Procedures"));
+        contentPane2.add(proceduresViewScrollPane, BorderLayout.WEST);
+
+        DefaultListModel<SequentialScheduler> tasksModel = new DefaultListModel<>();
+        JList<SequentialScheduler> tasksView = new JList<>(tasksModel);
+
+        Consumer<SequentialScheduler> addSS = sequentialScheduler -> {
+            tasksModel.addElement(sequentialScheduler);
+            sequentialScheduler.getEventHandlerContainer().addEventHandler(new SequentialSchedulerEventHandler() {
+                @Override
+                public void proceeded() {
+                    tasksModel.set(tasksModel.indexOf(sequentialScheduler), sequentialScheduler);
+                }
+
+                @Override
+                public void finished() {
+                    tasksModel.set(tasksModel.indexOf(sequentialScheduler), sequentialScheduler);
+                }
+
+                @Override
+                public void wasClosed() {
+                    tasksModel.removeElement(sequentialScheduler);
+                }
+            });
+        };
+        repository.allSequentialSchedulers().forEach(ss ->
+            addSS.accept(ss));
+        tasksView.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if(e.getClickCount() == 2 && tasksView.getSelectedIndex() != -1) {
+                    SQLSequentialScheduler ss = (SQLSequentialScheduler) tasksView.getSelectedValue();
+                    if(ss.hasMore())
+                        ss.proceed();
+                    else {
+                        try {
+                            ss.close();
+                        } catch (Exception e1) {
+                            e1.printStackTrace();
+                        }
+                    }
+                }
+            }
+        });
+
+        repository.getEventHandlerContainer().addEventHandler((SQLRepositoryEventHandler) sequentialScheduler -> {
+            addSS.accept(sequentialScheduler);
+        });
+
+        JScrollPane tasksViewScrollPane = new JScrollPane(tasksView);
+        tasksViewScrollPane.setBorder(BorderFactory.createTitledBorder("Tasks"));
+        contentPane2.add(tasksViewScrollPane, BorderLayout.CENTER);
+
+        f.setSize(640, 480);
+        f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        f.setLocationRelativeTo(null);
+        f.setVisible(true);
+
+
+
         //ss.scheduledNext(new Step1());
 
         //DefaultSequentialScheduler ss = new DefaultSequentialScheduler();
 
         //ss.scheduleNext(new Step3ForkAndMerge());
         //ss.proceedToFinish();
-        Object result = ss.getResult();
-        ss.close();
+        //Object result = ss.getResult();
+        //ss.close();
 
         if(1 != 2)
             return;

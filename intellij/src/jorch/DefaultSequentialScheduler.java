@@ -4,19 +4,38 @@ import java.util.ArrayList;
 import java.util.function.Consumer;
 
 public class DefaultSequentialScheduler implements SequentialScheduler {
+    private EventHandlerContainer eventHandlerContainer = new EventHandlerContainer();
     private Consumer<SequentialScheduler> nextTask;
     private Object result;
+
+    @Override
+    public EventHandlerContainer getEventHandlerContainer() {
+        return eventHandlerContainer;
+    }
 
     @Override
     public void finish(Object result) {
         this.result = result;
         nextTask = null;
+        finished(result);
+        eventHandlerContainer.fireEvent(new DefaultEvent<SequentialSchedulerEventHandler>(SequentialSchedulerEventHandler.class) {
+            @Override
+            public void beHandledBy(SequentialSchedulerEventHandler eventHandler) {
+                eventHandler.finished();
+            }
+        });
     }
 
     @Override
     public void scheduleNext(Consumer<SequentialScheduler> nextTask) {
         this.nextTask = nextTask;
         scheduledNext(nextTask);
+        eventHandlerContainer.fireEvent(new DefaultEvent<SequentialSchedulerEventHandler>(SequentialSchedulerEventHandler.class) {
+            @Override
+            public void beHandledBy(SequentialSchedulerEventHandler eventHandler) {
+                eventHandler.proceeded();
+            }
+        });
     }
 
     public Object proceedToFinish() {
@@ -71,6 +90,12 @@ public class DefaultSequentialScheduler implements SequentialScheduler {
     @Override
     public void close() throws Exception {
         wasClosed();
+        eventHandlerContainer.fireEvent(new DefaultEvent<SequentialSchedulerEventHandler>(SequentialSchedulerEventHandler.class) {
+            @Override
+            public void beHandledBy(SequentialSchedulerEventHandler eventHandler) {
+                eventHandler.wasClosed();
+            }
+        });
     }
 
     protected void scheduledNext(Consumer<SequentialScheduler> nextTask) {
@@ -92,5 +117,12 @@ public class DefaultSequentialScheduler implements SequentialScheduler {
     protected void setFinished(Object result) {
         nextTask = null;
         this.result = result;
+    }
+
+    @Override
+    public String toString() {
+        if(hasMore())
+            return "@" + nextTask.toString();
+        return "=> " + result;
     }
 }
