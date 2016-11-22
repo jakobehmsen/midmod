@@ -8,10 +8,13 @@ import java.io.*;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class Main {
+    private static ExecutorService executorService = Executors.newCachedThreadPool();
+
     public static class Step1 implements Task2<Integer>, Consumer<SequentialScheduler>, Serializable {
         @Override
         public Integer perform(TaskScheduler scheduler) {
@@ -154,7 +157,9 @@ public class Main {
         }
     }
 
-    public static class Step3ForkAndMerge implements Task2<Integer>, Consumer<SequentialScheduler> {
+    public static class Step3ForkAndMerge implements Task2<Integer>, Consumer<SequentialScheduler>, Serializable {
+        private static final long serialVersionUID = 7747282616039058003L;
+
         @Override
         public Integer perform(TaskScheduler scheduler) {
             TaskScheduler inner = scheduler.fork();
@@ -174,13 +179,84 @@ public class Main {
 
         @Override
         public void accept(SequentialScheduler sequentialScheduler) {
-            ConcurrentScheduler inner = sequentialScheduler.split();
+            SequentialScheduler ss1 = sequentialScheduler.getSequentialSchedulers().size() > 0
+                ? sequentialScheduler.getSequentialSchedulers().get(0) : sequentialScheduler.newSequentialScheduler(new Step1());
+            SequentialScheduler ss2 = sequentialScheduler.getSequentialSchedulers().size() > 1
+                ? sequentialScheduler.getSequentialSchedulers().get(1) : sequentialScheduler.newSequentialScheduler(new Step1());
 
-            TaskFuture<Integer> s1 = inner.call(new Step1());
-            TaskFuture<Integer> s2 = inner.call(new Step2());
+            Future<Integer> s1 = executorService.submit(new Callable<Integer>() {
+                @Override
+                public Integer call() throws Exception {
+                    CountDownLatch countDownLatch = new CountDownLatch(1);
 
-            int s1Result = s1.get();
-            int s2Result = s2.get();
+                    ss1.getEventHandlerContainer().addEventHandler(new SequentialSchedulerEventHandler() {
+                        @Override
+                        public void proceeded() {
+
+                        }
+
+                        @Override
+                        public void finished() {
+                            countDownLatch.countDown();
+                            ss1.getEventHandlerContainer().removeEventHandler(this);
+                        }
+
+                        @Override
+                        public void wasClosed() {
+
+                        }
+                    });
+
+                    countDownLatch.await();
+
+                    return (Integer) ss1.getResult();
+                }
+            });
+            Future<Integer> s2 = executorService.submit(new Callable<Integer>() {
+                @Override
+                public Integer call() throws Exception {
+                    CountDownLatch countDownLatch = new CountDownLatch(1);
+
+                    ss2.getEventHandlerContainer().addEventHandler(new SequentialSchedulerEventHandler() {
+                        @Override
+                        public void proceeded() {
+
+                        }
+
+                        @Override
+                        public void finished() {
+                            countDownLatch.countDown();
+                            ss2.getEventHandlerContainer().removeEventHandler(this);
+                        }
+
+                        @Override
+                        public void wasClosed() {
+
+                        }
+                    });
+
+                    countDownLatch.await();
+
+                    return (Integer) ss2.getResult();
+                }
+            });
+
+            int s1Result = 0;
+            try {
+                s1Result = s1.get();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
+            int s2Result = 0;
+            try {
+                s2Result = s2.get();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
 
             System.out.println("Result from s1: " + s1Result);
             System.out.println("Result from s2: " + s2Result);
@@ -222,6 +298,18 @@ public class Main {
             @Override
             public String toString() {
                 return "Procedure 1";
+            }
+        });
+
+        procedures.add(new Supplier<Consumer<SequentialScheduler>>() {
+            @Override
+            public Consumer<SequentialScheduler> get() {
+                return new Step3ForkAndMerge();
+            }
+
+            @Override
+            public String toString() {
+                return "Procedure fork-and-merge";
             }
         });
 

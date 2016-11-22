@@ -5,77 +5,92 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 public class SQLSequentialScheduler extends DefaultSequentialScheduler {
     private int id;
-    private int concurrentSchedulerId;
+    private int parentId;
     private SQLRepository connectionSupplier;
 
-    public SQLSequentialScheduler(int id, int concurrentSchedulerId, SQLRepository connectionSupplier) {
+    public SQLSequentialScheduler(int id, int parentId, SQLRepository connectionSupplier) {
         this.id = id;
-        this.concurrentSchedulerId = concurrentSchedulerId;
+        this.parentId = parentId;
         this.connectionSupplier = connectionSupplier;
     }
 
     public static List<SQLSequentialScheduler> all(SQLRepository connectionSupplier) throws SQLException {
         try(Connection connection = connectionSupplier.get()) {
-            try(PreparedStatement statement = connection.prepareStatement("SELECT * FROM sequential_scheduler WHERE concurrent_scheduler_id IS NULL", Statement.RETURN_GENERATED_KEYS)) {
-                ArrayList<SQLSequentialScheduler> all = new ArrayList<>();
-
-                try(ResultSet resultSet = statement.executeQuery()) {
-                    while(resultSet.next()) {
-                        int id = resultSet.getInt(1);
-                        int concurrentSchedulerId = resultSet.getInt(2);
-                        SQLSequentialScheduler ss =  new SQLSequentialScheduler(id, concurrentSchedulerId, connectionSupplier);
-                        Blob nextTaskAsBlob = resultSet.getBlob(3);
-                        if(!resultSet.wasNull()) {
-                            try(InputStream inputStream = nextTaskAsBlob.getBinaryStream()) {
-                                try(ObjectInputStream objectInputStream = new ObjectInputStream(inputStream)) {
-                                    Consumer<SequentialScheduler> nextTask = (Consumer<SequentialScheduler>) objectInputStream.readObject();
-                                    nextTask = connectionSupplier.load(nextTask);
-                                    ss.setNextTask(nextTask);
-                                } catch (ClassNotFoundException e) {
-                                    e.printStackTrace();
-                                }
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                        Blob resultAsBlob = resultSet.getBlob(4);
-                        if(!resultSet.wasNull()) {
-                            try(InputStream inputStream = resultAsBlob.getBinaryStream()) {
-                                try(ObjectInputStream objectInputStream = new ObjectInputStream(inputStream)) {
-                                    Object result = objectInputStream.readObject();
-                                    ss.setFinished(result);
-                                } catch (ClassNotFoundException e) {
-                                    e.printStackTrace();
-                                }
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                        // Load all related concurrent schedulers; change select to be a join?
-                        // Can be loaded lazily?
-                        // Or must be loaded all of it?
-                        all.add(ss);
-                    }
-                }
-
-                return all;
+            try(PreparedStatement statement = connection.prepareStatement("SELECT * FROM sequential_scheduler WHERE parent_id IS NULL", Statement.RETURN_GENERATED_KEYS)) {
+                ResultSet resultSet = statement.executeQuery();
+                return all(connectionSupplier, resultSet);
             }
         }
+    }
+
+    public static List<SQLSequentialScheduler> all(SQLRepository connectionSupplier, int parentId) throws SQLException {
+        try(Connection connection = connectionSupplier.get()) {
+            try(PreparedStatement statement = connection.prepareStatement("SELECT * FROM sequential_scheduler WHERE parent_id = ?", Statement.RETURN_GENERATED_KEYS)) {
+                statement.setInt(1, parentId);
+                ResultSet resultSet = statement.executeQuery();
+                return all(connectionSupplier, resultSet);
+            }
+        }
+    }
+
+    public static List<SQLSequentialScheduler> all(SQLRepository connectionSupplier, ResultSet resultSet) throws SQLException {
+        ArrayList<SQLSequentialScheduler> all = new ArrayList<>();
+
+        while(resultSet.next()) {
+            SQLSequentialScheduler ss = single(connectionSupplier, resultSet);
+            all.add(ss);
+        }
+
+        return all;
+    }
+
+    public static SQLSequentialScheduler single(SQLRepository connectionSupplier, ResultSet resultSet) throws SQLException {
+        int id = resultSet.getInt(1);
+        int concurrentSchedulerId = resultSet.getInt(2);
+        SQLSequentialScheduler ss = new SQLSequentialScheduler(id, concurrentSchedulerId, connectionSupplier);
+        Blob nextTaskAsBlob = resultSet.getBlob(3);
+        if (!resultSet.wasNull()) {
+            try (InputStream inputStream = nextTaskAsBlob.getBinaryStream()) {
+                try (ObjectInputStream objectInputStream = new ObjectInputStream(inputStream)) {
+                    Consumer<SequentialScheduler> nextTask = (Consumer<SequentialScheduler>) objectInputStream.readObject();
+                    ss.setNextTask(nextTask);
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        Blob resultAsBlob = resultSet.getBlob(4);
+        if (!resultSet.wasNull()) {
+            try (InputStream inputStream = resultAsBlob.getBinaryStream()) {
+                try (ObjectInputStream objectInputStream = new ObjectInputStream(inputStream)) {
+                    Object result = objectInputStream.readObject();
+                    ss.setFinished(result);
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        List<SQLSequentialScheduler> sqlSequentialSchedulers = all(connectionSupplier, id);
+        sqlSequentialSchedulers.forEach(ssc -> ss.addSequentialScheduler(ssc));
+        return ss;
     }
 
     public static SQLSequentialScheduler add(SQLRepository connectionSupplier) throws SQLException {
         return add(connectionSupplier, 0);
     }
 
-    public static SQLSequentialScheduler add(SQLRepository connectionSupplier, int concurrentSchedulerId) throws SQLException {
+    public static SQLSequentialScheduler add(SQLRepository connectionSupplier, int parentId) throws SQLException {
         try(Connection connection = connectionSupplier.get()) {
-            try(PreparedStatement statement = connection.prepareStatement("INSERT INTO sequential_scheduler (concurrent_scheduler_id) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
-                if(concurrentSchedulerId != 0)
-                    statement.setInt(1, concurrentSchedulerId);
+            try(PreparedStatement statement = connection.prepareStatement("INSERT INTO sequential_scheduler (parent_id) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
+                if(parentId != 0)
+                    statement.setInt(1, parentId);
                 else
                     statement.setNull(1, 0);
                 statement.executeUpdate();
@@ -83,7 +98,7 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
 
                 tableKeys.next();
                 int id = tableKeys.getInt(1);
-                return new SQLSequentialScheduler(id, concurrentSchedulerId, connectionSupplier);
+                return new SQLSequentialScheduler(id, parentId, connectionSupplier);
             }
         }
     }
@@ -139,6 +154,18 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+    }
+
+    @Override
+    public SequentialScheduler newSequentialScheduler(Consumer<SequentialScheduler> initialTask) {
+        try {
+            SQLSequentialScheduler ss = SQLSequentialScheduler.add(connectionSupplier, id);
+            addSequentialScheduler(ss);
+            return ss;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 

@@ -1,6 +1,7 @@
 package jorch;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class DefaultSequentialScheduler implements SequentialScheduler {
@@ -38,6 +39,22 @@ public class DefaultSequentialScheduler implements SequentialScheduler {
         });
     }
 
+    @Override
+    public SequentialScheduler newSequentialScheduler(Consumer<SequentialScheduler> initialTask) {
+        return new DefaultSequentialScheduler();
+    }
+
+    @Override
+    public List<SequentialScheduler> getSequentialSchedulers() {
+        return sequentialSchedulers;
+    }
+
+    public void addSequentialScheduler(SequentialScheduler sequentialScheduler) {
+        sequentialSchedulers.add(sequentialScheduler);
+    }
+
+    private ArrayList<SequentialScheduler> sequentialSchedulers = new ArrayList<>();
+
     public Object proceedToFinish() {
         if(isFinished())
             throw new RuntimeException("Finished");
@@ -46,9 +63,9 @@ public class DefaultSequentialScheduler implements SequentialScheduler {
             proceed();
         Object result = getResult();
 
-        concurrentSchedulers.forEach(cs -> {
+        sequentialSchedulers.forEach(ss -> {
             try {
-                cs.close();
+                ss.close();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -79,16 +96,17 @@ public class DefaultSequentialScheduler implements SequentialScheduler {
         return result;
     }
 
-    private ArrayList<ConcurrentScheduler> concurrentSchedulers = new ArrayList<>();
-
-    @Override
-    public ConcurrentScheduler split() {
-        concurrentSchedulers.add(newConcurrentScheduler());
-        return concurrentSchedulers.get(concurrentSchedulers.size() - 1);
-    }
+    //private ArrayList<ConcurrentScheduler> concurrentSchedulers = new ArrayList<>();
 
     @Override
     public void close() throws Exception {
+        sequentialSchedulers.forEach(ss -> {
+            try {
+                ss.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
         wasClosed();
         eventHandlerContainer.fireEvent(new DefaultEvent<SequentialSchedulerEventHandler>(SequentialSchedulerEventHandler.class) {
             @Override
