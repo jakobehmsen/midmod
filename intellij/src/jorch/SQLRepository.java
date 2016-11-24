@@ -2,7 +2,6 @@ package jorch;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.function.Consumer;
@@ -30,7 +29,7 @@ public class SQLRepository implements Supplier<Connection> {
 
     @Override
     public Connection get() {
-        String url = "jdbc:mysql://localhost:3306/jorch";
+        String url = "jdbc:mysql://localhost:3306/jorch?autoReconnect=true&useSSL=false";
         String username = "jorch_user";
         String password = "12345678";
 
@@ -46,9 +45,9 @@ public class SQLRepository implements Supplier<Connection> {
         initialTask = load(initialTask);
         SQLSequentialScheduler ss = SQLSequentialScheduler.add(this);
         ss.scheduleNext(initialTask);
-        getEventHandlerContainer().fireEvent(new DefaultEvent<SQLRepositoryEventHandler>(SQLRepositoryEventHandler.class) {
+        getEventHandlerContainer().fireEvent(new DefaultEvent<SequentialSchedulerContainerEventHandler>(SequentialSchedulerContainerEventHandler.class) {
             @Override
-            public void beHandledBy(SQLRepositoryEventHandler eventHandler) {
+            public void beHandledBy(SequentialSchedulerContainerEventHandler eventHandler) {
                 eventHandler.addedSequentialScheduler(ss);
             }
         });

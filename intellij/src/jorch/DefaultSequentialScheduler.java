@@ -8,6 +8,16 @@ public class DefaultSequentialScheduler implements SequentialScheduler {
     private EventHandlerContainer eventHandlerContainer = new EventHandlerContainer();
     private Consumer<SequentialScheduler> nextTask;
     private Object result;
+    private SequentialScheduler parent;
+
+    public DefaultSequentialScheduler(SequentialScheduler parent) {
+        this.parent = parent;
+    }
+
+    @Override
+    public SequentialScheduler getParent() {
+        return parent;
+    }
 
     @Override
     public EventHandlerContainer getEventHandlerContainer() {
@@ -41,7 +51,7 @@ public class DefaultSequentialScheduler implements SequentialScheduler {
 
     @Override
     public SequentialScheduler newSequentialScheduler(Consumer<SequentialScheduler> initialTask) {
-        return new DefaultSequentialScheduler();
+        return new DefaultSequentialScheduler(parent);
     }
 
     @Override
@@ -51,6 +61,12 @@ public class DefaultSequentialScheduler implements SequentialScheduler {
 
     public void addSequentialScheduler(SequentialScheduler sequentialScheduler) {
         sequentialSchedulers.add(sequentialScheduler);
+        getEventHandlerContainer().fireEvent(new DefaultEvent<SequentialSchedulerContainerEventHandler>(SequentialSchedulerContainerEventHandler.class) {
+            @Override
+            public void beHandledBy(SequentialSchedulerContainerEventHandler eventHandler) {
+                eventHandler.addedSequentialScheduler(sequentialScheduler);
+            }
+        });
     }
 
     private ArrayList<SequentialScheduler> sequentialSchedulers = new ArrayList<>();

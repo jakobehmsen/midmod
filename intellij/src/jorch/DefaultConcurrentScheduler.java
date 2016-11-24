@@ -90,6 +90,7 @@ public class DefaultConcurrentScheduler implements ConcurrentScheduler {
     }
 
     protected DefaultSequentialScheduler newSequentialScheduler() {
-        return new DefaultSequentialScheduler();
+        //return new DefaultSequentialScheduler(parent);
+        return null;
     }
 }

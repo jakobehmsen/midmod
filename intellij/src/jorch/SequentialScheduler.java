@@ -11,4 +11,5 @@ public interface SequentialScheduler extends AutoCloseable {
     List<SequentialScheduler> getSequentialSchedulers();
     //ConcurrentScheduler split();
     Object getResult();
+    SequentialScheduler getParent();
 }

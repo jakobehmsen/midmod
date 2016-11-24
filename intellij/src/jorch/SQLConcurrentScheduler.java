@@ -39,11 +39,13 @@ public class SQLConcurrentScheduler extends DefaultConcurrentScheduler {
 
     @Override
     protected DefaultSequentialScheduler newSequentialScheduler() {
-        try {
-            return SQLSequentialScheduler.add(connectionSupplier, id);
+        /*try {
+            return SQLSequentialScheduler.add(connectionSupplier, this);
         } catch (SQLException e) {
             e.printStackTrace();
             return null;
-        }
+        }*/
+
+        return null;
     }
 }

@@ -351,7 +351,7 @@ public class Main {
 
                 @Override
                 public void finished() {
-                    tasksModel.set(tasksModel.indexOf(sequentialScheduler), sequentialScheduler);
+                    //tasksModel.set(tasksModel.indexOf(sequentialScheduler), sequentialScheduler);
                 }
 
                 @Override
@@ -367,9 +367,14 @@ public class Main {
             public void mouseClicked(MouseEvent e) {
                 if(e.getClickCount() == 2 && tasksView.getSelectedIndex() != -1) {
                     SQLSequentialScheduler ss = (SQLSequentialScheduler) tasksView.getSelectedValue();
-                    if(ss.hasMore())
-                        ss.proceed();
-                    else {
+                    if(ss.hasMore()) {
+                        executorService.execute(() -> {
+                            tasksModel.removeElement(ss);
+                            ss.proceed();
+                            if(ss.getParent() == null || ss.hasMore())
+                                tasksModel.addElement(ss);
+                        });
+                    } else {
                         try {
                             ss.close();
                         } catch (Exception e1) {
@@ -380,8 +385,12 @@ public class Main {
             }
         });
 
-        repository.getEventHandlerContainer().addEventHandler((SQLRepositoryEventHandler) sequentialScheduler -> {
+        repository.getEventHandlerContainer().addEventHandler((SequentialSchedulerContainerEventHandler) sequentialScheduler -> {
             addSS.accept(sequentialScheduler);
+
+            sequentialScheduler.getEventHandlerContainer().addEventHandler((SequentialSchedulerContainerEventHandler) sequentialScheduler2 -> {
+                addSS.accept(sequentialScheduler2);
+            });
         });
 
         JScrollPane tasksViewScrollPane = new JScrollPane(tasksView);

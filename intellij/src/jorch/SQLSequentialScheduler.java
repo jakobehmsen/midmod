@@ -8,13 +8,17 @@ import java.util.function.Consumer;
 
 public class SQLSequentialScheduler extends DefaultSequentialScheduler {
     private int id;
-    private int parentId;
     private SQLRepository connectionSupplier;
 
-    public SQLSequentialScheduler(int id, int parentId, SQLRepository connectionSupplier) {
+    public SQLSequentialScheduler(int id, SQLSequentialScheduler parent, SQLRepository connectionSupplier) {
+        super(parent);
         this.id = id;
-        this.parentId = parentId;
         this.connectionSupplier = connectionSupplier;
+    }
+
+    @Override
+    public SQLSequentialScheduler getParent() {
+        return (SQLSequentialScheduler) super.getParent();
     }
 
     public static List<SQLSequentialScheduler> all(SQLRepository connectionSupplier) throws SQLException {
@@ -40,17 +44,16 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
         ArrayList<SQLSequentialScheduler> all = new ArrayList<>();
 
         while(resultSet.next()) {
-            SQLSequentialScheduler ss = single(connectionSupplier, resultSet);
+            SQLSequentialScheduler ss = single(connectionSupplier, null, resultSet);
             all.add(ss);
         }
 
         return all;
     }
 
-    public static SQLSequentialScheduler single(SQLRepository connectionSupplier, ResultSet resultSet) throws SQLException {
+    public static SQLSequentialScheduler single(SQLRepository connectionSupplier, SQLSequentialScheduler parent, ResultSet resultSet) throws SQLException {
         int id = resultSet.getInt(1);
-        int concurrentSchedulerId = resultSet.getInt(2);
-        SQLSequentialScheduler ss = new SQLSequentialScheduler(id, concurrentSchedulerId, connectionSupplier);
+        SQLSequentialScheduler ss = new SQLSequentialScheduler(id, parent, connectionSupplier);
         Blob nextTaskAsBlob = resultSet.getBlob(3);
         if (!resultSet.wasNull()) {
             try (InputStream inputStream = nextTaskAsBlob.getBinaryStream()) {
@@ -83,14 +86,14 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
     }
 
     public static SQLSequentialScheduler add(SQLRepository connectionSupplier) throws SQLException {
-        return add(connectionSupplier, 0);
+        return add(connectionSupplier, null);
     }
 
-    public static SQLSequentialScheduler add(SQLRepository connectionSupplier, int parentId) throws SQLException {
+    public static SQLSequentialScheduler add(SQLRepository connectionSupplier, SQLSequentialScheduler parent) throws SQLException {
         try(Connection connection = connectionSupplier.get()) {
             try(PreparedStatement statement = connection.prepareStatement("INSERT INTO sequential_scheduler (parent_id) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
-                if(parentId != 0)
-                    statement.setInt(1, parentId);
+                if(parent != null)
+                    statement.setInt(1, parent.id);
                 else
                     statement.setNull(1, 0);
                 statement.executeUpdate();
@@ -98,7 +101,7 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
 
                 tableKeys.next();
                 int id = tableKeys.getInt(1);
-                return new SQLSequentialScheduler(id, parentId, connectionSupplier);
+                return new SQLSequentialScheduler(id, parent, connectionSupplier);
             }
         }
     }
@@ -160,7 +163,8 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
     @Override
     public SequentialScheduler newSequentialScheduler(Consumer<SequentialScheduler> initialTask) {
         try {
-            SQLSequentialScheduler ss = SQLSequentialScheduler.add(connectionSupplier, id);
+            SQLSequentialScheduler ss = SQLSequentialScheduler.add(connectionSupplier, this);
+            ss.scheduleNext(initialTask);
             addSequentialScheduler(ss);
             return ss;
         } catch (SQLException e) {
