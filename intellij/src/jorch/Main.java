@@ -9,7 +9,9 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class Main {
@@ -179,10 +181,12 @@ public class Main {
 
         @Override
         public void accept(SequentialScheduler sequentialScheduler) {
-            SequentialScheduler ss1 = sequentialScheduler.getSequentialSchedulers().size() > 0
+            SequentialScheduler ss1 = sequentialScheduler.newSequentialScheduler(new Step1());
+            SequentialScheduler ss2 = sequentialScheduler.newSequentialScheduler(new Step2());
+            /*SequentialScheduler ss1 = sequentialScheduler.getSequentialSchedulers().size() > 0
                 ? sequentialScheduler.getSequentialSchedulers().get(0) : sequentialScheduler.newSequentialScheduler(new Step1());
             SequentialScheduler ss2 = sequentialScheduler.getSequentialSchedulers().size() > 1
-                ? sequentialScheduler.getSequentialSchedulers().get(1) : sequentialScheduler.newSequentialScheduler(new Step1());
+                ? sequentialScheduler.getSequentialSchedulers().get(1) : sequentialScheduler.newSequentialScheduler(new Step1());*/
 
             Future<Integer> s1 = executorService.submit(new Callable<Integer>() {
                 @Override
@@ -360,8 +364,51 @@ public class Main {
                 }
             });
         };
+
+        BiFunction<SequentialScheduler, Boolean, SequentialSchedulerContainerEventHandler> sequentialSchedulerEventHandlerFunction = new BiFunction<SequentialScheduler, Boolean, SequentialSchedulerContainerEventHandler>() {
+            @Override
+            public SequentialSchedulerContainerEventHandler apply(SequentialScheduler sequentialScheduler, Boolean atLoad) {
+                return new SequentialSchedulerContainerEventHandler() {
+                    private boolean loading = atLoad;
+
+                    @Override
+                    public void addedSequentialScheduler(SequentialScheduler sequentialScheduler2) {
+                        addSS.accept(sequentialScheduler2);
+
+                        sequentialScheduler2.getEventHandlerContainer().addEventHandler(this);
+
+                        synchronized (this) {
+                            if (loading && ((SQLSequentialScheduler)sequentialScheduler2).isWaiting()) {
+                                executorService.execute(() -> {
+                                    SQLSequentialScheduler ss = (SQLSequentialScheduler) sequentialScheduler;
+                                    tasksModel.removeElement(ss);
+                                    ss.proceed();
+                                    if (ss.getParent() == null || ss.hasMore())
+                                        tasksModel.addElement(ss);
+                                });
+
+                                loading = false;
+                            }
+                        }
+                    }
+                };
+            }
+        };
+        /*Consumer<SequentialScheduler> loadSS = sequentialScheduler -> {
+            addSS.accept(sequentialScheduler);
+
+            sequentialScheduler.getEventHandlerContainer().addEventHandler(sequentialSchedulerEventHandlerFunction.apply(sequentialScheduler, true));
+
+            executorService.execute(() -> {
+                SQLSequentialScheduler ss = (SQLSequentialScheduler)sequentialScheduler;
+                tasksModel.removeElement(ss);
+                ss.proceed();
+                if(ss.getParent() == null || ss.hasMore())
+                    tasksModel.addElement(ss);
+            });
+        };*/
         repository.allSequentialSchedulers().forEach(ss ->
-            addSS.accept(ss));
+            sequentialSchedulerEventHandlerFunction.apply(ss, true).addedSequentialScheduler(ss));
         tasksView.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -388,8 +435,13 @@ public class Main {
         repository.getEventHandlerContainer().addEventHandler((SequentialSchedulerContainerEventHandler) sequentialScheduler -> {
             addSS.accept(sequentialScheduler);
 
-            sequentialScheduler.getEventHandlerContainer().addEventHandler((SequentialSchedulerContainerEventHandler) sequentialScheduler2 -> {
-                addSS.accept(sequentialScheduler2);
+            sequentialScheduler.getEventHandlerContainer().addEventHandler(new SequentialSchedulerContainerEventHandler() {
+                @Override
+                public void addedSequentialScheduler(SequentialScheduler sequentialScheduler2) {
+                    addSS.accept(sequentialScheduler2);
+
+                    sequentialScheduler2.getEventHandlerContainer().addEventHandler(this);
+                }
             });
         });
 

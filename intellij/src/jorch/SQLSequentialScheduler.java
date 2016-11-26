@@ -3,12 +3,15 @@ package jorch;
 import java.io.*;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.function.Consumer;
 
 public class SQLSequentialScheduler extends DefaultSequentialScheduler {
     private int id;
     private SQLRepository connectionSupplier;
+    private Queue<SQLSequentialScheduler> waitingFor;
 
     public SQLSequentialScheduler(int id, SQLSequentialScheduler parent, SQLRepository connectionSupplier) {
         super(parent);
@@ -81,7 +84,7 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
             }
         }
         List<SQLSequentialScheduler> sqlSequentialSchedulers = all(connectionSupplier, id);
-        sqlSequentialSchedulers.forEach(ssc -> ss.addSequentialScheduler(ssc));
+        ss.waitingFor = new LinkedList<>(sqlSequentialSchedulers);
         return ss;
     }
 
@@ -136,6 +139,9 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
                     try(ObjectOutputStream cachedResultObjectOutputStream = new ObjectOutputStream(outputStream)) {
                         cachedResultObjectOutputStream.writeObject(nextTask);
                     }
+                    catch (NotSerializableException e) {
+                        e.toString();
+                    }
                 }
                 statement.setBlob(1, nextTaskAsBlob);
                 statement.setInt(2, id);
@@ -163,8 +169,13 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
     @Override
     public SequentialScheduler newSequentialScheduler(Consumer<SequentialScheduler> initialTask) {
         try {
-            SQLSequentialScheduler ss = SQLSequentialScheduler.add(connectionSupplier, this);
-            ss.scheduleNext(initialTask);
+            SQLSequentialScheduler ss;
+            if(waitingFor != null)
+                ss = waitingFor.poll();
+            else {
+                ss = SQLSequentialScheduler.add(connectionSupplier, this);
+                ss.scheduleNext(initialTask);
+            }
             addSequentialScheduler(ss);
             return ss;
         } catch (SQLException e) {
@@ -181,5 +192,9 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public boolean isWaiting() {
+        return waitingFor != null && waitingFor.size() > 0;
     }
 }
