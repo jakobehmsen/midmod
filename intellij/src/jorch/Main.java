@@ -182,7 +182,7 @@ public class Main {
         @Override
         public void accept(SequentialScheduler sequentialScheduler) {
             SequentialScheduler ss1 = sequentialScheduler.newSequentialScheduler(new Step1());
-            SequentialScheduler ss2 = sequentialScheduler.newSequentialScheduler(new Step2());
+            SequentialScheduler ss2 = sequentialScheduler.newSequentialScheduler(new Step1());
             /*SequentialScheduler ss1 = sequentialScheduler.getSequentialSchedulers().size() > 0
                 ? sequentialScheduler.getSequentialSchedulers().get(0) : sequentialScheduler.newSequentialScheduler(new Step1());
             SequentialScheduler ss2 = sequentialScheduler.getSequentialSchedulers().size() > 1
@@ -347,6 +347,7 @@ public class Main {
 
         Consumer<SequentialScheduler> addSS = sequentialScheduler -> {
             tasksModel.addElement(sequentialScheduler);
+            System.out.println("Added " + sequentialScheduler);
             sequentialScheduler.getEventHandlerContainer().addEventHandler(new SequentialSchedulerEventHandler() {
                 @Override
                 public void proceeded() {
@@ -367,7 +368,7 @@ public class Main {
 
         BiFunction<SequentialScheduler, Boolean, SequentialSchedulerContainerEventHandler> sequentialSchedulerEventHandlerFunction = new BiFunction<SequentialScheduler, Boolean, SequentialSchedulerContainerEventHandler>() {
             @Override
-            public SequentialSchedulerContainerEventHandler apply(SequentialScheduler sequentialScheduler, Boolean atLoad) {
+            public SequentialSchedulerContainerEventHandler apply(SequentialScheduler sequentialSchedulerX, Boolean atLoad) {
                 return new SequentialSchedulerContainerEventHandler() {
                     private boolean loading = atLoad;
 
@@ -380,7 +381,7 @@ public class Main {
                         synchronized (this) {
                             if (loading && ((SQLSequentialScheduler)sequentialScheduler2).isWaiting()) {
                                 executorService.execute(() -> {
-                                    SQLSequentialScheduler ss = (SQLSequentialScheduler) sequentialScheduler;
+                                    SQLSequentialScheduler ss = (SQLSequentialScheduler) sequentialScheduler2;
                                     tasksModel.removeElement(ss);
                                     ss.proceed();
                                     if (ss.getParent() == null || ss.hasMore())
@@ -407,8 +408,9 @@ public class Main {
                     tasksModel.addElement(ss);
             });
         };*/
-        repository.allSequentialSchedulers().forEach(ss ->
-            sequentialSchedulerEventHandlerFunction.apply(ss, true).addedSequentialScheduler(ss));
+        repository.allSequentialSchedulers().forEach(ss -> {
+            sequentialSchedulerEventHandlerFunction.apply(ss, true).addedSequentialScheduler(ss);
+        });
         tasksView.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {

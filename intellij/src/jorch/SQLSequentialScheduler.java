@@ -170,7 +170,7 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
     public SequentialScheduler newSequentialScheduler(Consumer<SequentialScheduler> initialTask) {
         try {
             SQLSequentialScheduler ss;
-            if(waitingFor != null)
+            if(waitingFor != null && waitingFor.size() > 0)
                 ss = waitingFor.poll();
             else {
                 ss = SQLSequentialScheduler.add(connectionSupplier, this);
