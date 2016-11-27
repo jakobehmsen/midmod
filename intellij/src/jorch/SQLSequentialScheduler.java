@@ -28,26 +28,26 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
         try(Connection connection = connectionSupplier.get()) {
             try(PreparedStatement statement = connection.prepareStatement("SELECT * FROM sequential_scheduler WHERE parent_id IS NULL", Statement.RETURN_GENERATED_KEYS)) {
                 ResultSet resultSet = statement.executeQuery();
-                return all(connectionSupplier, resultSet);
+                return all(connectionSupplier, null, resultSet);
             }
         }
     }
 
-    public static List<SQLSequentialScheduler> all(SQLRepository connectionSupplier, int parentId) throws SQLException {
+    public static List<SQLSequentialScheduler> all(SQLRepository connectionSupplier, SQLSequentialScheduler parent) throws SQLException {
         try(Connection connection = connectionSupplier.get()) {
             try(PreparedStatement statement = connection.prepareStatement("SELECT * FROM sequential_scheduler WHERE parent_id = ?", Statement.RETURN_GENERATED_KEYS)) {
-                statement.setInt(1, parentId);
+                statement.setInt(1, parent.id);
                 ResultSet resultSet = statement.executeQuery();
-                return all(connectionSupplier, resultSet);
+                return all(connectionSupplier, parent, resultSet);
             }
         }
     }
 
-    public static List<SQLSequentialScheduler> all(SQLRepository connectionSupplier, ResultSet resultSet) throws SQLException {
+    public static List<SQLSequentialScheduler> all(SQLRepository connectionSupplier, SQLSequentialScheduler parent, ResultSet resultSet) throws SQLException {
         ArrayList<SQLSequentialScheduler> all = new ArrayList<>();
 
         while(resultSet.next()) {
-            SQLSequentialScheduler ss = single(connectionSupplier, null, resultSet);
+            SQLSequentialScheduler ss = single(connectionSupplier, parent, resultSet);
             all.add(ss);
         }
 
@@ -83,7 +83,7 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
                 e.printStackTrace();
             }
         }
-        List<SQLSequentialScheduler> sqlSequentialSchedulers = all(connectionSupplier, id);
+        List<SQLSequentialScheduler> sqlSequentialSchedulers = all(connectionSupplier, ss);
         ss.waitingFor = new LinkedList<>(sqlSequentialSchedulers);
         return ss;
     }
@@ -156,6 +156,16 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
 
     @Override
     protected void wasClosed() {
+        if(waitingFor != null) {
+            waitingFor.forEach(x -> {
+                try {
+                    x.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+
         try(Connection connection = connectionSupplier.get()) {
             try(PreparedStatement statement = connection.prepareStatement("DELETE FROM sequential_scheduler WHERE id = ?")) {
                 statement.setInt(1, id);

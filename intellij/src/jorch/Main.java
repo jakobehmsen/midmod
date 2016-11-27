@@ -191,27 +191,29 @@ public class Main {
             Future<Integer> s1 = executorService.submit(new Callable<Integer>() {
                 @Override
                 public Integer call() throws Exception {
-                    CountDownLatch countDownLatch = new CountDownLatch(1);
+                    if(((SQLSequentialScheduler)ss1).hasMore()) {
+                        CountDownLatch countDownLatch = new CountDownLatch(1);
 
-                    ss1.getEventHandlerContainer().addEventHandler(new SequentialSchedulerEventHandler() {
-                        @Override
-                        public void proceeded() {
+                        ss1.getEventHandlerContainer().addEventHandler(new SequentialSchedulerEventHandler() {
+                            @Override
+                            public void proceeded() {
 
-                        }
+                            }
 
-                        @Override
-                        public void finished() {
-                            countDownLatch.countDown();
-                            ss1.getEventHandlerContainer().removeEventHandler(this);
-                        }
+                            @Override
+                            public void finished() {
+                                countDownLatch.countDown();
+                                ss1.getEventHandlerContainer().removeEventHandler(this);
+                            }
 
-                        @Override
-                        public void wasClosed() {
+                            @Override
+                            public void wasClosed() {
 
-                        }
-                    });
+                            }
+                        });
 
-                    countDownLatch.await();
+                        countDownLatch.await();
+                    }
 
                     return (Integer) ss1.getResult();
                 }
@@ -219,27 +221,29 @@ public class Main {
             Future<Integer> s2 = executorService.submit(new Callable<Integer>() {
                 @Override
                 public Integer call() throws Exception {
-                    CountDownLatch countDownLatch = new CountDownLatch(1);
+                    if(((SQLSequentialScheduler)ss2).hasMore()) {
+                        CountDownLatch countDownLatch = new CountDownLatch(1);
 
-                    ss2.getEventHandlerContainer().addEventHandler(new SequentialSchedulerEventHandler() {
-                        @Override
-                        public void proceeded() {
+                        ss2.getEventHandlerContainer().addEventHandler(new SequentialSchedulerEventHandler() {
+                            @Override
+                            public void proceeded() {
 
-                        }
+                            }
 
-                        @Override
-                        public void finished() {
-                            countDownLatch.countDown();
-                            ss2.getEventHandlerContainer().removeEventHandler(this);
-                        }
+                            @Override
+                            public void finished() {
+                                countDownLatch.countDown();
+                                ss2.getEventHandlerContainer().removeEventHandler(this);
+                            }
 
-                        @Override
-                        public void wasClosed() {
+                            @Override
+                            public void wasClosed() {
 
-                        }
-                    });
+                            }
+                        });
 
-                    countDownLatch.await();
+                        countDownLatch.await();
+                    }
 
                     return (Integer) ss2.getResult();
                 }
@@ -374,18 +378,26 @@ public class Main {
 
                     @Override
                     public void addedSequentialScheduler(SequentialScheduler sequentialScheduler2) {
-                        addSS.accept(sequentialScheduler2);
+                        if(((SQLSequentialScheduler)sequentialScheduler2).hasMore() || sequentialScheduler2.getParent() == null)
+                            addSS.accept(sequentialScheduler2);
 
                         sequentialScheduler2.getEventHandlerContainer().addEventHandler(this);
 
                         synchronized (this) {
-                            if (loading && ((SQLSequentialScheduler)sequentialScheduler2).isWaiting()) {
+                            if (loading && ((SQLSequentialScheduler)sequentialScheduler2).hasMore() && ((SQLSequentialScheduler)sequentialScheduler2).isWaiting()) {
                                 executorService.execute(() -> {
                                     SQLSequentialScheduler ss = (SQLSequentialScheduler) sequentialScheduler2;
                                     tasksModel.removeElement(ss);
                                     ss.proceed();
                                     if (ss.getParent() == null || ss.hasMore())
                                         tasksModel.addElement(ss);
+                                    /*else {
+                                        try {
+                                            ss.close();
+                                        } catch (Exception e1) {
+                                            e1.printStackTrace();
+                                        }
+                                    }*/
                                 });
 
                                 loading = false;
@@ -422,6 +434,13 @@ public class Main {
                             ss.proceed();
                             if(ss.getParent() == null || ss.hasMore())
                                 tasksModel.addElement(ss);
+                            /*else {
+                                try {
+                                    ss.close();
+                                } catch (Exception e1) {
+                                    e1.printStackTrace();
+                                }
+                            }*/
                         });
                     } else {
                         try {
