@@ -17,14 +17,7 @@ import java.util.function.Supplier;
 public class Main {
     private static ExecutorService executorService = Executors.newCachedThreadPool();
 
-    public static class Step1 implements Task2<Integer>, Consumer<SequentialScheduler>, Serializable {
-        @Override
-        public Integer perform(TaskScheduler scheduler) {
-            System.out.println("Step 1");
-            scheduler.schedule(new StepLast());
-            return -1;
-        }
-
+    public static class Step1 implements Consumer<SequentialScheduler>, Serializable {
         @Override
         public void accept(SequentialScheduler sequentialScheduler) {
             System.out.println("Step 1 started");
@@ -38,15 +31,8 @@ public class Main {
         }
     }
 
-    public static class Step1_2 implements Task2<Integer>, Consumer<SequentialScheduler>, Serializable, Deprecated {
+    public static class Step1_2 implements Consumer<SequentialScheduler>, Serializable, Deprecated {
         private static final long serialVersionUID = -5029221089424988655L;
-
-        @Override
-        public Integer perform(TaskScheduler scheduler) {
-            System.out.println("Step 1");
-            scheduler.schedule(new StepLast());
-            return -1;
-        }
 
         @Override
         public void accept(SequentialScheduler sequentialScheduler) {
@@ -71,15 +57,8 @@ public class Main {
         }
     }
 
-    public static class Step1_3 implements Task2<Integer>, Consumer<SequentialScheduler>, Serializable {
+    public static class Step1_3 implements Consumer<SequentialScheduler>, Serializable {
         private static final long serialVersionUID = -5434560544366655728L;
-
-        @Override
-        public Integer perform(TaskScheduler scheduler) {
-            System.out.println("Step 1");
-            scheduler.schedule(new StepLast());
-            return -1;
-        }
 
         @Override
         public void accept(SequentialScheduler sequentialScheduler) {
@@ -99,14 +78,8 @@ public class Main {
         }
     }
 
-    public static class Step4 implements Task2<Integer>, Consumer<SequentialScheduler>, Serializable {
+    public static class Step4 implements Consumer<SequentialScheduler>, Serializable {
         private static final long serialVersionUID = -6465559582561789121L;
-
-        @Override
-        public Integer perform(TaskScheduler scheduler) {
-            System.out.println("Step 4");
-            return new Random().nextInt();
-        }
 
         @Override
         public void accept(SequentialScheduler sequentialScheduler) {
@@ -126,13 +99,7 @@ public class Main {
         }
     }
 
-    public static class Step2 implements Task2<Integer>, Consumer<SequentialScheduler> {
-        @Override
-        public Integer perform(TaskScheduler scheduler) {
-            System.out.println("Step 2");
-            return new Random().nextInt();
-        }
-
+    public static class Step2 implements Consumer<SequentialScheduler> {
         @Override
         public void accept(SequentialScheduler sequentialScheduler) {
             System.out.println("Step 2 started");
@@ -146,38 +113,15 @@ public class Main {
         }
     }
 
-    public static class StepLast implements Task2<Integer>, Consumer<SequentialScheduler> {
-        @Override
-        public Integer perform(TaskScheduler scheduler) {
-            scheduler.merge();
-            return -1;
-        }
-
+    public static class StepLast implements Consumer<SequentialScheduler> {
         @Override
         public void accept(SequentialScheduler sequentialScheduler) {
             sequentialScheduler.finish(-1);
         }
     }
 
-    public static class Step3ForkAndMerge implements Task2<Integer>, Consumer<SequentialScheduler>, Serializable {
+    public static class Step3ForkAndMerge implements Consumer<SequentialScheduler>, Serializable {
         private static final long serialVersionUID = 7747282616039058003L;
-
-        @Override
-        public Integer perform(TaskScheduler scheduler) {
-            TaskScheduler inner = scheduler.fork();
-
-            TaskFuture<Integer> s1 = inner.schedule(new Step1());
-            TaskFuture<Integer> s2 = inner.schedule(new Step2());
-
-            int s1Result = s1.get();
-            int s2Result = s2.get();
-
-            System.out.println("Result from s1: " + s1Result);
-            System.out.println("Result from s2: " + s2Result);
-
-            System.out.println("Merged and all are finished");
-            return new Random().nextInt();
-        }
 
         @Override
         public void accept(SequentialScheduler sequentialScheduler) {
@@ -273,8 +217,6 @@ public class Main {
             sequentialScheduler.finish(new Random().nextInt());
         }
     }
-
-    private static java.util.List<Token> persistedTokens;
 
     public static void main(String[] args) throws Exception {
         SQLRepository repository = new SQLRepository(new LoadStrategy() {
