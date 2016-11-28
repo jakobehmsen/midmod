@@ -7,11 +7,9 @@ import java.awt.event.MouseEvent;
 import java.io.*;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.List;
 import java.util.concurrent.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class Main {
@@ -29,9 +27,14 @@ public class Main {
             System.out.println("Step 1 ended");
             sequentialScheduler.finish(-1);
         }
+
+        private Object readResolve() throws java.io.ObjectStreamException
+        {
+            return new Step1_2();
+        }
     }
 
-    public static class Step1_2 implements Consumer<SequentialScheduler>, Serializable, Deprecated {
+    public static class Step1_2 implements Consumer<SequentialScheduler>, Serializable {
         private static final long serialVersionUID = -5029221089424988655L;
 
         @Override
@@ -51,9 +54,9 @@ public class Main {
             return "Step 1 (Version 2)";
         }
 
-        @Override
-        public <T> T upgrade() {
-            return (T) new Step1_3();
+        private Object readResolve() throws java.io.ObjectStreamException
+        {
+            return new Step1_3();
         }
     }
 
@@ -99,116 +102,17 @@ public class Main {
         }
     }
 
-    public static class Step2 implements Consumer<SequentialScheduler> {
-        @Override
-        public void accept(SequentialScheduler sequentialScheduler) {
-            System.out.println("Step 2 started");
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            System.out.println("Step 2 ended");
-            sequentialScheduler.finish(new Random().nextInt());
-        }
-    }
-
-    public static class StepLast implements Consumer<SequentialScheduler> {
-        @Override
-        public void accept(SequentialScheduler sequentialScheduler) {
-            sequentialScheduler.finish(-1);
-        }
-    }
-
     public static class Step3ForkAndMerge implements Consumer<SequentialScheduler>, Serializable {
         private static final long serialVersionUID = 7747282616039058003L;
 
         @Override
         public void accept(SequentialScheduler sequentialScheduler) {
-            SequentialScheduler ss1 = sequentialScheduler.newSequentialScheduler(new Step1());
-            SequentialScheduler ss2 = sequentialScheduler.newSequentialScheduler(new Step1());
-            /*SequentialScheduler ss1 = sequentialScheduler.getSequentialSchedulers().size() > 0
-                ? sequentialScheduler.getSequentialSchedulers().get(0) : sequentialScheduler.newSequentialScheduler(new Step1());
-            SequentialScheduler ss2 = sequentialScheduler.getSequentialSchedulers().size() > 1
-                ? sequentialScheduler.getSequentialSchedulers().get(1) : sequentialScheduler.newSequentialScheduler(new Step1());*/
+            Scheduler scheduler = new Scheduler(sequentialScheduler, executorService);
+            TaskFuture<Integer> s1 = scheduler.call(new Step1());
+            TaskFuture<Integer> s2 = scheduler.call(new Step1());
 
-            Future<Integer> s1 = executorService.submit(new Callable<Integer>() {
-                @Override
-                public Integer call() throws Exception {
-                    if(((SQLSequentialScheduler)ss1).hasMore()) {
-                        CountDownLatch countDownLatch = new CountDownLatch(1);
-
-                        ss1.getEventHandlerContainer().addEventHandler(new SequentialSchedulerEventHandler() {
-                            @Override
-                            public void proceeded() {
-
-                            }
-
-                            @Override
-                            public void finished() {
-                                countDownLatch.countDown();
-                                ss1.getEventHandlerContainer().removeEventHandler(this);
-                            }
-
-                            @Override
-                            public void wasClosed() {
-
-                            }
-                        });
-
-                        countDownLatch.await();
-                    }
-
-                    return (Integer) ss1.getResult();
-                }
-            });
-            Future<Integer> s2 = executorService.submit(new Callable<Integer>() {
-                @Override
-                public Integer call() throws Exception {
-                    if(((SQLSequentialScheduler)ss2).hasMore()) {
-                        CountDownLatch countDownLatch = new CountDownLatch(1);
-
-                        ss2.getEventHandlerContainer().addEventHandler(new SequentialSchedulerEventHandler() {
-                            @Override
-                            public void proceeded() {
-
-                            }
-
-                            @Override
-                            public void finished() {
-                                countDownLatch.countDown();
-                                ss2.getEventHandlerContainer().removeEventHandler(this);
-                            }
-
-                            @Override
-                            public void wasClosed() {
-
-                            }
-                        });
-
-                        countDownLatch.await();
-                    }
-
-                    return (Integer) ss2.getResult();
-                }
-            });
-
-            int s1Result = 0;
-            try {
-                s1Result = s1.get();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
-            }
-            int s2Result = 0;
-            try {
-                s2Result = s2.get();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
-            }
+            int s1Result = s1.get();
+            int s2Result = s2.get();
 
             System.out.println("Result from s1: " + s1Result);
             System.out.println("Result from s2: " + s2Result);
@@ -216,26 +120,20 @@ public class Main {
             System.out.println("Merged and all are finished");
             sequentialScheduler.finish(new Random().nextInt());
         }
+
+        @Override
+        public String toString() {
+            return "Fork and merge";
+        }
     }
 
     public static void main(String[] args) throws Exception {
         SQLRepository repository = new SQLRepository(new LoadStrategy() {
             @Override
             public Consumer<SequentialScheduler> load(Consumer<SequentialScheduler> task) {
-                while(true) {
-                    if (task instanceof Deprecated)
-                        task = ((Deprecated) task).upgrade();
-                    else if (task instanceof Step1)
-                        task = new Step1_2();
-                    else
-                        break;
-                }
-
                 return task;
             }
         });
-        //SQLSequentialScheduler ss = repository.newSequentialScheduler();
-        //SQLSequentialScheduler ss = repository.allSequentialSchedulers().get(0);
 
         ArrayList<Supplier<Consumer<SequentialScheduler>>> procedures = new ArrayList<>();
 
