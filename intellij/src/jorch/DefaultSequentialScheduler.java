@@ -144,10 +144,6 @@ public class DefaultSequentialScheduler implements SequentialScheduler {
 
     }
 
-    protected ConcurrentScheduler newConcurrentScheduler() {
-        return new DefaultConcurrentScheduler();
-    }
-
     protected void setFinished(Object result) {
         nextTask = null;
         this.result = result;

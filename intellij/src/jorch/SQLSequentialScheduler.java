@@ -194,16 +194,6 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
         }
     }
 
-    @Override
-    protected ConcurrentScheduler newConcurrentScheduler() {
-        try {
-            return SQLConcurrentScheduler.add(connectionSupplier, id);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
     public boolean isWaiting() {
         return waitingFor != null && waitingFor.size() > 0;
     }
