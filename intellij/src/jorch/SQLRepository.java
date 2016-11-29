@@ -45,12 +45,7 @@ public class SQLRepository implements Supplier<Connection> {
         initialTask = load(initialTask);
         SQLSequentialScheduler ss = SQLSequentialScheduler.add(this);
         ss.scheduleNext(initialTask);
-        getEventHandlerContainer().fireEvent(new DefaultEvent<SequentialSchedulerContainerEventHandler>(SequentialSchedulerContainerEventHandler.class) {
-            @Override
-            public void beHandledBy(SequentialSchedulerContainerEventHandler eventHandler) {
-                eventHandler.addedSequentialScheduler(ss);
-            }
-        });
+        eventHandlerContainer.fireEvent(SequentialSchedulerContainerEventHandler.class, eh -> eh.addedSequentialScheduler(ss));
         return ss;
     }
 

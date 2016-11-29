@@ -29,24 +29,14 @@ public class DefaultSequentialScheduler implements SequentialScheduler {
         this.result = result;
         nextTask = null;
         finished(result);
-        eventHandlerContainer.fireEvent(new DefaultEvent<SequentialSchedulerEventHandler>(SequentialSchedulerEventHandler.class) {
-            @Override
-            public void beHandledBy(SequentialSchedulerEventHandler eventHandler) {
-                eventHandler.finished();
-            }
-        });
+        eventHandlerContainer.fireEvent(SequentialSchedulerEventHandler.class, eh -> eh.finished());
     }
 
     @Override
     public void scheduleNext(Consumer<SequentialScheduler> nextTask) {
         this.nextTask = nextTask;
         scheduledNext(nextTask);
-        eventHandlerContainer.fireEvent(new DefaultEvent<SequentialSchedulerEventHandler>(SequentialSchedulerEventHandler.class) {
-            @Override
-            public void beHandledBy(SequentialSchedulerEventHandler eventHandler) {
-                eventHandler.proceeded();
-            }
-        });
+        eventHandlerContainer.fireEvent(SequentialSchedulerEventHandler.class, eh -> eh.proceeded());
     }
 
     @Override
@@ -61,12 +51,7 @@ public class DefaultSequentialScheduler implements SequentialScheduler {
 
     public void addSequentialScheduler(SequentialScheduler sequentialScheduler) {
         sequentialSchedulers.add(sequentialScheduler);
-        getEventHandlerContainer().fireEvent(new DefaultEvent<SequentialSchedulerContainerEventHandler>(SequentialSchedulerContainerEventHandler.class) {
-            @Override
-            public void beHandledBy(SequentialSchedulerContainerEventHandler eventHandler) {
-                eventHandler.addedSequentialScheduler(sequentialScheduler);
-            }
-        });
+        getEventHandlerContainer().fireEvent(SequentialSchedulerContainerEventHandler.class, eh -> eh.addedSequentialScheduler(sequentialScheduler));
     }
 
     private ArrayList<SequentialScheduler> sequentialSchedulers = new ArrayList<>();
@@ -124,12 +109,7 @@ public class DefaultSequentialScheduler implements SequentialScheduler {
             }
         });
         wasClosed();
-        eventHandlerContainer.fireEvent(new DefaultEvent<SequentialSchedulerEventHandler>(SequentialSchedulerEventHandler.class) {
-            @Override
-            public void beHandledBy(SequentialSchedulerEventHandler eventHandler) {
-                eventHandler.wasClosed();
-            }
-        });
+        eventHandlerContainer.fireEvent(SequentialSchedulerEventHandler.class, eh -> eh.wasClosed());
     }
 
     protected void scheduledNext(Consumer<SequentialScheduler> nextTask) {

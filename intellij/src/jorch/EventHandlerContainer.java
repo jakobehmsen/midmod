@@ -1,6 +1,7 @@
 package jorch;
 
 import java.util.ArrayList;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class EventHandlerContainer {
@@ -14,7 +15,7 @@ public class EventHandlerContainer {
         eventHandlers.add(eventHandler);
     }
 
-    public void fireEvent(Event event) {
-        eventHandlers.stream().filter(h -> event.eventHandlerType().isInstance(h)).collect(Collectors.toList()).forEach(h -> event.beHandledBy(h));
+    public <T> void fireEvent(Class<T> eventHandlerType, Consumer<T> eventFirer) {
+        eventHandlers.stream().filter(h -> eventHandlerType.isInstance(h)).collect(Collectors.toList()).forEach(h -> eventFirer.accept((T)h));
     }
 }
