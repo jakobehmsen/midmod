@@ -1,7 +1,6 @@
 package jorch;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Consumer;
 
 public class DefaultSequentialScheduler implements SequentialScheduler {
@@ -44,42 +43,12 @@ public class DefaultSequentialScheduler implements SequentialScheduler {
         return new DefaultSequentialScheduler(parent);
     }
 
-    @Override
-    public List<SequentialScheduler> getSequentialSchedulers() {
-        return sequentialSchedulers;
-    }
-
     public void addSequentialScheduler(SequentialScheduler sequentialScheduler) {
         sequentialSchedulers.add(sequentialScheduler);
         getEventHandlerContainer().fireEvent(SequentialSchedulerContainerEventHandler.class, eh -> eh.addedSequentialScheduler(sequentialScheduler));
     }
 
     private ArrayList<SequentialScheduler> sequentialSchedulers = new ArrayList<>();
-
-    public Object proceedToFinish() {
-        if(isFinished())
-            throw new RuntimeException("Finished");
-
-        while(hasMore())
-            proceed();
-        Object result = getResult();
-
-        sequentialSchedulers.forEach(ss -> {
-            try {
-                ss.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
-
-        finished(result);
-
-        return result;
-    }
-
-    private boolean isFinished() {
-        return nextTask == null;
-    }
 
     public void proceed() {
         nextTask.accept(this);
@@ -96,8 +65,6 @@ public class DefaultSequentialScheduler implements SequentialScheduler {
     public Object getResult() {
         return result;
     }
-
-    //private ArrayList<ConcurrentScheduler> concurrentSchedulers = new ArrayList<>();
 
     @Override
     public void close() throws Exception {
