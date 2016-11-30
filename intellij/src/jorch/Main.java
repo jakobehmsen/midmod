@@ -34,6 +34,28 @@ public class Main {
         }
     }
 
+    public static class EnterValue implements Consumer<SequentialScheduler>, Serializable {
+        private static final long serialVersionUID = 279437230392067789L;
+        private String name;
+
+        public EnterValue(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public void accept(SequentialScheduler sequentialScheduler) {
+            System.out.println("Please enter " + name + ":");
+            Scanner s = new Scanner(System.in);
+            String enterValue = s.nextLine();
+            sequentialScheduler.finish(enterValue);
+        }
+
+        @Override
+        public String toString() {
+            return "Enter " + name;
+        }
+    }
+
     public static class Step1_2 implements Consumer<SequentialScheduler>, Serializable {
         private static final long serialVersionUID = -5029221089424988655L;
 
@@ -108,17 +130,17 @@ public class Main {
         @Override
         public void accept(SequentialScheduler sequentialScheduler) {
             Scheduler scheduler = new Scheduler(sequentialScheduler, executorService);
-            TaskFuture<Integer> s1 = scheduler.call(new Step1());
-            TaskFuture<Integer> s2 = scheduler.call(new Step1());
+            TaskFuture<String> s1 = scheduler.call(new EnterValue("Name"));
+            TaskFuture<String> s2 = scheduler.call(new EnterValue("Age"));
 
-            int s1Result = s1.get();
-            int s2Result = s2.get();
+            String s1Result = s1.get();
+            String s2Result = s2.get();
 
-            System.out.println("Result from s1: " + s1Result);
-            System.out.println("Result from s2: " + s2Result);
+            System.out.println("Name: " + s1Result);
+            System.out.println("Age: " + s2Result);
 
             System.out.println("Merged and all are finished");
-            sequentialScheduler.finish(new Random().nextInt());
+            sequentialScheduler.finish("Hello " + s1Result + " (" + s2Result + ")");
         }
 
         @Override
