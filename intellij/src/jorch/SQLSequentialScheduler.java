@@ -25,21 +25,27 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
     }
 
     public static List<SQLSequentialScheduler> all(SQLRepository connectionSupplier) throws SQLException {
-        try(Connection connection = connectionSupplier.get()) {
-            try(PreparedStatement statement = connection.prepareStatement("SELECT * FROM sequential_scheduler WHERE parent_id IS NULL", Statement.RETURN_GENERATED_KEYS)) {
+        try(SQLSession session = connectionSupplier.newSession()) {
+            try(PreparedStatement statement = session.getConnection().prepareStatement("SELECT * FROM sequential_scheduler WHERE parent_id IS NULL", Statement.RETURN_GENERATED_KEYS)) {
                 ResultSet resultSet = statement.executeQuery();
                 return all(connectionSupplier, null, resultSet);
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 
     public static List<SQLSequentialScheduler> all(SQLRepository connectionSupplier, SQLSequentialScheduler parent) throws SQLException {
-        try(Connection connection = connectionSupplier.get()) {
-            try(PreparedStatement statement = connection.prepareStatement("SELECT * FROM sequential_scheduler WHERE parent_id = ?", Statement.RETURN_GENERATED_KEYS)) {
+        try(SQLSession session = connectionSupplier.newSession()) {
+            try(PreparedStatement statement = session.getConnection().prepareStatement("SELECT * FROM sequential_scheduler WHERE parent_id = ?", Statement.RETURN_GENERATED_KEYS)) {
                 statement.setInt(1, parent.id);
                 ResultSet resultSet = statement.executeQuery();
                 return all(connectionSupplier, parent, resultSet);
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 
@@ -93,8 +99,8 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
     }
 
     public static SQLSequentialScheduler add(SQLRepository connectionSupplier, SQLSequentialScheduler parent) throws SQLException {
-        try(Connection connection = connectionSupplier.get()) {
-            try(PreparedStatement statement = connection.prepareStatement("INSERT INTO sequential_scheduler (parent_id) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
+        try(SQLSession session = connectionSupplier.newSession()) {
+            try(PreparedStatement statement = session.getConnection().prepareStatement("INSERT INTO sequential_scheduler (parent_id) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
                 if(parent != null)
                     statement.setInt(1, parent.id);
                 else
@@ -106,14 +112,17 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
                 int id = tableKeys.getInt(1);
                 return new SQLSequentialScheduler(id, parent, connectionSupplier);
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 
     @Override
     protected void finished(Object result) {
-        try(Connection connection = connectionSupplier.get()) {
-            try(PreparedStatement statement = connection.prepareStatement("UPDATE sequential_scheduler SET next_task = NULL, result = ? WHERE id = ?")) {
-                Blob resultAsBlob = connection.createBlob();
+        try(SQLSession session = connectionSupplier.newSession()) {
+            try(PreparedStatement statement = session.getConnection().prepareStatement("UPDATE sequential_scheduler SET next_task = NULL, result = ? WHERE id = ?")) {
+                Blob resultAsBlob = session.getConnection().createBlob();
                 try(OutputStream outputStream = resultAsBlob.setBinaryStream(1)) {
                     try(ObjectOutputStream cachedResultObjectOutputStream = new ObjectOutputStream(outputStream)) {
                         cachedResultObjectOutputStream.writeObject(result);
@@ -127,14 +136,16 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
     @Override
     protected void scheduledNext(Consumer<SequentialScheduler> nextTask) {
-        try(Connection connection = connectionSupplier.get()) {
-            try(PreparedStatement statement = connection.prepareStatement("UPDATE sequential_scheduler SET next_task = ? WHERE id = ?")) {
-                Blob nextTaskAsBlob = connection.createBlob();
+        try(SQLSession session = connectionSupplier.newSession()) {
+            try(PreparedStatement statement = session.getConnection().prepareStatement("UPDATE sequential_scheduler SET next_task = ? WHERE id = ?")) {
+                Blob nextTaskAsBlob = session.getConnection().createBlob();
                 try(OutputStream outputStream = nextTaskAsBlob.setBinaryStream(1)) {
                     try(ObjectOutputStream cachedResultObjectOutputStream = new ObjectOutputStream(outputStream)) {
                         cachedResultObjectOutputStream.writeObject(nextTask);
@@ -151,27 +162,31 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
     @Override
     protected void wasClosed() {
-        if(waitingFor != null) {
-            waitingFor.forEach(x -> {
-                try {
-                    x.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
-        }
+        try(SQLSession session = connectionSupplier.newSession()) {
+            if(waitingFor != null) {
+                waitingFor.forEach(x -> {
+                    try {
+                        x.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
 
-        try(Connection connection = connectionSupplier.get()) {
-            try(PreparedStatement statement = connection.prepareStatement("DELETE FROM sequential_scheduler WHERE id = ?")) {
+            try(PreparedStatement statement = session.getConnection().prepareStatement("DELETE FROM sequential_scheduler WHERE id = ?")) {
                 statement.setInt(1, id);
                 statement.executeUpdate();
             }
         } catch (SQLException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
