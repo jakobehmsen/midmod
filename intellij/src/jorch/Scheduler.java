@@ -15,9 +15,9 @@ public class Scheduler {
     public <T> TaskFuture<T> call(Consumer<SequentialScheduler> task) {
         SequentialScheduler ss = sequentialScheduler.newSequentialScheduler(task);
 
-        Future<Integer> future = executorService.submit(new Callable<Integer>() {
+        Future<T> future = executorService.submit(new Callable<T>() {
             @Override
-            public Integer call() throws Exception {
+            public T call() throws Exception {
                 if(((SQLSequentialScheduler)ss).hasMore()) {
                     CountDownLatch countDownLatch = new CountDownLatch(1);
 
@@ -42,7 +42,7 @@ public class Scheduler {
                     countDownLatch.await();
                 }
 
-                return (Integer) ss.getResult();
+                return (T)ss.getResult();
             }
         });
 
