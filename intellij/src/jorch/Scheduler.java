@@ -4,33 +4,33 @@ import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 public class Scheduler {
-    private SequentialScheduler sequentialScheduler;
+    private Token token;
     private ExecutorService executorService;
 
-    public Scheduler(SequentialScheduler sequentialScheduler, ExecutorService executorService) {
-        this.sequentialScheduler = sequentialScheduler;
+    public Scheduler(Token token, ExecutorService executorService) {
+        this.token = token;
         this.executorService = executorService;
     }
 
-    public <T> TaskFuture<T> call(Consumer<SequentialScheduler> task) {
-        SequentialScheduler ss = sequentialScheduler.newSequentialScheduler(task);
+    public <T> TaskFuture<T> call(Consumer<Token> task) {
+        Token t = token.newToken(task);
 
         Future<T> future = executorService.submit(new Callable<T>() {
             @Override
             public T call() throws Exception {
-                if(((SQLSequentialScheduler)ss).hasMore()) {
+                if(((SQLToken)t).hasMore()) {
                     CountDownLatch countDownLatch = new CountDownLatch(1);
 
-                    ss.getEventHandlerContainer().addEventHandler(new SequentialSchedulerEventHandler() {
+                    t.getEventChannel().add(new TokenListener() {
                         @Override
-                        public void proceeded() {
+                        public void wasPassed() {
 
                         }
 
                         @Override
                         public void finished() {
                             countDownLatch.countDown();
-                            ss.getEventHandlerContainer().removeEventHandler(this);
+                            t.getEventChannel().remove(this);
                         }
 
                         @Override
@@ -42,7 +42,7 @@ public class Scheduler {
                     countDownLatch.await();
                 }
 
-                return (T)ss.getResult();
+                return (T)t.getResult();
             }
         });
 

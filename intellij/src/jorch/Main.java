@@ -15,9 +15,9 @@ import java.util.function.Supplier;
 public class Main {
     private static ExecutorService executorService = Executors.newCachedThreadPool();
 
-    public static class Step1 implements Consumer<SequentialScheduler>, Serializable {
+    public static class Step1 implements Consumer<Token>, Serializable {
         @Override
-        public void accept(SequentialScheduler sequentialScheduler) {
+        public void accept(Token token) {
             System.out.println("Step 1 started");
             try {
                 Thread.sleep(1000);
@@ -25,7 +25,7 @@ public class Main {
                 e.printStackTrace();
             }
             System.out.println("Step 1 ended");
-            sequentialScheduler.finish(-1);
+            token.finish(-1);
         }
 
         private Object readResolve() throws java.io.ObjectStreamException
@@ -34,7 +34,7 @@ public class Main {
         }
     }
 
-    public static class EnterValue implements Consumer<SequentialScheduler>, Serializable {
+    public static class EnterValue implements Consumer<Token>, Serializable {
         private static final long serialVersionUID = 279437230392067789L;
         private String name;
 
@@ -43,11 +43,11 @@ public class Main {
         }
 
         @Override
-        public void accept(SequentialScheduler sequentialScheduler) {
+        public void accept(Token token) {
             System.out.println("Please enter " + name + ":");
             Scanner s = new Scanner(System.in);
             String enterValue = s.nextLine();
-            sequentialScheduler.finish(enterValue);
+            token.finish(enterValue);
         }
 
         @Override
@@ -56,11 +56,11 @@ public class Main {
         }
     }
 
-    public static class Step1_2 implements Consumer<SequentialScheduler>, Serializable {
+    public static class Step1_2 implements Consumer<Token>, Serializable {
         private static final long serialVersionUID = -5029221089424988655L;
 
         @Override
-        public void accept(SequentialScheduler sequentialScheduler) {
+        public void accept(Token token) {
             System.out.println("Step 1 started");
             try {
                 Thread.sleep(1000);
@@ -68,7 +68,7 @@ public class Main {
                 e.printStackTrace();
             }
             System.out.println("Step 1 ended");
-            sequentialScheduler.finish(-1);
+            token.finish(-1);
         }
 
         @Override
@@ -82,11 +82,11 @@ public class Main {
         }
     }
 
-    public static class Step1_3 implements Consumer<SequentialScheduler>, Serializable {
+    public static class Step1_3 implements Consumer<Token>, Serializable {
         private static final long serialVersionUID = -5434560544366655728L;
 
         @Override
-        public void accept(SequentialScheduler sequentialScheduler) {
+        public void accept(Token token) {
             System.out.println("Step 1 started");
             try {
                 Thread.sleep(1000);
@@ -94,7 +94,7 @@ public class Main {
                 e.printStackTrace();
             }
             System.out.println("Step 1 ended");
-            sequentialScheduler.scheduleNext(new Step4());
+            token.passTo(new Step4());
         }
 
         @Override
@@ -103,11 +103,11 @@ public class Main {
         }
     }
 
-    public static class Step4 implements Consumer<SequentialScheduler>, Serializable {
+    public static class Step4 implements Consumer<Token>, Serializable {
         private static final long serialVersionUID = -6465559582561789121L;
 
         @Override
-        public void accept(SequentialScheduler sequentialScheduler) {
+        public void accept(Token token) {
             System.out.println("Step 4 started");
             try {
                 Thread.sleep(100);
@@ -115,7 +115,7 @@ public class Main {
                 e.printStackTrace();
             }
             System.out.println("Step 4 ended");
-            sequentialScheduler.finish(new Random().nextInt());
+            token.finish(new Random().nextInt());
         }
 
         @Override
@@ -124,12 +124,12 @@ public class Main {
         }
     }
 
-    public static class Step3ForkAndMerge implements Consumer<SequentialScheduler>, Serializable {
+    public static class Step3ForkAndMerge implements Consumer<Token>, Serializable {
         private static final long serialVersionUID = 7747282616039058003L;
 
         @Override
-        public void accept(SequentialScheduler sequentialScheduler) {
-            Scheduler scheduler = new Scheduler(sequentialScheduler, executorService);
+        public void accept(Token token) {
+            Scheduler scheduler = new Scheduler(token, executorService);
             TaskFuture<String> s1 = scheduler.call(new EnterValue("Name"));
             TaskFuture<String> s2 = scheduler.call(new EnterValue("Age"));
 
@@ -140,7 +140,7 @@ public class Main {
             System.out.println("Age: " + s2Result);
 
             System.out.println("Merged and all are finished");
-            sequentialScheduler.finish("Hello " + s1Result + " (" + s2Result + ")");
+            token.finish("Hello " + s1Result + " (" + s2Result + ")");
         }
 
         @Override
@@ -152,16 +152,16 @@ public class Main {
     public static void main(String[] args) throws Exception {
         SQLRepository repository = new SQLRepository(new LoadStrategy() {
             @Override
-            public Consumer<SequentialScheduler> load(Consumer<SequentialScheduler> task) {
+            public Consumer<Token> load(Consumer<Token> task) {
                 return task;
             }
         });
 
-        ArrayList<Supplier<Consumer<SequentialScheduler>>> procedures = new ArrayList<>();
+        ArrayList<Supplier<Consumer<Token>>> procedures = new ArrayList<>();
 
-        procedures.add(new Supplier<Consumer<SequentialScheduler>>() {
+        procedures.add(new Supplier<Consumer<Token>>() {
             @Override
-            public Consumer<SequentialScheduler> get() {
+            public Consumer<Token> get() {
                 return new Step1();
             }
 
@@ -171,9 +171,9 @@ public class Main {
             }
         });
 
-        procedures.add(new Supplier<Consumer<SequentialScheduler>>() {
+        procedures.add(new Supplier<Consumer<Token>>() {
             @Override
-            public Consumer<SequentialScheduler> get() {
+            public Consumer<Token> get() {
                 return new Step3ForkAndMerge();
             }
 
@@ -183,17 +183,17 @@ public class Main {
             }
         });
 
-        DefaultListModel<Supplier<Consumer<SequentialScheduler>>> proceduresModel = new DefaultListModel<>();
-        JList<Supplier<Consumer<SequentialScheduler>>> proceduresView = new JList<>(proceduresModel);
+        DefaultListModel<Supplier<Consumer<Token>>> proceduresModel = new DefaultListModel<>();
+        JList<Supplier<Consumer<Token>>> proceduresView = new JList<>(proceduresModel);
         procedures.forEach(p -> proceduresModel.addElement(p));
         proceduresView.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if(e.getClickCount() == 2 && proceduresView.getSelectedIndex() != -1) {
-                    Supplier<Consumer<SequentialScheduler>> procedures = proceduresView.getSelectedValue();
-                    Consumer<SequentialScheduler> task = procedures.get();
+                    Supplier<Consumer<Token>> procedures = proceduresView.getSelectedValue();
+                    Consumer<Token> task = procedures.get();
                     try {
-                        repository.newSequentialScheduler(task);
+                        repository.newToken(task);
                     } catch (SQLException e1) {
                         e1.printStackTrace();
                     }
@@ -208,15 +208,15 @@ public class Main {
         proceduresViewScrollPane.setBorder(BorderFactory.createTitledBorder("Procedures"));
         contentPane2.add(proceduresViewScrollPane, BorderLayout.WEST);
 
-        DefaultListModel<SequentialScheduler> tasksModel = new DefaultListModel<>();
-        JList<SequentialScheduler> tasksView = new JList<>(tasksModel);
+        DefaultListModel<Token> tasksModel = new DefaultListModel<>();
+        JList<Token> tasksView = new JList<>(tasksModel);
 
-        Consumer<SequentialScheduler> addSS = sequentialScheduler -> {
+        Consumer<Token> addSS = sequentialScheduler -> {
             tasksModel.addElement(sequentialScheduler);
             System.out.println("Added " + sequentialScheduler);
-            sequentialScheduler.getEventHandlerContainer().addEventHandler(new SequentialSchedulerEventHandler() {
+            sequentialScheduler.getEventChannel().add(new TokenListener() {
                 @Override
-                public void proceeded() {
+                public void wasPassed() {
                     tasksModel.set(tasksModel.indexOf(sequentialScheduler), sequentialScheduler);
                 }
 
@@ -232,27 +232,27 @@ public class Main {
             });
         };
 
-        BiFunction<SequentialScheduler, Boolean, SequentialSchedulerContainerEventHandler> sequentialSchedulerEventHandlerFunction = new BiFunction<SequentialScheduler, Boolean, SequentialSchedulerContainerEventHandler>() {
+        BiFunction<Token, Boolean, TokenContainerListener> sequentialSchedulerEventHandlerFunction = new BiFunction<Token, Boolean, TokenContainerListener>() {
             @Override
-            public SequentialSchedulerContainerEventHandler apply(SequentialScheduler sequentialSchedulerX, Boolean atLoad) {
-                return new SequentialSchedulerContainerEventHandler() {
+            public TokenContainerListener apply(Token tokenX, Boolean atLoad) {
+                return new TokenContainerListener() {
                     private boolean loading = atLoad;
 
                     @Override
-                    public void addedSequentialScheduler(SequentialScheduler sequentialScheduler2) {
-                        if(((SQLSequentialScheduler)sequentialScheduler2).hasMore() || sequentialScheduler2.getParent() == null)
-                            addSS.accept(sequentialScheduler2);
+                    public void addedToken(Token token2) {
+                        if(((SQLToken)token2).hasMore() || token2.getParent() == null)
+                            addSS.accept(token2);
 
-                        sequentialScheduler2.getEventHandlerContainer().addEventHandler(this);
+                        token2.getEventChannel().add(this);
 
                         synchronized (this) {
-                            if (loading && ((SQLSequentialScheduler)sequentialScheduler2).hasMore() && ((SQLSequentialScheduler)sequentialScheduler2).isWaiting()) {
+                            if (loading && ((SQLToken)token2).hasMore() && ((SQLToken)token2).isWaiting()) {
                                 executorService.execute(() -> {
-                                    SQLSequentialScheduler ss = (SQLSequentialScheduler) sequentialScheduler2;
-                                    tasksModel.removeElement(ss);
-                                    ss.proceed();
-                                    if (ss.getParent() == null || ss.hasMore())
-                                        tasksModel.addElement(ss);
+                                    SQLToken t = (SQLToken) token2;
+                                    tasksModel.removeElement(t);
+                                    t.proceed();
+                                    if (t.getParent() == null || t.hasMore())
+                                        tasksModel.addElement(t);
                                     /*else {
                                         try {
                                             ss.close();
@@ -272,7 +272,7 @@ public class Main {
         /*Consumer<SequentialScheduler> loadSS = sequentialScheduler -> {
             addSS.accept(sequentialScheduler);
 
-            sequentialScheduler.getEventHandlerContainer().addEventHandler(sequentialSchedulerEventHandlerFunction.apply(sequentialScheduler, true));
+            sequentialScheduler.getEventChannel().add(sequentialSchedulerEventHandlerFunction.apply(sequentialScheduler, true));
 
             executorService.execute(() -> {
                 SQLSequentialScheduler ss = (SQLSequentialScheduler)sequentialScheduler;
@@ -283,19 +283,19 @@ public class Main {
             });
         };*/
         repository.allSequentialSchedulers().forEach(ss -> {
-            sequentialSchedulerEventHandlerFunction.apply(ss, true).addedSequentialScheduler(ss);
+            sequentialSchedulerEventHandlerFunction.apply(ss, true).addedToken(ss);
         });
         tasksView.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if(e.getClickCount() == 2 && tasksView.getSelectedIndex() != -1) {
-                    SQLSequentialScheduler ss = (SQLSequentialScheduler) tasksView.getSelectedValue();
-                    if(ss.hasMore()) {
+                    SQLToken t = (SQLToken) tasksView.getSelectedValue();
+                    if(t.hasMore()) {
                         executorService.execute(() -> {
-                            tasksModel.removeElement(ss);
-                            ss.proceed();
-                            if(ss.getParent() == null || ss.hasMore())
-                                tasksModel.addElement(ss);
+                            tasksModel.removeElement(t);
+                            t.proceed();
+                            if(t.getParent() == null || t.hasMore())
+                                tasksModel.addElement(t);
                             /*else {
                                 try {
                                     ss.close();
@@ -306,7 +306,7 @@ public class Main {
                         });
                     } else {
                         try {
-                            ss.close();
+                            t.close();
                         } catch (Exception e1) {
                             e1.printStackTrace();
                         }
@@ -315,15 +315,15 @@ public class Main {
             }
         });
 
-        repository.getEventHandlerContainer().addEventHandler((SequentialSchedulerContainerEventHandler) sequentialScheduler -> {
+        repository.getEventChannel().add((TokenContainerListener) sequentialScheduler -> {
             addSS.accept(sequentialScheduler);
 
-            sequentialScheduler.getEventHandlerContainer().addEventHandler(new SequentialSchedulerContainerEventHandler() {
+            sequentialScheduler.getEventChannel().add(new TokenContainerListener() {
                 @Override
-                public void addedSequentialScheduler(SequentialScheduler sequentialScheduler2) {
-                    addSS.accept(sequentialScheduler2);
+                public void addedToken(Token token2) {
+                    addSS.accept(token2);
 
-                    sequentialScheduler2.getEventHandlerContainer().addEventHandler(this);
+                    token2.getEventChannel().add(this);
                 }
             });
         });

@@ -16,15 +16,15 @@ public class SQLRepository {
     }
 
     private LoadStrategy loadStrategy;
-    private EventHandlerContainer eventHandlerContainer = new EventHandlerContainer();
+    private EventChannel eventChannel = new EventChannel();
     private static ThreadLocal<SQLSession> rootSession = new ThreadLocal<>();
 
     public SQLRepository(LoadStrategy loadStrategy) {
         this.loadStrategy = loadStrategy;
     }
 
-    public EventHandlerContainer getEventHandlerContainer() {
-        return eventHandlerContainer;
+    public EventChannel getEventChannel() {
+        return eventChannel;
     }
 
     public SQLSession newSession() {
@@ -83,19 +83,19 @@ public class SQLRepository {
         }
     }
 
-    public SQLSequentialScheduler newSequentialScheduler(Consumer<SequentialScheduler> initialTask) throws SQLException {
+    public SQLToken newToken(Consumer<Token> initialTask) throws SQLException {
         initialTask = load(initialTask);
-        SQLSequentialScheduler ss = SQLSequentialScheduler.add(this);
-        ss.scheduleNext(initialTask);
-        eventHandlerContainer.fireEvent(SequentialSchedulerContainerEventHandler.class, eh -> eh.addedSequentialScheduler(ss));
-        return ss;
+        SQLToken t = SQLToken.add(this);
+        t.passTo(initialTask);
+        eventChannel.fireEvent(TokenContainerListener.class, eh -> eh.addedToken(t));
+        return t;
     }
 
-    public List<SQLSequentialScheduler> allSequentialSchedulers() throws SQLException {
-        return SQLSequentialScheduler.all(this);
+    public List<SQLToken> allSequentialSchedulers() throws SQLException {
+        return SQLToken.all(this);
     }
 
-    public Consumer<SequentialScheduler> load(Consumer<SequentialScheduler> task) {
+    public Consumer<Token> load(Consumer<Token> task) {
         return loadStrategy.load(task);
     }
 }

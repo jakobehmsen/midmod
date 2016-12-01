@@ -8,25 +8,25 @@ import java.util.List;
 import java.util.Queue;
 import java.util.function.Consumer;
 
-public class SQLSequentialScheduler extends DefaultSequentialScheduler {
+public class SQLToken extends DefaultToken {
     private int id;
     private SQLRepository connectionSupplier;
-    private Queue<SQLSequentialScheduler> waitingFor;
+    private Queue<SQLToken> waitingFor;
 
-    public SQLSequentialScheduler(int id, SQLSequentialScheduler parent, SQLRepository connectionSupplier) {
+    public SQLToken(int id, SQLToken parent, SQLRepository connectionSupplier) {
         super(parent);
         this.id = id;
         this.connectionSupplier = connectionSupplier;
     }
 
     @Override
-    public SQLSequentialScheduler getParent() {
-        return (SQLSequentialScheduler) super.getParent();
+    public SQLToken getParent() {
+        return (SQLToken) super.getParent();
     }
 
-    public static List<SQLSequentialScheduler> all(SQLRepository connectionSupplier) throws SQLException {
+    public static List<SQLToken> all(SQLRepository connectionSupplier) throws SQLException {
         try(SQLSession session = connectionSupplier.newSession()) {
-            try(PreparedStatement statement = session.getConnection().prepareStatement("SELECT * FROM sequential_scheduler WHERE parent_id IS NULL", Statement.RETURN_GENERATED_KEYS)) {
+            try(PreparedStatement statement = session.getConnection().prepareStatement("SELECT * FROM token WHERE parent_id IS NULL", Statement.RETURN_GENERATED_KEYS)) {
                 ResultSet resultSet = statement.executeQuery();
                 return all(connectionSupplier, null, resultSet);
             }
@@ -36,9 +36,9 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
         }
     }
 
-    public static List<SQLSequentialScheduler> all(SQLRepository connectionSupplier, SQLSequentialScheduler parent) throws SQLException {
+    public static List<SQLToken> all(SQLRepository connectionSupplier, SQLToken parent) throws SQLException {
         try(SQLSession session = connectionSupplier.newSession()) {
-            try(PreparedStatement statement = session.getConnection().prepareStatement("SELECT * FROM sequential_scheduler WHERE parent_id = ?", Statement.RETURN_GENERATED_KEYS)) {
+            try(PreparedStatement statement = session.getConnection().prepareStatement("SELECT * FROM token WHERE parent_id = ?", Statement.RETURN_GENERATED_KEYS)) {
                 statement.setInt(1, parent.id);
                 ResultSet resultSet = statement.executeQuery();
                 return all(connectionSupplier, parent, resultSet);
@@ -49,26 +49,26 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
         }
     }
 
-    public static List<SQLSequentialScheduler> all(SQLRepository connectionSupplier, SQLSequentialScheduler parent, ResultSet resultSet) throws SQLException {
-        ArrayList<SQLSequentialScheduler> all = new ArrayList<>();
+    public static List<SQLToken> all(SQLRepository connectionSupplier, SQLToken parent, ResultSet resultSet) throws SQLException {
+        ArrayList<SQLToken> all = new ArrayList<>();
 
         while(resultSet.next()) {
-            SQLSequentialScheduler ss = single(connectionSupplier, parent, resultSet);
-            all.add(ss);
+            SQLToken t = single(connectionSupplier, parent, resultSet);
+            all.add(t);
         }
 
         return all;
     }
 
-    public static SQLSequentialScheduler single(SQLRepository connectionSupplier, SQLSequentialScheduler parent, ResultSet resultSet) throws SQLException {
+    public static SQLToken single(SQLRepository connectionSupplier, SQLToken parent, ResultSet resultSet) throws SQLException {
         int id = resultSet.getInt(1);
-        SQLSequentialScheduler ss = new SQLSequentialScheduler(id, parent, connectionSupplier);
+        SQLToken t = new SQLToken(id, parent, connectionSupplier);
         Blob nextTaskAsBlob = resultSet.getBlob(3);
         if (!resultSet.wasNull()) {
             try (InputStream inputStream = nextTaskAsBlob.getBinaryStream()) {
                 try (ObjectInputStream objectInputStream = new ObjectInputStream(inputStream)) {
-                    Consumer<SequentialScheduler> nextTask = (Consumer<SequentialScheduler>) objectInputStream.readObject();
-                    ss.setNextTask(nextTask);
+                    Consumer<Token> nextTask = (Consumer<Token>) objectInputStream.readObject();
+                    t.setNextTask(nextTask);
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -81,7 +81,7 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
             try (InputStream inputStream = resultAsBlob.getBinaryStream()) {
                 try (ObjectInputStream objectInputStream = new ObjectInputStream(inputStream)) {
                     Object result = objectInputStream.readObject();
-                    ss.setFinished(result);
+                    t.setFinished(result);
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -89,18 +89,18 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
                 e.printStackTrace();
             }
         }
-        List<SQLSequentialScheduler> sqlSequentialSchedulers = all(connectionSupplier, ss);
-        ss.waitingFor = new LinkedList<>(sqlSequentialSchedulers);
-        return ss;
+        List<SQLToken> sqlSequentialSchedulers = all(connectionSupplier, t);
+        t.waitingFor = new LinkedList<>(sqlSequentialSchedulers);
+        return t;
     }
 
-    public static SQLSequentialScheduler add(SQLRepository connectionSupplier) throws SQLException {
+    public static SQLToken add(SQLRepository connectionSupplier) throws SQLException {
         return add(connectionSupplier, null);
     }
 
-    public static SQLSequentialScheduler add(SQLRepository connectionSupplier, SQLSequentialScheduler parent) throws SQLException {
+    public static SQLToken add(SQLRepository connectionSupplier, SQLToken parent) throws SQLException {
         try(SQLSession session = connectionSupplier.newSession()) {
-            try(PreparedStatement statement = session.getConnection().prepareStatement("INSERT INTO sequential_scheduler (parent_id) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
+            try(PreparedStatement statement = session.getConnection().prepareStatement("INSERT INTO token (parent_id) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
                 if(parent != null)
                     statement.setInt(1, parent.id);
                 else
@@ -110,7 +110,7 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
 
                 tableKeys.next();
                 int id = tableKeys.getInt(1);
-                return new SQLSequentialScheduler(id, parent, connectionSupplier);
+                return new SQLToken(id, parent, connectionSupplier);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -121,7 +121,7 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
     @Override
     protected void finished(Object result) {
         try(SQLSession session = connectionSupplier.newSession()) {
-            try(PreparedStatement statement = session.getConnection().prepareStatement("UPDATE sequential_scheduler SET next_task = NULL, result = ? WHERE id = ?")) {
+            try(PreparedStatement statement = session.getConnection().prepareStatement("UPDATE token SET next_task = NULL, result = ? WHERE id = ?")) {
                 Blob resultAsBlob = session.getConnection().createBlob();
                 try(OutputStream outputStream = resultAsBlob.setBinaryStream(1)) {
                     try(ObjectOutputStream cachedResultObjectOutputStream = new ObjectOutputStream(outputStream)) {
@@ -142,9 +142,9 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
     }
 
     @Override
-    protected void scheduledNext(Consumer<SequentialScheduler> nextTask) {
+    protected void scheduledNext(Consumer<Token> nextTask) {
         try(SQLSession session = connectionSupplier.newSession()) {
-            try(PreparedStatement statement = session.getConnection().prepareStatement("UPDATE sequential_scheduler SET next_task = ? WHERE id = ?")) {
+            try(PreparedStatement statement = session.getConnection().prepareStatement("UPDATE token SET next_task = ? WHERE id = ?")) {
                 Blob nextTaskAsBlob = session.getConnection().createBlob();
                 try(OutputStream outputStream = nextTaskAsBlob.setBinaryStream(1)) {
                     try(ObjectOutputStream cachedResultObjectOutputStream = new ObjectOutputStream(outputStream)) {
@@ -180,7 +180,7 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
                 });
             }
 
-            try(PreparedStatement statement = session.getConnection().prepareStatement("DELETE FROM sequential_scheduler WHERE id = ?")) {
+            try(PreparedStatement statement = session.getConnection().prepareStatement("DELETE FROM token WHERE id = ?")) {
                 statement.setInt(1, id);
                 statement.executeUpdate();
             }
@@ -192,17 +192,17 @@ public class SQLSequentialScheduler extends DefaultSequentialScheduler {
     }
 
     @Override
-    public SequentialScheduler newSequentialScheduler(Consumer<SequentialScheduler> initialTask) {
+    public Token newToken(Consumer<Token> initialTask) {
         try {
-            SQLSequentialScheduler ss;
+            SQLToken t;
             if(waitingFor != null && waitingFor.size() > 0)
-                ss = waitingFor.poll();
+                t = waitingFor.poll();
             else {
-                ss = SQLSequentialScheduler.add(connectionSupplier, this);
-                ss.scheduleNext(initialTask);
+                t = SQLToken.add(connectionSupplier, this);
+                t.passTo(initialTask);
             }
-            addSequentialScheduler(ss);
-            return ss;
+            addSequentialScheduler(t);
+            return t;
         } catch (SQLException e) {
             e.printStackTrace();
             return null;
