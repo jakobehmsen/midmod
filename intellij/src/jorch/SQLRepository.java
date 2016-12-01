@@ -91,7 +91,7 @@ public class SQLRepository {
         return t;
     }
 
-    public List<SQLToken> allSequentialSchedulers() throws SQLException {
+    public List<SQLToken> allTokens() throws SQLException {
         return SQLToken.all(this);
     }
 

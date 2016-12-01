@@ -211,13 +211,13 @@ public class Main {
         DefaultListModel<Token> tasksModel = new DefaultListModel<>();
         JList<Token> tasksView = new JList<>(tasksModel);
 
-        Consumer<Token> addSS = sequentialScheduler -> {
-            tasksModel.addElement(sequentialScheduler);
-            System.out.println("Added " + sequentialScheduler);
-            sequentialScheduler.getEventChannel().add(new TokenListener() {
+        Consumer<Token> addSS = token -> {
+            tasksModel.addElement(token);
+            System.out.println("Added " + token);
+            token.getEventChannel().add(new TokenListener() {
                 @Override
                 public void wasPassed() {
-                    tasksModel.set(tasksModel.indexOf(sequentialScheduler), sequentialScheduler);
+                    tasksModel.set(tasksModel.indexOf(token), token);
                 }
 
                 @Override
@@ -227,12 +227,12 @@ public class Main {
 
                 @Override
                 public void wasClosed() {
-                    tasksModel.removeElement(sequentialScheduler);
+                    tasksModel.removeElement(token);
                 }
             });
         };
 
-        BiFunction<Token, Boolean, TokenContainerListener> sequentialSchedulerEventHandlerFunction = new BiFunction<Token, Boolean, TokenContainerListener>() {
+        BiFunction<Token, Boolean, TokenContainerListener> tokenListenerFunction = new BiFunction<Token, Boolean, TokenContainerListener>() {
             @Override
             public TokenContainerListener apply(Token tokenX, Boolean atLoad) {
                 return new TokenContainerListener() {
@@ -282,8 +282,8 @@ public class Main {
                     tasksModel.addElement(ss);
             });
         };*/
-        repository.allSequentialSchedulers().forEach(ss -> {
-            sequentialSchedulerEventHandlerFunction.apply(ss, true).addedToken(ss);
+        repository.allTokens().forEach(ss -> {
+            tokenListenerFunction.apply(ss, true).addedToken(ss);
         });
         tasksView.addMouseListener(new MouseAdapter() {
             @Override
@@ -315,10 +315,10 @@ public class Main {
             }
         });
 
-        repository.getEventChannel().add((TokenContainerListener) sequentialScheduler -> {
-            addSS.accept(sequentialScheduler);
+        repository.getEventChannel().add((TokenContainerListener) token -> {
+            addSS.accept(token);
 
-            sequentialScheduler.getEventChannel().add(new TokenContainerListener() {
+            token.getEventChannel().add(new TokenContainerListener() {
                 @Override
                 public void addedToken(Token token2) {
                     addSS.accept(token2);
