@@ -44,10 +44,23 @@ public class Main {
 
         @Override
         public void accept(Token token) {
-            System.out.println("Please enter " + name + ":");
-            Scanner s = new Scanner(System.in);
-            String enterValue = s.nextLine();
-            token.finish(enterValue);
+            requestHalt(new Runnable() {
+                @Override
+                public void run() {
+                    String enterValue = JOptionPane.showInputDialog("Please enter " + name);
+
+                    if(enterValue != null) {
+                        token.finish(enterValue);
+                    } else {
+                        requestHalt(this);
+                    }
+                }
+
+                @Override
+                public String toString() {
+                    return "Enter " + name;
+                }
+            });
         }
 
         @Override
@@ -140,13 +153,55 @@ public class Main {
             System.out.println("Age: " + s2Result);
 
             System.out.println("Merged and all are finished");
-            token.finish("Hello " + s1Result + " (" + s2Result + ")");
+
+            token.passTo(new ShowResult("Hello " + s1Result + " (" + s2Result + ")"));
         }
 
         @Override
         public String toString() {
             return "Fork and merge";
         }
+    }
+
+    public static class ShowResult implements Consumer<Token>, Serializable {
+        private static final long serialVersionUID = -3458379226568751650L;
+        private Object result;
+
+        public ShowResult(Object result) {
+            this.result = result;
+        }
+
+        @Override
+        public void accept(Token token) {
+            requestHalt(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        token.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                @Override
+                public String toString() {
+                    return "=> " + result;
+                }
+            });
+        }
+
+        @Override
+        public String toString() {
+            return "Step 4";
+        }
+    }
+
+    private static DefaultListModel<Runnable> tasksModel;
+
+    private static void requestHalt(Runnable activator) {
+        SwingUtilities.invokeLater(() -> {
+            tasksModel.addElement(activator);
+        });
     }
 
     public static void main(String[] args) throws Exception {
@@ -193,7 +248,11 @@ public class Main {
                     Supplier<Consumer<Token>> procedures = proceduresView.getSelectedValue();
                     Consumer<Token> task = procedures.get();
                     try {
-                        repository.newToken(task);
+                        SQLToken token = repository.newToken(task);
+                        executorService.execute(() -> {
+                            token.proceed();
+                        });
+
                     } catch (SQLException e1) {
                         e1.printStackTrace();
                     }
@@ -208,26 +267,26 @@ public class Main {
         proceduresViewScrollPane.setBorder(BorderFactory.createTitledBorder("Procedures"));
         contentPane2.add(proceduresViewScrollPane, BorderLayout.WEST);
 
-        DefaultListModel<Token> tasksModel = new DefaultListModel<>();
-        JList<Token> tasksView = new JList<>(tasksModel);
+        tasksModel = new DefaultListModel<>();
+        JList<Runnable> tasksView = new JList<>(tasksModel);
 
         Consumer<Token> addSS = token -> {
-            tasksModel.addElement(token);
-            System.out.println("Added " + token);
             token.getEventChannel().add(new TokenListener() {
                 @Override
                 public void wasPassed() {
-                    tasksModel.set(tasksModel.indexOf(token), token);
+                    executorService.execute(() -> {
+                        ((SQLToken)token).proceed();
+                    });
                 }
 
                 @Override
                 public void finished() {
-                    //tasksModel.set(tasksModel.indexOf(sequentialScheduler), sequentialScheduler);
+
                 }
 
                 @Override
                 public void wasClosed() {
-                    tasksModel.removeElement(token);
+
                 }
             });
         };
@@ -249,17 +308,7 @@ public class Main {
                             if (loading && ((SQLToken)token2).hasMore() && ((SQLToken)token2).isWaiting()) {
                                 executorService.execute(() -> {
                                     SQLToken t = (SQLToken) token2;
-                                    tasksModel.removeElement(t);
                                     t.proceed();
-                                    if (t.getParent() == null || t.hasMore())
-                                        tasksModel.addElement(t);
-                                    /*else {
-                                        try {
-                                            ss.close();
-                                        } catch (Exception e1) {
-                                            e1.printStackTrace();
-                                        }
-                                    }*/
                                 });
 
                                 loading = false;
@@ -269,19 +318,6 @@ public class Main {
                 };
             }
         };
-        /*Consumer<SequentialScheduler> loadSS = sequentialScheduler -> {
-            addSS.accept(sequentialScheduler);
-
-            sequentialScheduler.getEventChannel().add(sequentialSchedulerEventHandlerFunction.apply(sequentialScheduler, true));
-
-            executorService.execute(() -> {
-                SQLSequentialScheduler ss = (SQLSequentialScheduler)sequentialScheduler;
-                tasksModel.removeElement(ss);
-                ss.proceed();
-                if(ss.getParent() == null || ss.hasMore())
-                    tasksModel.addElement(ss);
-            });
-        };*/
         repository.allTokens().forEach(ss -> {
             tokenListenerFunction.apply(ss, true).addedToken(ss);
         });
@@ -289,28 +325,11 @@ public class Main {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if(e.getClickCount() == 2 && tasksView.getSelectedIndex() != -1) {
-                    SQLToken t = (SQLToken) tasksView.getSelectedValue();
-                    if(t.hasMore()) {
-                        executorService.execute(() -> {
-                            tasksModel.removeElement(t);
-                            t.proceed();
-                            if(t.getParent() == null || t.hasMore())
-                                tasksModel.addElement(t);
-                            /*else {
-                                try {
-                                    ss.close();
-                                } catch (Exception e1) {
-                                    e1.printStackTrace();
-                                }
-                            }*/
-                        });
-                    } else {
-                        try {
-                            t.close();
-                        } catch (Exception e1) {
-                            e1.printStackTrace();
-                        }
-                    }
+                    Runnable t = tasksView.getSelectedValue();
+                    executorService.execute(() -> {
+                        t.run();
+                        tasksModel.removeElement(t);
+                    });
                 }
             }
         });

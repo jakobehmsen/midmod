@@ -142,7 +142,7 @@ public class SQLToken extends DefaultToken {
     }
 
     @Override
-    protected void scheduledNext(Consumer<Token> nextTask) {
+    protected void wasPassedTo(Consumer<Token> nextTask) {
         try(SQLSession session = connectionSupplier.newSession()) {
             try(PreparedStatement statement = session.getConnection().prepareStatement("UPDATE token SET next_task = ? WHERE id = ?")) {
                 Blob nextTaskAsBlob = session.getConnection().createBlob();

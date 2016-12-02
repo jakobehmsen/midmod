@@ -15,49 +15,49 @@ public class Scheduler {
     public <T> TaskFuture<T> call(Consumer<Token> task) {
         Token t = token.newToken(task);
 
-        Future<T> future = executorService.submit(new Callable<T>() {
-            @Override
-            public T call() throws Exception {
-                if(((SQLToken)t).hasMore()) {
-                    CountDownLatch countDownLatch = new CountDownLatch(1);
-
-                    t.getEventChannel().add(new TokenListener() {
-                        @Override
-                        public void wasPassed() {
-
-                        }
-
-                        @Override
-                        public void finished() {
-                            countDownLatch.countDown();
-                            t.getEventChannel().remove(this);
-                        }
-
-                        @Override
-                        public void wasClosed() {
-
-                        }
-                    });
-
-                    countDownLatch.await();
+        if(!((SQLToken)t).hasMore()) {
+            return new TaskFuture<T>() {
+                @Override
+                public T get() {
+                    return (T) t.getResult();
                 }
+            };
+        }
 
-                return (T)t.getResult();
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+
+        t.getEventChannel().add(new TokenListener() {
+            @Override
+            public void wasPassed() {
+
             }
+
+            @Override
+            public void finished() {
+                countDownLatch.countDown();
+                t.getEventChannel().remove(this);
+            }
+
+            @Override
+            public void wasClosed() {
+
+            }
+        });
+
+        executorService.execute(() -> {
+            ((SQLToken) t).proceed();
         });
 
         return new TaskFuture<T>() {
             @Override
             public T get() {
                 try {
-                    T result = (T) future.get();
-                    return result;
+                    countDownLatch.await();
                 } catch (InterruptedException e) {
                     e.printStackTrace();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
                 }
-                return null;
+
+                return (T)t.getResult();
             }
         };
     }

@@ -34,7 +34,7 @@ public class DefaultToken implements Token {
     @Override
     public void passTo(Consumer<Token> nextTask) {
         this.nextTask = nextTask;
-        scheduledNext(nextTask);
+        wasPassedTo(nextTask);
         eventChannel.fireEvent(TokenListener.class, eh -> eh.wasPassed());
     }
 
@@ -79,7 +79,7 @@ public class DefaultToken implements Token {
         eventChannel.fireEvent(TokenListener.class, eh -> eh.wasClosed());
     }
 
-    protected void scheduledNext(Consumer<Token> nextTask) {
+    protected void wasPassedTo(Consumer<Token> nextTask) {
 
     }
 
