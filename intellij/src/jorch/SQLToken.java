@@ -10,13 +10,13 @@ import java.util.function.Consumer;
 
 public class SQLToken extends DefaultToken {
     private int id;
-    private SQLRepository connectionSupplier;
+    private SQLRepository repository;
     private Queue<SQLToken> waitingFor;
 
     public SQLToken(int id, SQLToken parent, SQLRepository connectionSupplier) {
         super(parent);
         this.id = id;
-        this.connectionSupplier = connectionSupplier;
+        this.repository = connectionSupplier;
     }
 
     @Override
@@ -66,13 +66,11 @@ public class SQLToken extends DefaultToken {
         Blob nextTaskAsBlob = resultSet.getBlob(3);
         if (!resultSet.wasNull()) {
             try (InputStream inputStream = nextTaskAsBlob.getBinaryStream()) {
-                try (ObjectInputStream objectInputStream = new ObjectInputStream(inputStream)) {
-                    Consumer<Token> nextTask = (Consumer<Token>) objectInputStream.readObject();
-                    t.setNextTask(nextTask);
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                }
+                Consumer<Token> nextTask = (Consumer<Token>) connectionSupplier.deserialize(inputStream);
+                t.setNextTask(nextTask);
             } catch (IOException e) {
+                e.printStackTrace();
+            } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
         }
@@ -120,13 +118,11 @@ public class SQLToken extends DefaultToken {
 
     @Override
     protected void finished(Object result) {
-        try(SQLSession session = connectionSupplier.newSession()) {
+        try(SQLSession session = repository.newSession()) {
             try(PreparedStatement statement = session.getConnection().prepareStatement("UPDATE token SET next_task = NULL, result = ? WHERE id = ?")) {
                 Blob resultAsBlob = session.getConnection().createBlob();
                 try(OutputStream outputStream = resultAsBlob.setBinaryStream(1)) {
-                    try(ObjectOutputStream cachedResultObjectOutputStream = new ObjectOutputStream(outputStream)) {
-                        cachedResultObjectOutputStream.writeObject(result);
-                    }
+                    repository.serialize(result, outputStream);
                 }
                 statement.setBlob(1, resultAsBlob);
                 statement.setInt(2, id);
@@ -143,16 +139,11 @@ public class SQLToken extends DefaultToken {
 
     @Override
     protected void wasPassedTo(Consumer<Token> nextTask) {
-        try(SQLSession session = connectionSupplier.newSession()) {
+        try(SQLSession session = repository.newSession()) {
             try(PreparedStatement statement = session.getConnection().prepareStatement("UPDATE token SET next_task = ? WHERE id = ?")) {
                 Blob nextTaskAsBlob = session.getConnection().createBlob();
                 try(OutputStream outputStream = nextTaskAsBlob.setBinaryStream(1)) {
-                    try(ObjectOutputStream cachedResultObjectOutputStream = new ObjectOutputStream(outputStream)) {
-                        cachedResultObjectOutputStream.writeObject(nextTask);
-                    }
-                    catch (NotSerializableException e) {
-                        e.toString();
-                    }
+                    repository.serialize(nextTask, outputStream);
                 }
                 statement.setBlob(1, nextTaskAsBlob);
                 statement.setInt(2, id);
@@ -169,7 +160,7 @@ public class SQLToken extends DefaultToken {
 
     @Override
     protected void wasClosed() {
-        try(SQLSession session = connectionSupplier.newSession()) {
+        try(SQLSession session = repository.newSession()) {
             if(waitingFor != null) {
                 waitingFor.forEach(x -> {
                     try {
@@ -198,7 +189,7 @@ public class SQLToken extends DefaultToken {
             if(waitingFor != null && waitingFor.size() > 0)
                 t = waitingFor.poll();
             else {
-                t = SQLToken.add(connectionSupplier, this);
+                t = SQLToken.add(repository, this);
                 t.passTo(initialTask);
             }
             addSequentialScheduler(t);

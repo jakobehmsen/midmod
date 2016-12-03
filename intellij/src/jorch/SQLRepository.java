@@ -1,5 +1,8 @@
 package jorch;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -15,12 +18,12 @@ public class SQLRepository {
         }
     }
 
-    private LoadStrategy loadStrategy;
     private EventChannel eventChannel = new EventChannel();
     private static ThreadLocal<SQLSession> rootSession = new ThreadLocal<>();
+    private Serializer serializer;
 
-    public SQLRepository(LoadStrategy loadStrategy) {
-        this.loadStrategy = loadStrategy;
+    public SQLRepository(Serializer serializer) {
+        this.serializer = serializer;
     }
 
     public EventChannel getEventChannel() {
@@ -96,6 +99,14 @@ public class SQLRepository {
     }
 
     public Consumer<Token> load(Consumer<Token> task) {
-        return loadStrategy.load(task);
+        return task;
+    }
+
+    public void serialize(Object object, OutputStream outputStream) throws IOException {
+        serializer.serialize(object, outputStream);
+    }
+
+    public Object deserialize(InputStream inputStream) throws ClassNotFoundException, IOException {
+        return serializer.deserialize(inputStream);
     }
 }

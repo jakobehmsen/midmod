@@ -205,12 +205,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        SQLRepository repository = new SQLRepository(new LoadStrategy() {
-            @Override
-            public Consumer<Token> load(Consumer<Token> task) {
-                return task;
-            }
-        });
+        SQLRepository repository = new SQLRepository(new SerializableSerializer());
 
         ArrayList<Supplier<Consumer<Token>>> procedures = new ArrayList<>();
 
