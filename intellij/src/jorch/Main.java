@@ -63,6 +63,84 @@ public class Main {
             });
         }
 
+        public Object replace() {
+            return new EnterValue_V2(name);
+        }
+
+        @Override
+        public String toString() {
+            return "Enter " + name;
+        }
+    }
+
+    public static class EnterValue_V2 implements Consumer<Token>, Serializable {
+        private static final long serialVersionUID = 279437230392067789L;
+        private String name;
+
+        public EnterValue_V2(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public void accept(Token token) {
+            requestHalt(new Runnable() {
+                @Override
+                public void run() {
+                    String enterValue = JOptionPane.showInputDialog("Please enter " + name);
+
+                    if(enterValue != null) {
+                        token.finish(enterValue);
+                    } else {
+                        requestHalt(this);
+                    }
+                }
+
+                @Override
+                public String toString() {
+                    return "Enter " + name;
+                }
+            });
+        }
+
+        public Object replace() {
+            return new EnterValue_V3(name);
+        }
+
+        @Override
+        public String toString() {
+            return "Enter " + name;
+        }
+    }
+
+    public static class EnterValue_V3 implements Consumer<Token>, Serializable {
+        private static final long serialVersionUID = 279437230392067789L;
+        private String name;
+
+        public EnterValue_V3(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public void accept(Token token) {
+            requestHalt(new Runnable() {
+                @Override
+                public void run() {
+                    String enterValue = JOptionPane.showInputDialog("Please enter " + name);
+
+                    if(enterValue != null) {
+                        token.finish(enterValue);
+                    } else {
+                        requestHalt(this);
+                    }
+                }
+
+                @Override
+                public String toString() {
+                    return "Enter " + name;
+                }
+            });
+        }
+
         @Override
         public String toString() {
             return "Enter " + name;
@@ -205,7 +283,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        SQLRepository repository = new SQLRepository(new SerializableSerializer());
+        SQLRepository repository = new SQLRepository(new MigratingSerializer());
 
         ArrayList<Supplier<Consumer<Token>>> procedures = new ArrayList<>();
 
