@@ -1,7 +1,5 @@
 package jorch;
 
-import com.sun.javaws.exceptions.InvalidArgumentException;
-
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -15,14 +13,17 @@ public class MigratingSerializer implements Serializer {
 
         @Override
         protected Object replaceObject(Object obj) throws IOException {
-            try {
+            /*try {
+                // Should auto migrate as well?
                 obj.getClass().getMethod("replace");
                 throw new IllegalArgumentException("Cannot serialize deprecated object " + obj);
             } catch (NoSuchMethodException e) {
 
             }
 
-            return obj;
+            return obj;*/
+
+            return MigratingSerializer.replaceObject(obj);
         }
     }
 
