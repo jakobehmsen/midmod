@@ -50,6 +50,16 @@ public class SQLRepository {
                 }
 
                 @Override
+                public void attach() {
+                    rootSession.set(this);
+                }
+
+                @Override
+                public void detach() {
+                    rootSession.set(null);
+                }
+
+                @Override
                 public void close() throws Exception {
                     connection.commit();
                     connection.close();
@@ -61,9 +71,21 @@ public class SQLRepository {
         }
 
         return new SQLSession() {
+            private SQLSession rootSession = SQLRepository.rootSession.get();
+
             @Override
             public Connection getConnection() {
-                return rootSession.get().getConnection();
+                return rootSession.getConnection();
+            }
+
+            @Override
+            public void attach() {
+                rootSession.attach();
+            }
+
+            @Override
+            public void detach() {
+                rootSession.detach();;
             }
 
             @Override
@@ -86,7 +108,7 @@ public class SQLRepository {
         }
     }
 
-    public SQLToken newToken(Consumer<Token> initialTask) throws SQLException {
+    public SQLToken newToken(TaskSupplier initialTask) throws SQLException {
         initialTask = load(initialTask);
         SQLToken t = SQLToken.add(this);
         t.passTo(initialTask);
@@ -98,7 +120,7 @@ public class SQLRepository {
         return SQLToken.all(this);
     }
 
-    public Consumer<Token> load(Consumer<Token> task) {
+    public TaskSupplier load(TaskSupplier task) {
         return task;
     }
 

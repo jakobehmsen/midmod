@@ -1,11 +1,10 @@
 package jorch;
 
 import java.util.ArrayList;
-import java.util.function.Consumer;
 
 public class DefaultToken implements Token {
     private EventChannel eventChannel = new EventChannel();
-    private Consumer<Token> nextTask;
+    private TaskSupplier nextTask;
     private Object result;
     private Token parent;
 
@@ -32,14 +31,14 @@ public class DefaultToken implements Token {
     }
 
     @Override
-    public void passTo(Consumer<Token> nextTask) {
+    public void passTo(TaskSupplier nextTask) {
         this.nextTask = nextTask;
         wasPassedTo(nextTask);
         eventChannel.fireEvent(TokenListener.class, eh -> eh.wasPassed());
     }
 
     @Override
-    public Token newToken(Consumer<Token> initialTask) {
+    public Token newToken(TaskSupplier initialTask) {
         return new DefaultToken(parent);
     }
 
@@ -51,10 +50,11 @@ public class DefaultToken implements Token {
     private ArrayList<Token> tokens = new ArrayList<>();
 
     public void proceed() {
-        nextTask.accept(this);
+        //nextTask.accept(this);
+        nextTask.newTask().accept(this);
     }
 
-    protected void setNextTask(Consumer<Token> nextTask) {
+    protected void setNextTask(TaskSupplier nextTask) {
         this.nextTask = nextTask;
     }
 
@@ -79,7 +79,7 @@ public class DefaultToken implements Token {
         eventChannel.fireEvent(TokenListener.class, eh -> eh.wasClosed());
     }
 
-    protected void wasPassedTo(Consumer<Token> nextTask) {
+    protected void wasPassedTo(TaskSupplier nextTask) {
 
     }
 

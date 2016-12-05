@@ -12,7 +12,7 @@ public class Scheduler {
         this.executorService = executorService;
     }
 
-    public <T> TaskFuture<T> call(Consumer<Token> task) {
+    public <T> TaskFuture<T> call(TaskSupplier task) {
         Token t = token.newToken(task);
 
         if(!((SQLToken)t).hasMore()) {

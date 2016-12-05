@@ -1,12 +1,10 @@
 package jorch;
 
-import java.util.function.Consumer;
-
 public interface Token extends AutoCloseable {
     EventChannel getEventChannel();
     void finish(Object result);
-    void passTo(Consumer<Token> nextTask);
-    Token newToken(Consumer<Token> initialTask);
+    void passTo(TaskSupplier nextTask);
+    Token newToken(TaskSupplier initialTask);
     Object getResult();
     Token getParent();
 }

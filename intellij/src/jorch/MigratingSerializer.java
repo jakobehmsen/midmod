@@ -23,7 +23,9 @@ public class MigratingSerializer implements Serializer {
 
             return obj;*/
 
-            return MigratingSerializer.replaceObject(obj);
+            //return MigratingSerializer.replaceObject(obj);
+
+            return obj;
         }
     }
 
@@ -44,7 +46,9 @@ public class MigratingSerializer implements Serializer {
         }
 
         protected Object resolveObject(Object obj) throws IOException {
-            return replaceObject(obj);
+            //return replaceObject(obj);
+
+            return obj;
         }
     }
 

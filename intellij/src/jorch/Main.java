@@ -71,6 +71,10 @@ public class Main {
         public String toString() {
             return "Enter " + name;
         }
+
+        public static void replaceWith(ClassReplacer classReplacer, String name) {
+            classReplacer.replaceWith(EnterValue_V2.class, new Object[]{name});
+        }
     }
 
     public static class EnterValue_V2 implements Consumer<Token>, Serializable {
@@ -110,6 +114,10 @@ public class Main {
         public String toString() {
             return "Enter " + name;
         }
+
+        public static void replaceWith(ClassReplacer classReplacer, String name) {
+            classReplacer.replaceWith(EnterValue_V3.class, new Object[]{name});
+        }
     }
 
     public static class EnterValue_V3 implements Consumer<Token>, Serializable {
@@ -125,7 +133,7 @@ public class Main {
             requestHalt(new Runnable() {
                 @Override
                 public void run() {
-                    String enterValue = JOptionPane.showInputDialog("Please enter " + name);
+                    String enterValue = JOptionPane.showInputDialog("Please enter " + name + " :)");
 
                     if(enterValue != null) {
                         token.finish(enterValue);
@@ -185,7 +193,8 @@ public class Main {
                 e.printStackTrace();
             }
             System.out.println("Step 1 ended");
-            token.passTo(new Step4());
+            //token.passTo(new Step4());
+            token.passTo(new DefaultTaskSupplier(Step4.class));
         }
 
         @Override
@@ -221,8 +230,10 @@ public class Main {
         @Override
         public void accept(Token token) {
             Scheduler scheduler = new Scheduler(token, executorService);
-            TaskFuture<String> s1 = scheduler.call(new EnterValue("Name"));
-            TaskFuture<String> s2 = scheduler.call(new EnterValue("Age"));
+            //TaskFuture<String> s1 = scheduler.call(new EnterValue("Name"));
+            //TaskFuture<String> s2 = scheduler.call(new EnterValue("Age"));
+            TaskFuture<String> s1 = scheduler.call(new DefaultTaskSupplier(EnterValue.class, "Name"));
+            TaskFuture<String> s2 = scheduler.call(new DefaultTaskSupplier(EnterValue.class, "Age"));
 
             String s1Result = s1.get();
             String s2Result = s2.get();
@@ -232,7 +243,9 @@ public class Main {
 
             System.out.println("Merged and all are finished");
 
-            token.passTo(new ShowResult("Hello " + s1Result + " (" + s2Result + ")"));
+            //token.passTo(new ShowResult("Hello " + s1Result + " (" + s2Result + ")"));
+            //token.passTo(new DefaultTaskSupplier(ShowResult.class, "Hello " + s1Result + " (" + s2Result + ")"));
+            token.passTo(new DefaultTaskSupplier(ShowResult.class).withArgument(Object.class, "Hello " + s1Result + " (" + s2Result + ")"));
         }
 
         @Override
@@ -285,9 +298,12 @@ public class Main {
     public static void main(String[] args) throws Exception {
         SQLRepository repository = new SQLRepository(new MigratingSerializer());
 
-        ArrayList<Supplier<Consumer<Token>>> procedures = new ArrayList<>();
+        ArrayList<TaskSupplier> procedures = new ArrayList<>();
 
-        procedures.add(new Supplier<Consumer<Token>>() {
+        procedures.add(new DefaultTaskSupplier(Step1.class));
+        procedures.add(new DefaultTaskSupplier(Step3ForkAndMerge.class));
+
+        /*procedures.add(new Supplier<Consumer<Token>>() {
             @Override
             public Consumer<Token> get() {
                 return new Step1();
@@ -297,9 +313,9 @@ public class Main {
             public String toString() {
                 return "Procedure 1";
             }
-        });
+        });*/
 
-        procedures.add(new Supplier<Consumer<Token>>() {
+        /*procedures.add(new Supplier<Consumer<Token>>() {
             @Override
             public Consumer<Token> get() {
                 return new Step3ForkAndMerge();
@@ -309,19 +325,20 @@ public class Main {
             public String toString() {
                 return "Procedure fork-and-merge";
             }
-        });
+        });*/
 
-        DefaultListModel<Supplier<Consumer<Token>>> proceduresModel = new DefaultListModel<>();
-        JList<Supplier<Consumer<Token>>> proceduresView = new JList<>(proceduresModel);
+        DefaultListModel<TaskSupplier> proceduresModel = new DefaultListModel<>();
+        JList<TaskSupplier> proceduresView = new JList<>(proceduresModel);
         procedures.forEach(p -> proceduresModel.addElement(p));
         proceduresView.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if(e.getClickCount() == 2 && proceduresView.getSelectedIndex() != -1) {
-                    Supplier<Consumer<Token>> procedures = proceduresView.getSelectedValue();
-                    Consumer<Token> task = procedures.get();
+                    TaskSupplier procedure = proceduresView.getSelectedValue();
+                    //Consumer<Token> task = procedures.get();
+
                     try {
-                        SQLToken token = repository.newToken(task);
+                        SQLToken token = repository.newToken(procedure);
                         executorService.execute(() -> {
                             token.proceed();
                         });

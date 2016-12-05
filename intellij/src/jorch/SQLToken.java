@@ -66,7 +66,7 @@ public class SQLToken extends DefaultToken {
         Blob nextTaskAsBlob = resultSet.getBlob(3);
         if (!resultSet.wasNull()) {
             try (InputStream inputStream = nextTaskAsBlob.getBinaryStream()) {
-                Consumer<Token> nextTask = (Consumer<Token>) connectionSupplier.deserialize(inputStream);
+                TaskSupplier nextTask = (TaskSupplier) connectionSupplier.deserialize(inputStream);
                 t.setNextTask(nextTask);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -138,7 +138,7 @@ public class SQLToken extends DefaultToken {
     }
 
     @Override
-    protected void wasPassedTo(Consumer<Token> nextTask) {
+    protected void wasPassedTo(TaskSupplier nextTask) {
         try(SQLSession session = repository.newSession()) {
             try(PreparedStatement statement = session.getConnection().prepareStatement("UPDATE token SET next_task = ? WHERE id = ?")) {
                 Blob nextTaskAsBlob = session.getConnection().createBlob();
@@ -177,13 +177,15 @@ public class SQLToken extends DefaultToken {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     @Override
-    public Token newToken(Consumer<Token> initialTask) {
+    public Token newToken(TaskSupplier initialTask) {
         try {
             SQLToken t;
             if(waitingFor != null && waitingFor.size() > 0)
