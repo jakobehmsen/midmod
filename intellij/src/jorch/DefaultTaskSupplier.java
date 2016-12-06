@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class DefaultTaskSupplier implements TaskSupplier, Serializable {
+    private static final long serialVersionUID = -2165090423384357750L;
     private Class<? extends Consumer<Token>> c;
     private Constructor<? extends Consumer<Token>> constructor;
     private Class<?>[] parameterTypes;
@@ -70,9 +71,9 @@ public class DefaultTaskSupplier implements TaskSupplier, Serializable {
         try {
             ClassReplacer classReplacer = new ClassReplacer() {
                 @Override
-                public void replaceWith(Class<? extends Consumer<Token>> c, Object[] arguments) {
+                public void replaceWith(Class<? extends Consumer<Token>> c, Class<?>[] parameterTypes, Object[] arguments) {
                     try {
-                        constructor = c.getConstructor(Arrays.asList(constructorArgs).stream().map(x -> x.getClass()).toArray(s -> new Class<?>[s]));
+                        constructor = c.getConstructor(parameterTypes);
                     } catch (NoSuchMethodException e) {
                         e.printStackTrace();
                     }

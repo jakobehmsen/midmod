@@ -73,7 +73,7 @@ public class Main {
         }
 
         public static void replaceWith(ClassReplacer classReplacer, String name) {
-            classReplacer.replaceWith(EnterValue_V2.class, new Object[]{name});
+            classReplacer.replaceWith(EnterValue_V2.class, new Class<?>[]{String.class}, new Object[]{name});
         }
     }
 
@@ -116,7 +116,7 @@ public class Main {
         }
 
         public static void replaceWith(ClassReplacer classReplacer, String name) {
-            classReplacer.replaceWith(EnterValue_V3.class, new Object[]{name});
+            classReplacer.replaceWith(EnterValue_V3.class, new Class<?>[]{String.class}, new Object[]{name});
         }
     }
 
