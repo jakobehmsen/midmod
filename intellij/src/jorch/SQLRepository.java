@@ -21,9 +21,11 @@ public class SQLRepository {
     private EventChannel eventChannel = new EventChannel();
     private static ThreadLocal<SQLSession> rootSession = new ThreadLocal<>();
     private Serializer serializer;
+    private TaskFactory taskFactory;
 
-    public SQLRepository(Serializer serializer) {
+    public SQLRepository(Serializer serializer, TaskFactory taskFactory) {
         this.serializer = serializer;
+        this.taskFactory = taskFactory;
     }
 
     public EventChannel getEventChannel() {
@@ -108,19 +110,19 @@ public class SQLRepository {
         }
     }
 
-    public SQLToken newToken(TaskSupplier initialTask) throws SQLException {
+    public SQLToken newToken(TaskSelector initialTask) throws SQLException {
         initialTask = load(initialTask);
-        SQLToken t = SQLToken.add(this);
+        SQLToken t = SQLToken.add(this, taskFactory);
         t.passTo(initialTask);
         eventChannel.fireEvent(TokenContainerListener.class, eh -> eh.addedToken(t));
         return t;
     }
 
     public List<SQLToken> allTokens() throws SQLException {
-        return SQLToken.all(this);
+        return SQLToken.all(this, taskFactory);
     }
 
-    public TaskSupplier load(TaskSupplier task) {
+    public TaskSelector load(TaskSelector task) {
         return task;
     }
 

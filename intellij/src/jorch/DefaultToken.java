@@ -4,12 +4,18 @@ import java.util.ArrayList;
 
 public class DefaultToken implements Token {
     private EventChannel eventChannel = new EventChannel();
-    private TaskSupplier nextTask;
+    private TaskSelector nextTask;
     private Object result;
     private Token parent;
+    private TaskFactory taskFactory;
 
-    public DefaultToken(Token parent) {
+    public DefaultToken(Token parent, TaskFactory taskFactory) {
         this.parent = parent;
+        this.taskFactory = taskFactory;
+    }
+
+    protected TaskFactory getTaskFactory() {
+        return taskFactory;
     }
 
     @Override
@@ -31,15 +37,15 @@ public class DefaultToken implements Token {
     }
 
     @Override
-    public void passTo(TaskSupplier nextTask) {
+    public void passTo(TaskSelector nextTask) {
         this.nextTask = nextTask;
         wasPassedTo(nextTask);
         eventChannel.fireEvent(TokenListener.class, eh -> eh.wasPassed());
     }
 
     @Override
-    public Token newToken(TaskSupplier initialTask) {
-        return new DefaultToken(parent);
+    public Token newToken(TaskSelector initialTask) {
+        return new DefaultToken(parent, taskFactory);
     }
 
     public void addSequentialScheduler(Token token) {
@@ -51,10 +57,11 @@ public class DefaultToken implements Token {
 
     public void proceed() {
         //nextTask.accept(this);
-        nextTask.newTask().accept(this);
+        taskFactory.newTask(nextTask.getName(), nextTask.getArguments()).accept(this);
+        //nextTask.newTask().accept(this);
     }
 
-    protected void setNextTask(TaskSupplier nextTask) {
+    protected void setNextTask(TaskSelector nextTask) {
         this.nextTask = nextTask;
     }
 
@@ -79,7 +86,7 @@ public class DefaultToken implements Token {
         eventChannel.fireEvent(TokenListener.class, eh -> eh.wasClosed());
     }
 
-    protected void wasPassedTo(TaskSupplier nextTask) {
+    protected void wasPassedTo(TaskSelector nextTask) {
 
     }
 

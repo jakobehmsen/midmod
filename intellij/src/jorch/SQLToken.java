@@ -6,15 +6,14 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
-import java.util.function.Consumer;
 
 public class SQLToken extends DefaultToken {
     private int id;
     private SQLRepository repository;
     private Queue<SQLToken> waitingFor;
 
-    public SQLToken(int id, SQLToken parent, SQLRepository connectionSupplier) {
-        super(parent);
+    public SQLToken(int id, SQLToken parent, TaskFactory taskFactory, SQLRepository connectionSupplier) {
+        super(parent, taskFactory);
         this.id = id;
         this.repository = connectionSupplier;
     }
@@ -24,11 +23,11 @@ public class SQLToken extends DefaultToken {
         return (SQLToken) super.getParent();
     }
 
-    public static List<SQLToken> all(SQLRepository connectionSupplier) throws SQLException {
+    public static List<SQLToken> all(SQLRepository connectionSupplier, TaskFactory taskFactory) throws SQLException {
         try(SQLSession session = connectionSupplier.newSession()) {
             try(PreparedStatement statement = session.getConnection().prepareStatement("SELECT * FROM token WHERE parent_id IS NULL", Statement.RETURN_GENERATED_KEYS)) {
                 ResultSet resultSet = statement.executeQuery();
-                return all(connectionSupplier, null, resultSet);
+                return all(connectionSupplier, null, taskFactory, resultSet);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -36,12 +35,12 @@ public class SQLToken extends DefaultToken {
         }
     }
 
-    public static List<SQLToken> all(SQLRepository connectionSupplier, SQLToken parent) throws SQLException {
+    public static List<SQLToken> all(SQLRepository connectionSupplier, SQLToken parent, TaskFactory taskFactory) throws SQLException {
         try(SQLSession session = connectionSupplier.newSession()) {
             try(PreparedStatement statement = session.getConnection().prepareStatement("SELECT * FROM token WHERE parent_id = ?", Statement.RETURN_GENERATED_KEYS)) {
                 statement.setInt(1, parent.id);
                 ResultSet resultSet = statement.executeQuery();
-                return all(connectionSupplier, parent, resultSet);
+                return all(connectionSupplier, parent, taskFactory, resultSet);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -49,24 +48,24 @@ public class SQLToken extends DefaultToken {
         }
     }
 
-    public static List<SQLToken> all(SQLRepository connectionSupplier, SQLToken parent, ResultSet resultSet) throws SQLException {
+    public static List<SQLToken> all(SQLRepository connectionSupplier, SQLToken parent, TaskFactory taskFactory, ResultSet resultSet) throws SQLException {
         ArrayList<SQLToken> all = new ArrayList<>();
 
         while(resultSet.next()) {
-            SQLToken t = single(connectionSupplier, parent, resultSet);
+            SQLToken t = single(connectionSupplier, parent, taskFactory, resultSet);
             all.add(t);
         }
 
         return all;
     }
 
-    public static SQLToken single(SQLRepository connectionSupplier, SQLToken parent, ResultSet resultSet) throws SQLException {
+    public static SQLToken single(SQLRepository connectionSupplier, SQLToken parent, TaskFactory taskFactory, ResultSet resultSet) throws SQLException {
         int id = resultSet.getInt(1);
-        SQLToken t = new SQLToken(id, parent, connectionSupplier);
+        SQLToken t = new SQLToken(id, parent, taskFactory, connectionSupplier);
         Blob nextTaskAsBlob = resultSet.getBlob(3);
         if (!resultSet.wasNull()) {
             try (InputStream inputStream = nextTaskAsBlob.getBinaryStream()) {
-                TaskSupplier nextTask = (TaskSupplier) connectionSupplier.deserialize(inputStream);
+                TaskSelector nextTask = (TaskSelector) connectionSupplier.deserialize(inputStream);
                 t.setNextTask(nextTask);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -87,16 +86,16 @@ public class SQLToken extends DefaultToken {
                 e.printStackTrace();
             }
         }
-        List<SQLToken> sqlSequentialSchedulers = all(connectionSupplier, t);
+        List<SQLToken> sqlSequentialSchedulers = all(connectionSupplier, t, taskFactory);
         t.waitingFor = new LinkedList<>(sqlSequentialSchedulers);
         return t;
     }
 
-    public static SQLToken add(SQLRepository connectionSupplier) throws SQLException {
-        return add(connectionSupplier, null);
+    public static SQLToken add(SQLRepository connectionSupplier, TaskFactory taskFactory) throws SQLException {
+        return add(connectionSupplier, null, taskFactory);
     }
 
-    public static SQLToken add(SQLRepository connectionSupplier, SQLToken parent) throws SQLException {
+    public static SQLToken add(SQLRepository connectionSupplier, SQLToken parent, TaskFactory taskFactory) throws SQLException {
         try(SQLSession session = connectionSupplier.newSession()) {
             try(PreparedStatement statement = session.getConnection().prepareStatement("INSERT INTO token (parent_id) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
                 if(parent != null)
@@ -108,7 +107,7 @@ public class SQLToken extends DefaultToken {
 
                 tableKeys.next();
                 int id = tableKeys.getInt(1);
-                return new SQLToken(id, parent, connectionSupplier);
+                return new SQLToken(id, parent, taskFactory, connectionSupplier);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -138,7 +137,7 @@ public class SQLToken extends DefaultToken {
     }
 
     @Override
-    protected void wasPassedTo(TaskSupplier nextTask) {
+    protected void wasPassedTo(TaskSelector nextTask) {
         try(SQLSession session = repository.newSession()) {
             try(PreparedStatement statement = session.getConnection().prepareStatement("UPDATE token SET next_task = ? WHERE id = ?")) {
                 Blob nextTaskAsBlob = session.getConnection().createBlob();
@@ -185,13 +184,13 @@ public class SQLToken extends DefaultToken {
     }
 
     @Override
-    public Token newToken(TaskSupplier initialTask) {
+    public Token newToken(TaskSelector initialTask) {
         try {
             SQLToken t;
             if(waitingFor != null && waitingFor.size() > 0)
                 t = waitingFor.poll();
             else {
-                t = SQLToken.add(repository, this);
+                t = SQLToken.add(repository, this, getTaskFactory());
                 t.passTo(initialTask);
             }
             addSequentialScheduler(t);
