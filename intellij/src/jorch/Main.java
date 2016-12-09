@@ -23,19 +23,21 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        DefaultTaskFactory taskFactory = new DefaultTaskFactory();
+        TaskFactory taskFactory = new ReflectiveTaskFactory(token -> new Scheduler(token, executorService), new TestTaskFactory(a -> requestHalt(a)));
+
+        /*DefaultTaskFactory taskFactory = new DefaultTaskFactory();
         TaskFactoryExt taskFactoryExt = new TaskFactoryExt(taskFactory, token -> new Scheduler(token, executorService));
 
-        taskFactoryExt.mapSplit("Fork-and-merge", arguments -> (token, scheduler) -> {
-            TaskFuture<String> s1 = scheduler.call(new TaskSelector("EnterValue", new Object[]{"Name"}));
-            TaskFuture<String> s2 = scheduler.call(new TaskSelector("EnterValue", new Object[]{"Age"}));
+        taskFactoryExt.mapSplit("forkAndMerge", arguments -> (token, scheduler) -> {
+            TaskFuture<String> s1 = scheduler.call(new TaskSelector("enterValue", new Object[]{"Name"}));
+            TaskFuture<String> s2 = scheduler.call(new TaskSelector("enterValue", new Object[]{"Age"}));
 
             String s1Result = s1.get();
             String s2Result = s2.get();
 
-            token.passTo(new TaskSelector("ShowResult", new Object[]{"Hello " + s1Result + " (" + s2Result + ")"}));
+            token.passTo(new TaskSelector("showResult", new Object[]{"Hello " + s1Result + " (" + s2Result + ")"}));
         });
-        taskFactoryExt.mapTask("ShowResult", arguments -> {
+        taskFactoryExt.mapTask("showResult", arguments -> {
             Object result = arguments[0];
             return token -> {
                 requestHalt(new Runnable() {
@@ -55,7 +57,7 @@ public class Main {
                 });
             };
         });
-        taskFactoryExt.mapTask("EnterValue", arguments -> {
+        taskFactoryExt.mapTask("enterValue", arguments -> {
             String name = (String) arguments[0];
             return token -> {
                 requestHalt(new Runnable() {
@@ -76,7 +78,7 @@ public class Main {
                     }
                 });
             };
-        });
+        });*/
 
         SQLRepository repository = new SQLRepository(new MigratingSerializer(), taskFactory);
 
@@ -85,7 +87,7 @@ public class Main {
         procedures.add(new Supplier<TaskSelector>() {
             @Override
             public TaskSelector get() {
-                return new TaskSelector("Fork-and-merge", new Object[]{});
+                return new TaskSelector("forkAndMerge", new Object[]{});
             }
 
             @Override
