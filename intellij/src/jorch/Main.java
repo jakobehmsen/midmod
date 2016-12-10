@@ -22,63 +22,52 @@ public class Main {
         });
     }
 
+    private static <T> T requestHaltCall(Callable<T> activator) {
+        CountDownLatch latch = new CountDownLatch(1);
+        T[] resultHolder = (T[])new Object[1];
+
+        Future<T> future = executorService.submit(() -> {
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return resultHolder[0];
+        });
+
+        SwingUtilities.invokeLater(() -> {
+            tasksModel.addElement(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        resultHolder[0] = activator.call();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    latch.countDown();
+                }
+
+                @Override
+                public String toString() {
+                    return activator.toString();
+                }
+            });
+        });
+
+        try {
+            return future.get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
     public static void main(String[] args) throws Exception {
-        TaskFactory taskFactory = new ReflectiveTaskFactory(token -> new Scheduler(token, executorService), new TestTaskFactory(a -> requestHalt(a)));
-
-        /*DefaultTaskFactory taskFactory = new DefaultTaskFactory();
-        TaskFactoryExt taskFactoryExt = new TaskFactoryExt(taskFactory, token -> new Scheduler(token, executorService));
-
-        taskFactoryExt.mapSplit("forkAndMerge", arguments -> (token, scheduler) -> {
-            TaskFuture<String> s1 = scheduler.call(new TaskSelector("enterValue", new Object[]{"Name"}));
-            TaskFuture<String> s2 = scheduler.call(new TaskSelector("enterValue", new Object[]{"Age"}));
-
-            String s1Result = s1.get();
-            String s2Result = s2.get();
-
-            token.passTo(new TaskSelector("showResult", new Object[]{"Hello " + s1Result + " (" + s2Result + ")"}));
-        });
-        taskFactoryExt.mapTask("showResult", arguments -> {
-            Object result = arguments[0];
-            return token -> {
-                requestHalt(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            token.close();
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-
-                    @Override
-                    public String toString() {
-                        return "=> " + result;
-                    }
-                });
-            };
-        });
-        taskFactoryExt.mapTask("enterValue", arguments -> {
-            String name = (String) arguments[0];
-            return token -> {
-                requestHalt(new Runnable() {
-                    @Override
-                    public void run() {
-                        String enterValue = JOptionPane.showInputDialog("Please enter " + name);
-
-                        if(enterValue != null) {
-                            token.finish(enterValue);
-                        } else {
-                            requestHalt(this);
-                        }
-                    }
-
-                    @Override
-                    public String toString() {
-                        return "Enter " + name;
-                    }
-                });
-            };
-        });*/
+        TaskFactory taskFactory = new ReflectiveTaskFactory(token -> new Scheduler(token, executorService),
+            new TestTaskFactory(a -> requestHalt(a), c -> requestHaltCall(c)));
 
         SQLRepository repository = new SQLRepository(new MigratingSerializer(), taskFactory);
 

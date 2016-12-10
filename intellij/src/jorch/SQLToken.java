@@ -117,6 +117,15 @@ public class SQLToken extends DefaultToken {
 
     @Override
     protected void finished(Object result) {
+        if(getParent() == null) {
+            try {
+                close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return;
+        }
+
         try(SQLSession session = repository.newSession()) {
             try(PreparedStatement statement = session.getConnection().prepareStatement("UPDATE token SET next_task = NULL, result = ? WHERE id = ?")) {
                 Blob resultAsBlob = session.getConnection().createBlob();
