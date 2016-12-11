@@ -4,25 +4,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.List;
 
-public class SQLRepository {
-    static {
-        try {
-            Class.forName("com.mysql.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("Cannot find the driver in the classpath!", e);
-        }
-    }
-
+public abstract class SQLBasedRepository {
     private EventChannel eventChannel = new EventChannel();
     private static ThreadLocal<PersistenceSession> rootSession = new ThreadLocal<>();
     private Serializer serializer;
     private TaskFactory taskFactory;
 
-    public SQLRepository(Serializer serializer, TaskFactory taskFactory) {
+    public SQLBasedRepository(Serializer serializer, TaskFactory taskFactory) {
         this.serializer = serializer;
         this.taskFactory = taskFactory;
     }
@@ -72,7 +63,7 @@ public class SQLRepository {
         }
 
         return new PersistenceSession() {
-            private PersistenceSession rootSession = SQLRepository.rootSession.get();
+            private PersistenceSession rootSession = SQLBasedRepository.rootSession.get();
 
             @Override
             public Connection getConnection() {
@@ -96,30 +87,23 @@ public class SQLRepository {
         };
     }
 
-    private Connection newConnection() {
-        String url = "jdbc:mysql://localhost:3306/jorch?autoReconnect=true&useSSL=false";
-        String username = "jorch_user";
-        String password = "12345678";
+    protected abstract Connection newConnection();
 
-        try {
-            return DriverManager.getConnection(url, username, password);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    public SQLToken newToken(TaskSelector initialTask) throws SQLException {
+    public SQLBasedToken newToken(TaskSelector initialTask) throws SQLException {
         initialTask = load(initialTask);
-        SQLToken t = SQLToken.add(this, taskFactory);
+        SQLBasedToken t = addToken(taskFactory);
         t.passTo(initialTask);
         eventChannel.fireEvent(TokenContainerListener.class, eh -> eh.addedToken(t));
         return t;
     }
 
-    public List<SQLToken> allTokens() throws SQLException {
-        return SQLToken.all(this, taskFactory);
+    protected abstract SQLBasedToken addToken(TaskFactory taskFactory) throws SQLException;
+
+    public List<SQLBasedToken> allTokens() throws SQLException {
+        return allTokens(taskFactory);
     }
+
+    protected abstract List<SQLBasedToken> allTokens(TaskFactory taskFactory);
 
     public TaskSelector load(TaskSelector task) {
         return task;
@@ -132,4 +116,16 @@ public class SQLRepository {
     public Object deserialize(InputStream inputStream) throws ClassNotFoundException, IOException {
         return serializer.deserialize(inputStream);
     }
+
+    public SQLBasedToken addToken(SQLBasedToken parent) throws SQLException {
+        return addToken(parent, taskFactory);
+    }
+
+    protected abstract SQLBasedToken addToken(SQLBasedToken parent, TaskFactory taskFactory) throws SQLException;
+
+    public abstract void finished(SQLBasedToken token, Object result);
+
+    public abstract void wasPassedTo(SQLBasedToken token, TaskSelector nextTask);
+
+    public abstract void close(SQLBasedToken token);
 }

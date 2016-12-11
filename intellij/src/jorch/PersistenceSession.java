@@ -2,7 +2,7 @@ package jorch;
 
 import java.sql.Connection;
 
-public interface SQLSession extends AutoCloseable {
+public interface PersistenceSession extends AutoCloseable {
     Connection getConnection();
 
     void attach();
