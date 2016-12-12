@@ -69,7 +69,8 @@ public class Main {
         TaskFactory taskFactory = new ReflectiveTaskFactory(token -> new Scheduler(token, executorService),
             new TestTaskFactory(a -> requestHalt(a), c -> requestHaltCall(c)));
 
-        SQLRepository repository = new SQLRepository(new MigratingSerializer(), taskFactory);
+        //SQLRepository repository = new SQLRepository(new MigratingSerializer(), taskFactory);
+        MySQLTokenRepository repository = new MySQLTokenRepository(new MigratingSerializer(), taskFactory);
 
         ArrayList<Supplier<TaskSelector>> procedures = new ArrayList<>();
 
@@ -96,7 +97,7 @@ public class Main {
                     TaskSelector taskSelector = procedure.get();
 
                     try {
-                        SQLToken token = repository.newToken(taskSelector);
+                        RepositoryBasedToken token = repository.newToken(taskSelector);
                         executorService.execute(() -> {
                             token.proceed();
                         });
@@ -123,7 +124,7 @@ public class Main {
                 @Override
                 public void wasPassed() {
                     executorService.execute(() -> {
-                        ((SQLToken)token).proceed();
+                        ((RepositoryBasedToken)token).proceed();
                     });
                 }
 
@@ -147,15 +148,15 @@ public class Main {
 
                     @Override
                     public void addedToken(Token token2) {
-                        if(((SQLToken)token2).hasMore() || token2.getParent() == null)
+                        if(((RepositoryBasedToken)token2).hasMore() || token2.getParent() == null)
                             addSS.accept(token2);
 
                         token2.getEventChannel().add(this);
 
                         synchronized (this) {
-                            if (loading && ((SQLToken)token2).hasMore() && ((SQLToken)token2).isWaiting()) {
+                            if (loading && ((RepositoryBasedToken)token2).hasMore() && ((RepositoryBasedToken)token2).isWaiting()) {
                                 executorService.execute(() -> {
-                                    SQLToken t = (SQLToken) token2;
+                                    RepositoryBasedToken t = (RepositoryBasedToken) token2;
                                     t.proceed();
                                 });
 

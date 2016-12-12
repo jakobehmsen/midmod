@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-public class MySQLRepository extends SQLBasedRepository {
+public class MySQLTokenRepository extends TokenRepository {
     static {
         try {
             Class.forName("com.mysql.jdbc.Driver");
@@ -18,12 +18,11 @@ public class MySQLRepository extends SQLBasedRepository {
         }
     }
 
-    public MySQLRepository(Serializer serializer, TaskFactory taskFactory) {
+    public MySQLTokenRepository(Serializer serializer, TaskFactory taskFactory) {
         super(serializer, taskFactory);
     }
 
-    @Override
-    protected Connection newConnection() {
+    private Connection newConnection() {
         String url = "jdbc:mysql://localhost:3306/jorch?autoReconnect=true&useSSL=false";
         String username = "jorch_user";
         String password = "12345678";
@@ -36,9 +35,9 @@ public class MySQLRepository extends SQLBasedRepository {
         }
     }
 
-    public SQLBasedToken single(SQLBasedToken parent, TaskFactory taskFactory, ResultSet resultSet) throws SQLException {
+    public RepositoryBasedToken single(RepositoryBasedToken parent, TaskFactory taskFactory, ResultSet resultSet) throws SQLException {
         int id = getId(resultSet);
-        SQLBasedToken t = newToken(id, parent, taskFactory, this);
+        RepositoryBasedToken t = newToken(id, parent, taskFactory, this);
         Blob nextTaskAsBlob = gextTaskAsBlob(resultSet);
         if (!resultSet.wasNull()) {
             try (InputStream inputStream = nextTaskAsBlob.getBinaryStream()) {
@@ -63,13 +62,13 @@ public class MySQLRepository extends SQLBasedRepository {
                 e.printStackTrace();
             }
         }
-        List<SQLBasedToken> sqlSequentialSchedulers = all(t, taskFactory);
+        List<RepositoryBasedToken> sqlSequentialSchedulers = all(t, taskFactory);
         t.setWaitingFor(new LinkedList<>(sqlSequentialSchedulers));
         return t;
     }
 
-    protected SQLBasedToken newToken(int id, SQLBasedToken parent, TaskFactory taskFactory, SQLBasedRepository repository) {
-        return new SQLBasedToken(id, parent, taskFactory, repository);
+    protected RepositoryBasedToken newToken(int id, RepositoryBasedToken parent, TaskFactory taskFactory, TokenRepository repository) {
+        return new RepositoryBasedToken(id, parent, taskFactory, repository);
     }
 
     protected int getId(ResultSet resultSet) throws SQLException {
@@ -84,14 +83,12 @@ public class MySQLRepository extends SQLBasedRepository {
         return resultSet.getBlob(4);
     }
 
-    private List<SQLBasedToken> all(SQLBasedToken parent, TaskFactory taskFactory) {
-        try(PersistenceSession session = newSession()) {
+    private List<RepositoryBasedToken> all(RepositoryBasedToken parent, TaskFactory taskFactory) {
+        try(Connection connection = newConnection()) {
             if(parent == null) {
-                ResultSet resultSet = queryAllRootTokens(session.getConnection());
-                return all(null, taskFactory, resultSet);
+                return queryAllRootTokens(connection, taskFactory);
             } else {
-                ResultSet resultSet = queryAllChildTokens(session.getConnection(), parent.getId());
-                return all(parent, taskFactory, resultSet);
+                return queryAllChildTokens(connection, parent, taskFactory);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -99,24 +96,26 @@ public class MySQLRepository extends SQLBasedRepository {
         }
     }
 
-    protected ResultSet queryAllRootTokens(Connection connection) throws SQLException {
+    protected List<RepositoryBasedToken> queryAllRootTokens(Connection connection, TaskFactory taskFactory) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM token WHERE parent_id IS NULL", Statement.RETURN_GENERATED_KEYS)) {
-            return statement.executeQuery();
+            ResultSet resultSet = statement.executeQuery();
+            return all(null, taskFactory, resultSet);
         }
     }
 
-    protected ResultSet queryAllChildTokens(Connection connection, int parentId) throws SQLException {
+    protected List<RepositoryBasedToken> queryAllChildTokens(Connection connection, RepositoryBasedToken parent, TaskFactory taskFactory) throws SQLException {
         try(PreparedStatement statement = connection.prepareStatement("SELECT * FROM token WHERE parent_id = ?", Statement.RETURN_GENERATED_KEYS)) {
-            statement.setInt(1, parentId);
-            return statement.executeQuery();
+            statement.setInt(1, parent.getId());
+            ResultSet resultSet = statement.executeQuery();
+            return all(parent, taskFactory, resultSet);
         }
     }
 
-    public List<SQLBasedToken> all(SQLBasedToken parent, TaskFactory taskFactory, ResultSet resultSet) throws SQLException {
-        ArrayList<SQLBasedToken> all = new ArrayList<>();
+    public List<RepositoryBasedToken> all(RepositoryBasedToken parent, TaskFactory taskFactory, ResultSet resultSet) throws SQLException {
+        ArrayList<RepositoryBasedToken> all = new ArrayList<>();
 
         while(resultSet.next()) {
-            SQLBasedToken t = single(parent, taskFactory, resultSet);
+            RepositoryBasedToken t = single(parent, taskFactory, resultSet);
             all.add(t);
         }
 
@@ -124,19 +123,19 @@ public class MySQLRepository extends SQLBasedRepository {
     }
 
     @Override
-    protected SQLBasedToken addToken(TaskFactory taskFactory) throws SQLException {
+    protected RepositoryBasedToken addToken(TaskFactory taskFactory) throws SQLException {
         return addToken(null, taskFactory);
     }
 
     @Override
-    protected List<SQLBasedToken> allTokens(TaskFactory taskFactory) {
-        return null;
+    protected List<RepositoryBasedToken> allTokens(TaskFactory taskFactory) {
+        return all(null, taskFactory);
     }
 
     @Override
-    protected SQLBasedToken addToken(SQLBasedToken parent, TaskFactory taskFactory) throws SQLException {
-        try(PersistenceSession session = newSession()) {
-            try(PreparedStatement statement = session.getConnection().prepareStatement("INSERT INTO token (parent_id) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
+    protected RepositoryBasedToken addToken(RepositoryBasedToken parent, TaskFactory taskFactory) throws SQLException {
+        try(Connection connection = newConnection()) {
+            try(PreparedStatement statement = connection.prepareStatement("INSERT INTO token (parent_id) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
                 if(parent != null)
                     statement.setInt(1, parent.getId());
                 else
@@ -146,7 +145,7 @@ public class MySQLRepository extends SQLBasedRepository {
 
                 tableKeys.next();
                 int id = tableKeys.getInt(1);
-                return new SQLBasedToken(id, parent, taskFactory, this);
+                return new RepositoryBasedToken(id, parent, taskFactory, this);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -155,10 +154,10 @@ public class MySQLRepository extends SQLBasedRepository {
     }
 
     @Override
-    public void finished(SQLBasedToken token, Object result) {
-        try(PersistenceSession session = newSession()) {
-            try(PreparedStatement statement = session.getConnection().prepareStatement("UPDATE token SET next_task = NULL, result = ? WHERE id = ?")) {
-                Blob resultAsBlob = session.getConnection().createBlob();
+    public void finished(RepositoryBasedToken token, Object result) {
+        try(Connection connection = newConnection()) {
+            try(PreparedStatement statement = connection.prepareStatement("UPDATE token SET next_task = NULL, result = ? WHERE id = ?")) {
+                Blob resultAsBlob = connection.createBlob();
                 try(OutputStream outputStream = resultAsBlob.setBinaryStream(1)) {
                     serialize(result, outputStream);
                 }
@@ -176,10 +175,10 @@ public class MySQLRepository extends SQLBasedRepository {
     }
 
     @Override
-    public void wasPassedTo(SQLBasedToken token, TaskSelector nextTask) {
-        try(PersistenceSession session = newSession()) {
-            try(PreparedStatement statement = session.getConnection().prepareStatement("UPDATE token SET next_task = ? WHERE id = ?")) {
-                Blob nextTaskAsBlob = session.getConnection().createBlob();
+    public void wasPassedTo(RepositoryBasedToken token, TaskSelector nextTask) {
+        try(Connection connection = newConnection()) {
+            try(PreparedStatement statement = connection.prepareStatement("UPDATE token SET next_task = ? WHERE id = ?")) {
+                Blob nextTaskAsBlob = connection.createBlob();
                 try(OutputStream outputStream = nextTaskAsBlob.setBinaryStream(1)) {
                     serialize(nextTask, outputStream);
                 }
@@ -197,9 +196,9 @@ public class MySQLRepository extends SQLBasedRepository {
     }
 
     @Override
-    public void close(SQLBasedToken token) {
-        try(PersistenceSession session = newSession()) {
-            try(PreparedStatement statement = session.getConnection().prepareStatement("DELETE FROM token WHERE id = ?")) {
+    public void close(RepositoryBasedToken token) {
+        try(Connection connection = newConnection()) {
+            try(PreparedStatement statement = connection.prepareStatement("DELETE FROM token WHERE id = ?")) {
                 statement.setInt(1, token.getId());
                 statement.executeUpdate();
             }

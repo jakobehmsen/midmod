@@ -1,7 +1,6 @@
 package jorch;
 
 import java.util.concurrent.*;
-import java.util.function.Consumer;
 
 public class Scheduler {
     private Token token;
@@ -15,7 +14,7 @@ public class Scheduler {
     public <T> TaskFuture<T> call(TaskSelector task) {
         Token t = token.newToken(task);
 
-        if(!((SQLToken)t).hasMore()) {
+        if(!((RepositoryBasedToken)t).hasMore()) {
             return new TaskFuture<T>() {
                 @Override
                 public T get() {
@@ -45,7 +44,7 @@ public class Scheduler {
         });
 
         executorService.execute(() -> {
-            ((SQLToken) t).proceed();
+            ((RepositoryBasedToken) t).proceed();
         });
 
         return new TaskFuture<T>() {
