@@ -22,8 +22,14 @@ public class MySQLTokenRepository extends TokenRepository {
         super(serializer, taskFactory);
     }
 
+    private String schemaName = "jorch2";
+
     private Connection newConnection() {
-        String url = "jdbc:mysql://localhost:3306/jorch?autoReconnect=true&useSSL=false";
+        return newConnection(schemaName);
+    }
+
+    private Connection newConnection(String schemaName) {
+        String url = "jdbc:mysql://localhost:3306/" + schemaName + "?autoReconnect=true&useSSL=false";
         String username = "jorch_user";
         String password = "12345678";
 
@@ -32,6 +38,46 @@ public class MySQLTokenRepository extends TokenRepository {
         } catch (SQLException e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    @Override
+    public boolean exists() {
+        try(Connection connection = newConnection("INFORMATION_SCHEMA")) {
+            try(Statement statement = connection.createStatement()) {
+                String query = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '" + schemaName + "'";
+                ResultSet rs = statement.executeQuery(query);
+                rs.next();
+                return rs.getInt("COUNT(*)") > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    @Override
+    public void create() {
+        try(Connection connection = newConnection("INFORMATION_SCHEMA")) {
+            try(Statement statement = connection.createStatement()) {
+                statement.execute("CREATE DATABASE " + schemaName + "");
+                statement.execute("USE " + schemaName);
+                String sql =
+                    "CREATE TABLE `token` (\n" +
+                        "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                        "  `parent_id` int(11) DEFAULT NULL,\n" +
+                        "  `next_task` blob,\n" +
+                        "  `result` blob,\n" +
+                        "  PRIMARY KEY (`id`),\n" +
+                        "  KEY `fk_parent_idx` (`parent_id`),\n" +
+                        "  CONSTRAINT `fk_parent` FOREIGN KEY (`parent_id`) REFERENCES `token` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION\n" +
+                        ") ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=latin1;\n" +
+                        "";
+                statement.execute(sql);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 

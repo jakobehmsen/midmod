@@ -72,6 +72,10 @@ public class Main {
         //SQLRepository repository = new SQLRepository(new MigratingSerializer(), taskFactory);
         MySQLTokenRepository repository = new MySQLTokenRepository(new MigratingSerializer(), taskFactory);
 
+        if(!repository.exists()) {
+            repository.create();
+        }
+
         ArrayList<Supplier<TaskSelector>> procedures = new ArrayList<>();
 
         procedures.add(new Supplier<TaskSelector>() {

@@ -60,4 +60,8 @@ public abstract class TokenRepository {
     public abstract void wasPassedTo(RepositoryBasedToken token, TaskSelector nextTask);
 
     public abstract void close(RepositoryBasedToken token);
+
+    public abstract boolean exists();
+
+    public abstract void create();
 }
