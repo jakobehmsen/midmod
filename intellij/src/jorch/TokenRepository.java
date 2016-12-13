@@ -8,7 +8,6 @@ import java.util.List;
 
 public abstract class TokenRepository {
     private EventChannel eventChannel = new EventChannel();
-    private static ThreadLocal<PersistenceSession> rootSession = new ThreadLocal<>();
     private Serializer serializer;
     private TaskFactory taskFactory;
 
