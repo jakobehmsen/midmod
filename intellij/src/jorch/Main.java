@@ -1,10 +1,19 @@
 package jorch;
 
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
+import freemarker.template.Configuration;
+import freemarker.template.Template;
+import freemarker.template.TemplateException;
+import freemarker.template.TemplateExceptionHandler;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
+import java.net.InetSocketAddress;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.*;
@@ -66,6 +75,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
+
         TaskFactory taskFactory = new ReflectiveTaskFactory(token -> new Scheduler(token, executorService),
             new TestTaskFactory(a -> requestHalt(a), c -> requestHaltCall(c)));
 
@@ -89,6 +99,86 @@ public class Main {
                 return "Procedure fork-and-merge";
             }
         });
+
+        // Create your Configuration instance, and specify if up to what FreeMarker
+        // version (here 2.3.25) do you want to apply the fixes that are not 100%
+        // backward-compatible. See the Configuration JavaDoc for details.
+        Configuration cfg = new Configuration(Configuration.VERSION_2_3_25);
+
+        // Specify the source where the template files come from. Here I set a
+        // plain directory for it, but non-file-system sources are possible too:
+        cfg.setDirectoryForTemplateLoading(new File("./templates"));
+
+        // Set the preferred charset template files are stored in. UTF-8 is
+        // a good choice in most applications:
+        cfg.setDefaultEncoding("UTF-8");
+
+        // Sets how errors will appear.
+        // During web page *development* TemplateExceptionHandler.HTML_DEBUG_HANDLER is better.
+        cfg.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
+
+        // Don't log exceptions inside FreeMarker that it will thrown at you anyway:
+        cfg.setLogTemplateExceptions(false);
+
+        Resolver resolver = new Resolver();
+
+        HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
+        server.createContext("/test", new HttpHandler() {
+            @Override
+            public void handle(HttpExchange t) throws IOException {
+                String target = t.getRequestURI().toString().split("/")[2];
+                Object webCompatible = resolver.resolve(target);
+
+
+                Template temp = cfg.getTemplate(target + ".ftlh");
+                /*Class<?> c = null;
+                try {
+                    c = Class.forName("jorch." + target);
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }*/
+                /*Hashtable<String, Object> root = new Hashtable<>();
+
+                root.put("user", "MyMe");*/
+                /*root.put("extra", new Object() {
+                    public String getStuff() {
+                        return "Wowee";
+                    }
+                });*/
+
+                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                /*try {
+                    WebCompatible webCompatible = c.newInstance();
+
+                    webCompatible.process(cfg, byteArrayOutputStream);
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }*/
+                try {
+                    temp.process(webCompatible, new OutputStreamWriter(byteArrayOutputStream));
+                } catch (TemplateException e) {
+                    e.printStackTrace();
+                }
+
+                /*try {
+                    temp.process(webCompatible, new OutputStreamWriter(byteArrayOutputStream));
+                } catch (TemplateException e) {
+                    e.printStackTrace();
+                }*/
+                byte[] bytes = byteArrayOutputStream.toByteArray();
+                t.sendResponseHeaders(200, bytes.length);
+                OutputStream os = t.getResponseBody();
+                os.write(bytes);
+                os.close();
+            }
+        });
+        server.setExecutor(null); // creates a default executor
+        server.start();
+
+        if(1 != 2)
+            return;
 
         DefaultListModel<Supplier<TaskSelector>> proceduresModel = new DefaultListModel<>();
         JList<Supplier<TaskSelector>> proceduresView = new JList<>(proceduresModel);
