@@ -14,12 +14,16 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
 import java.net.InetSocketAddress;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class Main {
     private static ExecutorService executorService = Executors.newCachedThreadPool();
@@ -126,38 +130,36 @@ public class Main {
         server.createContext("/test", new HttpHandler() {
             @Override
             public void handle(HttpExchange t) throws IOException {
-                String target = t.getRequestURI().toString().split("/")[2];
-                Object webCompatible = resolver.resolve(target);
-
-
-                Template temp = cfg.getTemplate(target + ".ftlh");
-                /*Class<?> c = null;
-                try {
-                    c = Class.forName("jorch." + target);
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                }*/
-                /*Hashtable<String, Object> root = new Hashtable<>();
-
-                root.put("user", "MyMe");*/
-                /*root.put("extra", new Object() {
-                    public String getStuff() {
-                        return "Wowee";
+                String[] uriParts = t.getRequestURI().toString().split("/");
+                String target = uriParts[2];
+                String action = uriParts.length > 3 ? uriParts[3] : null;
+                java.util.Scanner s = new java.util.Scanner(t.getRequestBody()).useDelimiter("\\A");
+                String requestBody = s.hasNext() ? s.next() : "";
+                String encoding = "ISO-8859-1";
+                List<String> args = Arrays.asList(requestBody.split("&")).stream().filter(x -> x.length() > 0).map(x -> {
+                    String[] parts = x.split("=");
+                    try {
+                        for(int i = 0; i < parts.length; i++)
+                            parts[i] = URLDecoder.decode(parts[i], encoding);
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
                     }
-                });*/
+                    return parts.length == 2 ? parts[1] : null;
+                }).collect(Collectors.toList());
+                Object webCompatible = resolver.resolve(target, action, args);
 
                 ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                /*try {
-                    WebCompatible webCompatible = c.newInstance();
 
-                    webCompatible.process(cfg, byteArrayOutputStream);
-                } catch (InstantiationException e) {
-                    e.printStackTrace();
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                }*/
                 try {
-                    temp.process(webCompatible, new OutputStreamWriter(byteArrayOutputStream));
+                    if(action == null) {
+                        Template temp = cfg.getTemplate(target + ".ftlh");
+                        temp.process(webCompatible, new OutputStreamWriter(byteArrayOutputStream));
+                    } else {
+                        if(webCompatible != null) {
+                            String result = URLEncoder.encode(webCompatible.toString(), encoding);
+                            byteArrayOutputStream.write(result.getBytes());
+                        }
+                    }
                 } catch (TemplateException e) {
                     e.printStackTrace();
                 }
