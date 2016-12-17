@@ -4,9 +4,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 public class Resolver {
+    private ProcedureList procedureList = new ProcedureList(Arrays.asList(new Procedure("Procedure 1"), new Procedure("Procedure 2")));
+
+    public ProcedureList getProcedureList() {
+        return procedureList;
+    }
+
     private Test1 test1 = new Test1("Some name", Arrays.asList("Niels", "Hugo", "Birte"));
 
     public Test1 getTest1() {
@@ -27,7 +32,8 @@ public class Resolver {
                 Method method = Arrays.asList(targetObj.getClass().getMethods()).stream().filter(x -> x.getName().equals(action)).findFirst().get();
                 Object[] argsAsArray = args.toArray();
 
-                return method.invoke(targetObj, argsAsArray);
+                method.invoke(targetObj, argsAsArray);
+                return targetObj;
             } else {
                 return targetObj;
             }

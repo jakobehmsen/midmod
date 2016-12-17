@@ -130,11 +130,12 @@ public class Main {
         server.createContext("/test", new HttpHandler() {
             @Override
             public void handle(HttpExchange t) throws IOException {
-                String[] uriParts = t.getRequestURI().toString().split("/");
+                String[] uriParts = t.getRequestURI().getPath().toString().split("/");
                 String target = uriParts[2];
                 String action = uriParts.length > 3 ? uriParts[3] : null;
                 java.util.Scanner s = new java.util.Scanner(t.getRequestBody()).useDelimiter("\\A");
-                String requestBody = s.hasNext() ? s.next() : "";
+                String requestBody = s.hasNext() ? s.next() : t.getRequestURI().getQuery();
+                requestBody = requestBody == null ? "" : requestBody;
                 String encoding = "ISO-8859-1";
                 List<String> args = Arrays.asList(requestBody.split("&")).stream().filter(x -> x.length() > 0).map(x -> {
                     String[] parts = x.split("=");
@@ -151,7 +152,9 @@ public class Main {
                 ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 
                 try {
-                    if(action == null) {
+                    Template temp = cfg.getTemplate(target + ".ftlh");
+                    temp.process(webCompatible, new OutputStreamWriter(byteArrayOutputStream));
+                    /*if(action == null) {
                         Template temp = cfg.getTemplate(target + ".ftlh");
                         temp.process(webCompatible, new OutputStreamWriter(byteArrayOutputStream));
                     } else {
@@ -159,7 +162,7 @@ public class Main {
                             String result = URLEncoder.encode(webCompatible.toString(), encoding);
                             byteArrayOutputStream.write(result.getBytes());
                         }
-                    }
+                    }*/
                 } catch (TemplateException e) {
                     e.printStackTrace();
                 }
