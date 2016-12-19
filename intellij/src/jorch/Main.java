@@ -30,9 +30,10 @@ public class Main {
     private static DefaultListModel<Runnable> tasksModel;
 
     private static void requestHalt(Runnable activator) {
-        SwingUtilities.invokeLater(() -> {
+        /*SwingUtilities.invokeLater(() -> {
             tasksModel.addElement(activator);
-        });
+        });*/
+        procedureList.requestHalt(activator);
     }
 
     private static <T> T requestHaltCall(Callable<T> activator) {
@@ -48,7 +49,24 @@ public class Main {
             return resultHolder[0];
         });
 
-        SwingUtilities.invokeLater(() -> {
+        requestHalt(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    resultHolder[0] = activator.call();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                latch.countDown();
+            }
+
+            @Override
+            public String toString() {
+                return activator.toString();
+            }
+        });
+
+        /*SwingUtilities.invokeLater(() -> {
             tasksModel.addElement(new Runnable() {
                 @Override
                 public void run() {
@@ -65,7 +83,7 @@ public class Main {
                     return activator.toString();
                 }
             });
-        });
+        });*/
 
         try {
             return future.get();
@@ -78,10 +96,11 @@ public class Main {
         return null;
     }
 
-    public static void main(String[] args) throws Exception {
+    private static ProcedureList procedureList;
 
+    public static void main(String[] args) throws Exception {
         TaskFactory taskFactory = new ReflectiveTaskFactory(token -> new Scheduler(token, executorService),
-            new TestTaskFactory(a -> requestHalt(a), c -> requestHaltCall(c)));
+            new TestTaskFactory(a -> procedureList.requestHalt(a), c -> requestHaltCall(c)));
 
         //SQLRepository repository = new SQLRepository(new MigratingSerializer(), taskFactory);
         MySQLTokenRepository repository = new MySQLTokenRepository(new MigratingSerializer(), taskFactory);
@@ -104,27 +123,31 @@ public class Main {
             }
         });
 
-        // Create your Configuration instance, and specify if up to what FreeMarker
-        // version (here 2.3.25) do you want to apply the fixes that are not 100%
-        // backward-compatible. See the Configuration JavaDoc for details.
         Configuration cfg = new Configuration(Configuration.VERSION_2_3_25);
 
-        // Specify the source where the template files come from. Here I set a
-        // plain directory for it, but non-file-system sources are possible too:
         cfg.setDirectoryForTemplateLoading(new File("./templates"));
-
-        // Set the preferred charset template files are stored in. UTF-8 is
-        // a good choice in most applications:
         cfg.setDefaultEncoding("UTF-8");
-
-        // Sets how errors will appear.
-        // During web page *development* TemplateExceptionHandler.HTML_DEBUG_HANDLER is better.
         cfg.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
-
-        // Don't log exceptions inside FreeMarker that it will thrown at you anyway:
         cfg.setLogTemplateExceptions(false);
 
-        Resolver resolver = new Resolver();
+        procedureList = new ProcedureList(
+            taskSelector -> {
+                try {
+                    RepositoryBasedToken token = repository.newToken(taskSelector);
+                    executorService.execute(() -> {
+                        token.proceed();
+                    });
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }, Arrays.asList(
+            new Procedure("Procedure fork-and-merge", () -> new TaskSelector("forkAndMerge", new Object[]{}))/*,
+        new Procedure("Procedure 2"),
+        new Procedure("Procedure 3"),
+        new Procedure("Procedure 4")*/
+        ));
+
+        Resolver resolver = new Resolver(procedureList);
 
         HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
         server.createContext("/test", new HttpHandler() {
@@ -151,29 +174,24 @@ public class Main {
 
                 ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 
+                int status = 200;
+
                 try {
                     Template temp = cfg.getTemplate(target + ".ftlh");
                     temp.process(webCompatible, new OutputStreamWriter(byteArrayOutputStream));
-                    /*if(action == null) {
-                        Template temp = cfg.getTemplate(target + ".ftlh");
-                        temp.process(webCompatible, new OutputStreamWriter(byteArrayOutputStream));
-                    } else {
-                        if(webCompatible != null) {
-                            String result = URLEncoder.encode(webCompatible.toString(), encoding);
-                            byteArrayOutputStream.write(result.getBytes());
-                        }
-                    }*/
+
+                    if(action != null) {
+                        status = 301;
+                        t.getResponseHeaders().add("Location", Arrays.asList(uriParts).stream().limit(3).collect(Collectors.joining("/")));
+                    }
                 } catch (TemplateException e) {
                     e.printStackTrace();
                 }
 
-                /*try {
-                    temp.process(webCompatible, new OutputStreamWriter(byteArrayOutputStream));
-                } catch (TemplateException e) {
-                    e.printStackTrace();
-                }*/
+                t.getResponseHeaders().add("Cache-Control", "no-cache, no-store, must-revalidate, private");
+
                 byte[] bytes = byteArrayOutputStream.toByteArray();
-                t.sendResponseHeaders(200, bytes.length);
+                t.sendResponseHeaders(status, bytes.length);
                 OutputStream os = t.getResponseBody();
                 os.write(bytes);
                 os.close();
@@ -200,7 +218,6 @@ public class Main {
                         executorService.execute(() -> {
                             token.proceed();
                         });
-
                     } catch (SQLException e1) {
                         e1.printStackTrace();
                     }

@@ -15,13 +15,5 @@
         <p>${startedProcedure}</p>
       </#list>
   </div>
-  <script>
-    /*$("#addChild").click(function() {
-        var name = $("#newChildName").val();
-        $.post("http://localhost:8000/test/Test1/addChild", {0: name}, function(data) {
-            $("#children").append("<p>" + name + "</p>");
-        });
-    });*/
-  </script>
 </body>
 </html>

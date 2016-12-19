@@ -2,13 +2,22 @@ package jorch;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class ProcedureList {
     private List<Procedure> procedures;
+    private ArrayList<Runnable> waiting = new ArrayList<>();
     private ArrayList<String> startedProcedures = new ArrayList<>();
+    private Consumer<TaskSelector> executor;
 
-    public ProcedureList(List<Procedure> procedures) {
+    public ProcedureList(Consumer<TaskSelector> executor, List<Procedure> procedures) {
+        this.executor = executor;
         this.procedures = procedures;
+    }
+
+    public void requestHalt(Runnable activator) {
+        waiting.add(activator);
     }
 
     public List<Procedure> getProcedures() {
@@ -16,10 +25,16 @@ public class ProcedureList {
     }
 
     public void startProcedure(String name) {
-        startedProcedures.add(name);
+        TaskSelector taskSelector = procedures.stream().filter(x -> x.getName().equals(name)).findFirst().get().getTaskSelector();
+        executor.accept(taskSelector);
+        /*RepositoryBasedToken token = repository.newToken(taskSelector);
+        executorService.execute(() -> {
+            token.proceed();
+        });*/
     }
 
-    public ArrayList<String> getStartedProcedures() {
-        return startedProcedures;
+    public List<String> getStartedProcedures() {
+        // Should be invokable from the client
+        return waiting.stream().map(x -> x.toString()).collect(Collectors.toList());
     }
 }

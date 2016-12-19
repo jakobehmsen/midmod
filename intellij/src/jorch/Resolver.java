@@ -2,11 +2,17 @@ package jorch;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 
 public class Resolver {
-    private ProcedureList procedureList = new ProcedureList(Arrays.asList(new Procedure("Procedure 1"), new Procedure("Procedure 2")));
+    private ProcedureList procedureList;
+
+    public Resolver(ProcedureList procedureList) {
+        this.procedureList = procedureList;
+    }
 
     public ProcedureList getProcedureList() {
         return procedureList;
